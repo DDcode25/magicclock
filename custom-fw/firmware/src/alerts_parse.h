@@ -21,6 +21,8 @@ int regionByName(const char *ukName);  // -1 if unknown
 bool parseKlymenko(const char *json, size_t len, Snapshot &out);
 // ubilling.net.ua/aerialalerts/: "alertnow" per oblast -> FULL.
 bool parseUbilling(const char *json, size_t len, Snapshot &out);
+// neptun.in.ua/api/v1/alerts: "oblasts" (whole oblast) -> FULL, "raions" -> PARTIAL.
+bool parseNeptun(const char *json, size_t len, Snapshot &out);
 // api.alerts.in.ua IoT: JSON string of 27 chars A/P/N.
 bool parseAlertsInUa(const char *json, size_t len, Snapshot &out);
 

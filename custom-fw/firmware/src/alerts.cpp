@@ -46,6 +46,7 @@ static void loadConfig() {
 static bool fetch(const Config &c, Snapshot &out, String &err) {
   String url;
   if (c.src == "ubilling") url = "https://ubilling.net.ua/aerialalerts/";
+  else if (c.src == "neptun") url = "https://neptun.in.ua/api/v1/alerts";
   else if (c.src == "alertsinua") {
     if (c.token.isEmpty()) return err = "no token", false;
     url = "https://api.alerts.in.ua/v1/iot/active_air_raid_alerts_by_oblast.json?token=" + c.token;
@@ -67,6 +68,7 @@ static bool fetch(const Config &c, Snapshot &out, String &err) {
   http.end();
 
   bool ok = c.src == "ubilling"     ? parseUbilling(body.c_str(), body.length(), out)
+            : c.src == "neptun"     ? parseNeptun(body.c_str(), body.length(), out)
             : c.src == "alertsinua" ? parseAlertsInUa(body.c_str(), body.length(), out)
                                     : parseKlymenko(body.c_str(), body.length(), out);
   if (!ok) err = "bad data";
@@ -221,7 +223,15 @@ static String hhmm(time_t utc) {
   return b;
 }
 
-static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, const char *err) {
+// Data credit shown under the map (NEPTUN terms require a visible link next to the data).
+static const char *sourceDomain(const String &src) {
+  if (src == "neptun") return "neptun.in.ua";
+  if (src == "ubilling") return "ubilling.net.ua";
+  if (src == "alertsinua") return "alerts.in.ua";
+  return "vadimklimenko.com";
+}
+
+static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, const String &src, time_t upd, const char *err) {
   tft.fillRect(0, 202, 240, 38, TFT_BLACK);
   tft.setTextDatum(ML_DATUM);
   if (home >= 0) {
@@ -234,6 +244,8 @@ static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, c
     tft.drawString(state, 6, 230, 2);
   }
   tft.setTextDatum(MR_DATUM);
+  tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+  tft.drawString(sourceDomain(src), 234, 212, 2);
   String status;
   if (*err) status = err;
   else if (!upd) status = "loading...";
@@ -248,8 +260,9 @@ static void render(TFT_eSPI &tft, bool full) {
   time_t upd;
   char err[sizeof error];
   int home;
+  String src;
   xSemaphoreTake(lock, portMAX_DELAY);
-  s = snap, v = version, upd = updatedAt, home = cfg.home;
+  s = snap, v = version, upd = updatedAt, home = cfg.home, src = cfg.src;
   memcpy(err, error, sizeof err);
   xSemaphoreGive(lock);
   if (full || v != drawnVersion) {
@@ -257,7 +270,7 @@ static void render(TFT_eSPI &tft, bool full) {
     drawHeader(tft, s);
     drawMap(tft, s, home);
   }
-  drawFooter(tft, s, home, upd, err);
+  drawFooter(tft, s, home, src, upd, err);
 }
 
 void draw(TFT_eSPI &tft) {

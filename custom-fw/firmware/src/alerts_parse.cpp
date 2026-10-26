@@ -41,6 +41,7 @@ int regionByName(const char *name) {
     if (strcmp(name, NAMES[i]) == 0) return i;
   if (strcmp(name, "Автономна Республіка Крим") == 0) return 0;
   if (strcmp(name, "м. Севастополь") == 0) return 18;
+  if (strcmp(name, "Київ") == 0 || strcmp(name, "м.Київ") == 0 || strcmp(name, "місто Київ") == 0) return 9;
   return -1;
 }
 
@@ -114,6 +115,33 @@ bool parseUbilling(const char *json, size_t len, Snapshot &out) {
   for (JsonPair st : states) {
     int r = regionByName(st.key().c_str());
     if (r >= 0 && (st.value()["alertnow"] | false)) out.level[r] = FULL;
+  }
+  return true;
+}
+
+bool parseNeptun(const char *json, size_t len, Snapshot &out) {
+  JsonDocument filter;
+  filter["oblasts"][0]["name"] = true;
+  filter["oblasts"][0]["since"] = true;
+  filter["raions"][0]["oblast"] = true;
+  filter["raions"][0]["since"] = true;
+  JsonDocument doc;
+  if (deserializeJson(doc, json, len, DeserializationOption::Filter(filter))) return false;
+  JsonArray oblasts = doc["oblasts"], raions = doc["raions"];
+  if (oblasts.isNull() || raions.isNull()) return false;
+  clear(out);
+  for (JsonObject o : oblasts) {
+    int r = regionByName(o["name"]);
+    if (r < 0) continue;
+    out.level[r] = FULL;
+    out.since[r] = parseIso(o["since"]);
+  }
+  for (JsonObject d : raions) {
+    int r = regionByName(d["oblast"]);
+    if (r < 0 || out.level[r] == FULL) continue;
+    out.level[r] = PARTIAL;
+    time_t t = parseIso(d["since"]);
+    if (t && (!out.since[r] || t < out.since[r])) out.since[r] = t;
   }
   return true;
 }

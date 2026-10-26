@@ -49,12 +49,15 @@ ALERTS_VIEW = """
           <div class="stack">
             <label class="pair"><span>Source</span><select class="select" id="alertsSrc">
               <option value="klymenko">vadimklimenko.com (no token, oblast + districts)</option>
+              <option value="neptun">neptun.in.ua (no token, oblast + districts)</option>
               <option value="ubilling">ubilling.net.ua (no token, oblast only)</option>
               <option value="alertsinua">alerts.in.ua (token required)</option>
             </select></label>
             <label class="pair"><span>alerts.in.ua token</span><input class="field" id="alertsToken" placeholder="only for alerts.in.ua" autocomplete="off"></label>
             <label class="pair"><span>Refresh Interval (sec, min 15)</span><input class="field" id="alertsInterval" inputmode="numeric" placeholder="30"></label>
             <div class="hint">Token: write to <b>api@alerts.in.ua</b>. Limit about 10 requests per minute.</div>
+            <div class="hint">Дані: <a href="https://neptun.in.ua/" target="_blank" rel="noopener noreferrer">Карта повітряних тривог — NEPTUN</a>, vadimklimenko.com, ubilling.net.ua, alerts.in.ua.
+              These are aggregators, not the official alert system: always follow official air raid signals.</div>
           </div>
         </div>
 
@@ -85,7 +88,7 @@ ALERTS_VIEW = """
 ALERTS_JS = """
     // ---- OpenFW: air alerts ----
     state.alerts={src:'klymenko',token:'',interval:30,home:'-1'};
-    const ALERT_SRC_LABELS={klymenko:'Klymenko',ubilling:'ubilling',alertsinua:'alerts.in.ua'};
+    const ALERT_SRC_LABELS={klymenko:'Klymenko',neptun:'NEPTUN',ubilling:'ubilling',alertsinua:'alerts.in.ua'};
     function syncAlertsForm(){
       byId('alertsSrc').value=state.alerts.src;
       byId('alertsToken').value=state.alerts.token;
