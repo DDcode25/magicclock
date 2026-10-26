@@ -8,6 +8,7 @@ namespace alerts {
 
 void begin();   // load settings, start the background fetch task
 void reload();  // settings changed (/set)
+void pause(bool on);  // stop fetching during OTA: TLS + upload together run short of RAM
 
 String statusJson();  // {"levels":"NPA...","updated":<utc>,"error":"","src":"..."} for /alerts.json
 

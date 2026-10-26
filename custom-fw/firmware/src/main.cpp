@@ -16,7 +16,7 @@ void setup() {
   if (!store::begin()) Serial.println("LittleFS: mount failed (not formatting)");
   settings.load();
   ui::begin();
-  ui::message("SmallTV Pro", "connecting Wi-Fi...");
+  ui::message("SmallTV Pro", "підключення до Wi-Fi…");
   net::begin();
   web::begin();
   alerts::begin();

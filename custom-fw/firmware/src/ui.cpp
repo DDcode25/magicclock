@@ -4,6 +4,7 @@
 #include "alerts.h"
 #include "apps.h"
 #include "board.h"
+#include "fonts.h"
 #include "net.h"
 #include "store.h"
 
@@ -37,7 +38,9 @@ static void calibrateTouch() {
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_ORANGE, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
-  tft.drawString("Don't Touch Top!", 120, 120, 4);
+  useFont(tft, FONT_LARGE);
+  tft.drawString("Не торкайтеся", 120, 105);
+  tft.drawString("кнопки зверху!", 120, 135);
   delay(300);
   uint32_t sum = 0;
   for (int i = 0; i < 16; i++) {
@@ -102,9 +105,11 @@ void message(const String &title, const String &text) {
   tft.fillScreen(TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(TFT_ORANGE, TFT_BLACK);
-  tft.drawString(title, 120, 100, 4);
+  useFont(tft, FONT_LARGE);
+  tft.drawString(title, 120, 100);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString(text, 120, 140, 2);
+  useFont(tft, FONT_SMALL);
+  tft.drawString(text, 120, 140);
 }
 
 // Placeholder screen until each app is implemented: name, clock, network.
@@ -116,9 +121,11 @@ static void drawApp() {
   tft.fillRect(0, 0, 240, 36, 0x18E3);
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(TFT_ORANGE, 0x18E3);
-  tft.drawString(APP_ITEMS[current].label, 120, 18, 4);
+  useFont(tft, FONT_LARGE);
+  tft.drawString(APP_ITEMS[current].label, 120, 19);
   tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-  tft.drawString("coming soon", 120, 160, 2);
+  useFont(tft, FONT_SMALL);
+  tft.drawString("незабаром", 120, 160);
 }
 
 static void drawStatus() {
@@ -132,11 +139,14 @@ static void drawStatus() {
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setTextPadding(230);
+  useFont(tft, FONT_BUILTIN);
   tft.drawString(buf, 120, 105, 7);
   tft.setTextColor(net::connected() ? TFT_GREEN : TFT_YELLOW, TFT_BLACK);
-  String status = net::connected() ? net::ip() : (net::apActive() ? String("AP ") + AP_SSID + " " + net::ip() : String("offline"));
-  tft.drawString(status, 120, 220, 2);
+  String status = net::connected() ? net::ip() : (net::apActive() ? String("Точка доступу ") + net::ip() : String("немає мережі"));
+  tft.fillRect(0, 210, 240, 22, TFT_BLACK);
   tft.setTextPadding(0);
+  useFont(tft, FONT_SMALL);
+  tft.drawString(status, 120, 220);
 }
 
 static void handleTouch() {

@@ -15,7 +15,7 @@ REGIONS_UK = [
     "Черкаська область", "Чернівецька область", "Чернігівська область",
 ]
 
-_home_options = '<option value="-1">— none —</option>' + "".join(
+_home_options = '<option value="-1">— немає —</option>' + "".join(
     '<option value="%d">%s</option>' % (i, n) for i, n in sorted(enumerate(REGIONS_UK), key=lambda x: x[1])
 )
 
@@ -23,17 +23,17 @@ ALERTS_VIEW = """
     <section class="view hidden" id="view-alerts">
       <div class="panel hero">
         <div>
-          <div class="eyebrow">Air alerts</div>
-          <h1>Ukraine Alert Map</h1>
-          <p class="lead">Map of oblasts coloured by air raid alerts: red = whole oblast (or all its districts), orange = some districts, grey = no data from the source.</p>
+          <div class="eyebrow">Повітряні тривоги</div>
+          <h1>Мапа тривог України</h1>
+          <p class="lead">Області на мапі: червона — тривога в усій області (або в усіх її районах), помаранчева — в частині районів, сіра — джерело не дало даних.</p>
         </div>
         <div class="hero-side">
           <div class="chip-row">
-            <div class="chip"><span>Source</span><b id="alertsSrcLabel">-</b></div>
-            <div class="chip"><span>Refresh</span><b id="alertsIntervalLabel">30s</b></div>
+            <div class="chip"><span>Джерело</span><b id="alertsSrcLabel">-</b></div>
+            <div class="chip"><span>Оновлення</span><b id="alertsIntervalLabel">30 с</b></div>
           </div>
           <div class="chip-row">
-            <button class="btn hero-open" type="button" data-open-app="Alerts" data-app-key="alerts" data-app-label="Air alerts">Open This App</button>
+            <button class="btn hero-open" type="button" data-open-app="Alerts" data-app-key="alerts" data-app-label="Повітряні тривоги">Відкрити на пристрої</button>
           </div>
         </div>
       </div>
@@ -42,44 +42,44 @@ ALERTS_VIEW = """
         <div class="panel">
           <div class="section-head">
             <div>
-              <div class="eyebrow">Data</div>
-              <h2>Source</h2>
+              <div class="eyebrow">Дані</div>
+              <h2>Джерело</h2>
             </div>
           </div>
           <div class="stack">
-            <label class="pair"><span>Source</span><select class="select" id="alertsSrc">
-              <option value="klymenko">vadimklimenko.com (no token, oblast + districts)</option>
-              <option value="neptun">neptun.in.ua (no token, oblast + districts)</option>
-              <option value="ubilling">ubilling.net.ua (no token, oblast only, no Crimea; least accurate)</option>
-              <option value="alertsinua">alerts.in.ua (token required)</option>
+            <label class="pair"><span>Джерело</span><select class="select" id="alertsSrc">
+              <option value="klymenko">vadimklimenko.com (без токена, області й райони)</option>
+              <option value="neptun">neptun.in.ua (без токена, області й райони)</option>
+              <option value="ubilling">ubilling.net.ua (без токена, лише області, без Криму; найменш точне)</option>
+              <option value="alertsinua">alerts.in.ua (потрібен токен)</option>
             </select></label>
-            <label class="pair"><span>alerts.in.ua token</span><input class="field" id="alertsToken" placeholder="only for alerts.in.ua" autocomplete="off"></label>
-            <label class="pair"><span>Refresh Interval (sec, min 15)</span><input class="field" id="alertsInterval" inputmode="numeric" placeholder="30"></label>
-            <div class="hint">Token: write to <b>api@alerts.in.ua</b>. Limit about 10 requests per minute.</div>
+            <label class="pair"><span>Токен alerts.in.ua</span><input class="field" id="alertsToken" placeholder="лише для alerts.in.ua" autocomplete="off"></label>
+            <label class="pair"><span>Інтервал оновлення (с, мінімум 15)</span><input class="field" id="alertsInterval" inputmode="numeric" placeholder="30"></label>
+            <div class="hint">Токен: напишіть на <b>api@alerts.in.ua</b>. Ліміт — близько 10 запитів на хвилину.</div>
             <div class="hint">Дані: <a href="https://neptun.in.ua/" target="_blank" rel="noopener noreferrer">Карта повітряних тривог — NEPTUN</a>, vadimklimenko.com, ubilling.net.ua, alerts.in.ua.
-              These are aggregators, not the official alert system: always follow official air raid signals.</div>
+              Це агрегатори, а не офіційна система оповіщення: завжди орієнтуйтеся на офіційні сигнали тривоги.</div>
           </div>
         </div>
 
         <div class="panel">
           <div class="section-head">
             <div>
-              <div class="eyebrow">Display</div>
-              <h2>Home region</h2>
+              <div class="eyebrow">Екран</div>
+              <h2>Мій регіон</h2>
             </div>
           </div>
           <div class="stack">
-            <label class="pair"><span>Highlight and show status for</span><select class="select" id="alertsHome">%s</select></label>
-            <div class="hint">The region is outlined in white; its status and alert start time are shown under the map.</div>
+            <label class="pair"><span>Виділяти й показувати статус для</span><select class="select" id="alertsHome">%s</select></label>
+            <div class="hint">Регіон обведено білим; його статус і час початку тривоги показано під мапою.</div>
           </div>
         </div>
       </div>
 
       <div class="panel actions">
-        <p>Save alert map settings.</p>
+        <p>Збереження налаштувань мапи тривог.</p>
         <div class="chip-row">
-          <button class="ghost" id="reloadAlerts" type="button">Reload Alerts</button>
-          <button class="btn" id="saveAlerts" type="button">Save Alerts</button>
+          <button class="ghost" id="reloadAlerts" type="button">Оновити</button>
+          <button class="btn" id="saveAlerts" type="button">Зберегти</button>
         </div>
       </div>
     </section>
@@ -95,7 +95,7 @@ ALERTS_JS = """
       byId('alertsInterval').value=state.alerts.interval;
       byId('alertsHome').value=state.alerts.home;
       byId('alertsSrcLabel').textContent=ALERT_SRC_LABELS[state.alerts.src]||state.alerts.src;
-      byId('alertsIntervalLabel').textContent=state.alerts.interval+'s';
+      byId('alertsIntervalLabel').textContent=state.alerts.interval+' с';
     }
     function loadAlertsConfig(force){
       return once('alerts',force,async()=>{
@@ -112,13 +112,13 @@ ALERTS_JS = """
       state.alerts.token=byId('alertsToken').value.trim();
       state.alerts.interval=Math.max(15,toInt(byId('alertsInterval').value,30));
       state.alerts.home=byId('alertsHome').value;
-      if(state.alerts.src==='alertsinua'&&!state.alerts.token){toast('alerts.in.ua needs a token.',0);return}
+      if(state.alerts.src==='alertsinua'&&!state.alerts.token){toast('Для alerts.in.ua потрібен токен.',0);return}
       setBusy(true);
       try{
         await send('/set?al_src='+encodeURIComponent(state.alerts.src)+'&al_token='+encodeURIComponent(state.alerts.token)+'&al_i='+state.alerts.interval+'&al_home='+encodeURIComponent(state.alerts.home));
         syncAlertsForm();
-        toast('Alert settings saved.',1);
-      }catch(err){toast('Alerts save failed: '+err.message,0)}
+        toast('Налаштування тривог збережено.',1);
+      }catch(err){toast('Не вдалося зберегти тривоги: '+err.message,0)}
       setBusy(false);
     }
     setTimeout(()=>{
@@ -130,12 +130,12 @@ ALERTS_JS = """
 PATCHES = [
     # tab button
     (r'(<button class="tab" data-view="monitor">Monitor</button>)',
-     r'\1\n        <button class="tab" data-view="alerts">Alerts</button>'),
+     r'\1\n        <button class="tab" data-view="alerts">Тривоги</button>'),
     # view section, before the settings view
     (r'(\n\s*<section class="view hidden" id="view-settings">)', ALERTS_VIEW.replace('\\', r'\\') + r'\1'),
     # app list: toggle, boot app, open button
     (r"(\{key:'settings',label:'Settings',name:'Settings',index:'8'\})(\s*\])",
-     r"\1,\n      {key:'alerts',label:'Air alerts',name:'Alerts',index:'9'}\2"),
+     r"\1,\n      {key:'alerts',label:'Повітряні тривоги',name:'Alerts',index:'9'}\2"),
     (r"const APP_VIEWS=\['btc','cg','stock','weather','time','image','monitor'\];",
      "const APP_VIEWS=['btc','cg','stock','weather','time','image','monitor','alerts'];"),
     (r"(const VIEW_LABELS=\{[^}]*monitor:'Monitor',)", r"\1alerts:'Alerts',"),

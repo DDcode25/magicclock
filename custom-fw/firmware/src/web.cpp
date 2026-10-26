@@ -174,7 +174,7 @@ static bool clearDir(const char *dir) {
 }
 
 static void restartSoon(const char *why) {
-  ui::message(why, "rebooting...");
+  ui::message(why, "перезавантаження…");
   delay(800);
   ESP.restart();
 }
@@ -194,7 +194,7 @@ static void handleSet() {
   }
   if (server.hasArg("reboot")) {
     ok();
-    restartSoon("Reboot");
+    restartSoon("Перезавантаження");
   }
   if (server.hasArg("reset")) {
     // Factory reset of settings; Wi-Fi (config.json) is kept so the device stays reachable.
@@ -204,7 +204,7 @@ static void handleSet() {
     for (File f = d.openNextFile(); f; f = d.openNextFile())
       if (strcmp(f.name(), "config.json")) files.push_back(String("/.sys/") + f.name());
     for (auto &p : files) LittleFS.remove(p);
-    restartSoon("Factory reset");
+    restartSoon("Скидання");
   }
   if (server.hasArg("clear")) {
     String kind = server.arg("clear");
@@ -340,7 +340,8 @@ static const char UPDATE_PAGE[] PROGMEM =
 static void handleUpdateData() {
   HTTPUpload &u = server.upload();
   if (u.status == UPLOAD_FILE_START) {
-    ui::message("Updating", "do not unplug");
+    alerts::pause(true);
+    ui::message("Оновлення", "не вимикайте живлення");
     if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) Update.printError(Serial);
   } else if (u.status == UPLOAD_FILE_WRITE) {
     if (Update.write(u.buf, u.currentSize) != u.currentSize) Update.printError(Serial);
@@ -348,6 +349,7 @@ static void handleUpdateData() {
     if (!Update.end(true)) Update.printError(Serial);
   } else if (u.status == UPLOAD_FILE_ABORTED) {
     Update.abort();
+    alerts::pause(false);
   }
 }
 
@@ -355,12 +357,13 @@ static void handleUpdateDone() {
   bool success = !Update.hasError();
   server.sendHeader("Connection", "close");
   if (!success) {
+    alerts::pause(false);
     server.send(500, "text/plain", String("FAIL: ") + Update.errorString());
     ui::applySettings();
     return;
   }
   server.send(200, "text/html", "<META http-equiv=\"refresh\" content=\"15;URL=/\">Update Success! Rebooting...");
-  restartSoon("Update done");
+  restartSoon("Оновлено");
 }
 
 static void handleFlash() {
@@ -400,7 +403,7 @@ void begin() {
     if (!server.hasArg("s") || server.arg("s").isEmpty()) return server.send(400, "text/plain", "ssid required");
     net::saveWifi(server.arg("s"), server.arg("p"));
     server.send(200, "text/plain", "saved");
-    restartSoon("Wi-Fi saved");
+    restartSoon("Wi-Fi збережено");
   });
   server.on("/filelist", HTTP_GET, handleFileList);
   server.on(

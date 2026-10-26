@@ -3,6 +3,7 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include "apps.h"
+#include "fonts.h"
 #include "net.h"
 #include "store.h"
 #include "ukraine_map.h"
@@ -23,9 +24,10 @@ static Config cfg;
 static Snapshot snap;
 static uint32_t version = 0;   // bumped on each successful fetch
 static time_t updatedAt = 0;   // UTC of last successful fetch
-static char error[24] = "";  // last fetch error, guarded by lock
+static char error[48] = "";  // last fetch error, guarded by lock
 static SemaphoreHandle_t lock;  // guards cfg, snap, version, updatedAt, error (Strings: no spinlock)
 static volatile bool fetchNow = true;
+static volatile bool paused = false;
 
 static TFT_eSprite *map8 = nullptr;
 static uint32_t drawnVersion = UINT32_MAX;
@@ -48,7 +50,7 @@ static bool fetch(const Config &c, Snapshot &out, String &err) {
   if (c.src == "ubilling") url = "https://ubilling.net.ua/aerialalerts/";
   else if (c.src == "neptun") url = "https://neptun.in.ua/api/v1/alerts";
   else if (c.src == "alertsinua") {
-    if (c.token.isEmpty()) return err = "no token", false;
+    if (c.token.isEmpty()) return err = "немає токена", false;
     url = "https://api.alerts.in.ua/v1/iot/active_air_raid_alerts_by_oblast.json?token=" + c.token;
   } else url = "https://vadimklimenko.com/map/statuses.json";
 
@@ -57,10 +59,10 @@ static bool fetch(const Config &c, Snapshot &out, String &err) {
   HTTPClient http;
   http.setTimeout(10000);
   http.setUserAgent("SmallTV-PRO-OpenFW");
-  if (!http.begin(client, url)) return err = "connect", false;
+  if (!http.begin(client, url)) return err = "немає з'єднання", false;
   int code = http.GET();
   if (code != 200) {
-    err = "HTTP " + String(code);
+    err = "помилка HTTP " + String(code);
     http.end();
     return false;
   }
@@ -71,7 +73,7 @@ static bool fetch(const Config &c, Snapshot &out, String &err) {
             : c.src == "neptun"     ? parseNeptun(body.c_str(), body.length(), out)
             : c.src == "alertsinua" ? parseAlertsInUa(body.c_str(), body.length(), out)
                                     : parseKlymenko(body.c_str(), body.length(), out);
-  if (!ok) err = "bad data";
+  if (!ok) err = "погані дані";
   return ok;
 }
 
@@ -79,7 +81,7 @@ static void task(void *) {
   uint32_t last = 0;
   for (;;) {
     vTaskDelay(pdMS_TO_TICKS(500));
-    if (!settings.appEnabled[APP_ALERTS] || !net::connected()) continue;
+    if (paused || !settings.appEnabled[APP_ALERTS] || !net::connected()) continue;
     Config c;
     xSemaphoreTake(lock, portMAX_DELAY);
     c = cfg;
@@ -111,6 +113,8 @@ void begin() {
   memset(&snap, 0, sizeof snap);
   xTaskCreatePinnedToCore(task, "alerts", 12288, nullptr, 1, nullptr, 0);
 }
+
+void pause(bool on) { paused = on; }
 
 void reload() {
   loadConfig();
@@ -213,39 +217,44 @@ static String hhmm(time_t utc) {
   return b;
 }
 
-// Under the map: home region name and status on the left; current time (large, white)
-// and alerted region count (or fetch problem) on the right.
+// Under the map: home region name and status on the left, current time (large, white) on the
+// right; a fetch problem, if any, under the time.
 static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, const char *err, int interval) {
-  const int y1 = 201, y2 = 226;
+  const int y1 = 199, y2 = 225;
   tft.fillRect(0, MAP_Y + MAP_H, 240, 240 - MAP_Y - MAP_H, TFT_BLACK);
 
   String clock = net::timeValid() ? hhmm(time(nullptr)) : String("--:--");
+  useFont(tft, FONT_LARGE);
   tft.setTextDatum(MR_DATUM);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString(clock, 234, y1, 4);
-  int clockW = tft.textWidth(clock, 4);
+  tft.drawString(clock, 236, y1);
+  int clockW = tft.textWidth(clock);
 
-  int count = 0;
-  for (int r = 0; r < REGIONS; r++) count += s.level[r] == FULL || s.level[r] == PARTIAL;
-  bool stale = upd && time(nullptr) - upd > 3 * interval + 30;
-  if (*err || stale || !upd) {
-    tft.setTextColor(*err || stale ? TFT_YELLOW : TFT_DARKGREY, TFT_BLACK);
-    tft.drawString(*err ? String(err) : stale ? "old " + hhmm(upd) : String("loading..."), 234, y2, 2);
-  } else {
-    tft.setTextColor(count ? TFT_RED : TFT_GREEN, TFT_BLACK);
-    tft.drawString(String(count) + "/" + REGIONS, 234, y2, 2);
+  const char *label = home >= 0 ? MAP[home].label : nullptr;
+  bool bigLabel = label && tft.textWidth(label) <= 232 - clockW - 10;
+  if (bigLabel) {
+    tft.setTextDatum(ML_DATUM);
+    tft.drawString(label, 4, y1);
   }
 
+  useFont(tft, FONT_SMALL);
+  bool stale = upd && time(nullptr) - upd > 3 * interval + 30;
+  if (*err || stale) {
+    tft.setTextDatum(MR_DATUM);
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft.drawString(*err ? String(err) : "дані з " + hhmm(upd), 236, y2);
+  }
   tft.setTextDatum(ML_DATUM);
+  if (label && !bigLabel) {
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.drawString(label, 4, y1);
+  }
   if (home >= 0) {
     uint8_t l = s.level[home];
-    String state = l == FULL ? "ALERT" : l == PARTIAL ? "partial" : l == UNKNOWN ? "no data" : "clear";
-    if ((l == FULL || l == PARTIAL) && s.since[home]) state += " since " + hhmm(s.since[home]);
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    const char *label = MAP[home].label;
-    tft.drawString(label, 6, y1, tft.textWidth(label, 4) <= 228 - clockW - 8 ? 4 : 2);
-    tft.setTextColor(l == FULL ? TFT_RED : l == PARTIAL ? TFT_ORANGE : l == UNKNOWN ? TFT_DARKGREY : TFT_GREEN, TFT_BLACK);
-    tft.drawString(state, 6, y2, 2);
+    String state = !upd ? "завантаження…" : l == FULL ? "ТРИВОГА" : l == PARTIAL ? "часткова тривога" : l == UNKNOWN ? "немає даних" : "без тривоги";
+    if (upd && (l == FULL || l == PARTIAL) && s.since[home]) state += " з " + hhmm(s.since[home]);
+    tft.setTextColor(l == FULL ? TFT_RED : l == PARTIAL ? TFT_ORANGE : l == UNKNOWN || !upd ? TFT_DARKGREY : TFT_GREEN, TFT_BLACK);
+    tft.drawString(state, 4, y2);
   }
 }
 
