@@ -1,4 +1,4 @@
-# Техническое задание: открытая прошивка GeekMagic SmallTV Pro (OpenFW)
+# Техническое задание: прошивка Magic Box FW для GeekMagic SmallTV Pro
 
 Документ описывает, что должна делать прошивка и что уже сделано. Обновляется вместе с кодом.
 
@@ -54,7 +54,7 @@ PlatformIO, `custom-fw/firmware/`:
 | `apps.h` | Реестр приложений (ключи и индексы как в заводском интерфейсе) |
 | `alerts`, `alerts_parse` | Приложение «Карта тревог» |
 | `ukraine_map.h` | Контуры областей в пикселях; генерируется `tools/gen_ukraine_map.py` |
-| `tools/embed_web.py`, `tools/ui_patch.py` | Сборка веб-интерфейса: заводской `web/stock_index.html` + патчи OpenFW → gzip в прошивку |
+| `tools/embed_web.py`, `tools/ui_patch.py` | Сборка веб-интерфейса: заводской `web/stock_index.html` + патчи Magic Box FW → gzip в прошивку |
 
 `custom-fw/probe/` — диагностическая прошивка: дамп флеша, тест дисплея и сенсора, `/boot_other`.
 
@@ -66,7 +66,7 @@ PlatformIO, `custom-fw/firmware/`:
 |---|---|
 | `GET /` | Веб-интерфейс (заводской + вкладка Alerts) |
 | `GET /set?...` | Сохранение настроек в `/.sys/*.json` и действия (таблица ниже) |
-| `GET /v.json` | `{"m":"GeekMagic SmallTV-PRO","v":"OpenFW x.y.z"}` |
+| `GET /v.json` | `{"m":"GeekMagic SmallTV-PRO","v":"Magic Box FW x.y.z"}` |
 | `GET /space.json` | `{"total":..,"free":..}` LittleFS |
 | `GET /wifi.json` | Скан сетей `{"aps":[{"ss","r"(%),"e"(0/1)}]}` |
 | `GET /wifisave?s=&p=` | Сохранить Wi-Fi в `config.json`, ответ `saved`, перезагрузка |
@@ -95,7 +95,7 @@ PlatformIO, `custom-fw/firmware/`:
 | `gif_loop,i_i,autoplay,album_path,album_autoplay` | `album.json` |
 | `ip,m_i` / `delay` | `monitor.json` / `delay.json` |
 | `up_fg..pct_down_bg` / `dec_sep,thous_sep` | `ccolor.json` / `sep.json` |
-| `al_src,al_token,al_i,al_home` | `alerts.json` (OpenFW) |
+| `al_src,al_token,al_i,al_home` | `alerts.json` (Magic Box FW) |
 
 ## 6. Приложения
 
@@ -113,7 +113,7 @@ PlatformIO, `custom-fw/firmware/`:
 | 6 | Часы | заглушка (часы есть на экране-заглушке) |
 | 7 | Idea (анимации) | заглушка |
 | 8 | Настройки на устройстве | заглушка |
-| 9 | **Карта тревог** (OpenFW) | **готово** |
+| 9 | **Карта тревог** (Magic Box FW) | **готово** |
 
 Заглушка показывает название приложения, текущее время и сетевой статус.
 
@@ -169,7 +169,11 @@ PlatformIO, `custom-fw/firmware/`:
 - **Запасная точка доступа:** открытая сеть `SmallTV-PRO` по адресу 192.168.4.1, с captive portal. Включается, если Wi-Fi не подключился за 20 с или связь пропала больше чем на 2 мин. Выключается, когда Wi-Fi вернулся и к точке никто не подключён.
 - **Время:** NTP (сервер из `ntp.json`, плюс `pool.ntp.org`, `time.windows.com`). `tz.json` `mode:0` (Auto) — Europe/Kyiv с переходом на летнее время (`EET-2EEST,M3.5.0/3,M10.5.0/4`); `mode:1` — фиксированное смещение `offset` минут.
 
-## 8. Язык
+## 8. Название и язык
+
+- Название прошивки: **Magic Box FW** (`/v.json`, заголовок и шапка веб-интерфейса, копирайт в подвале
+  «Copyright © Magic Box FW. All rights reserved.», User-Agent `MagicBoxFW/x.y.z`).
+- Модель железа (`GeekMagic SmallTV-PRO`), имя в сети `smalltv-pro` и точка доступа `SmallTV-PRO` не меняются.
 
 - Все надписи на экране и в веб-интерфейсе — на украинском.
 - Экран: сглаженные шрифты DejaVu Sans 15 px и DejaVu Sans Bold 24 px (латиница + украинская кириллица),

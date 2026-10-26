@@ -121,7 +121,7 @@ static const Field FIELDS[] = {
     {"pct_down_bg", "ccolor.json", "pct_down_bg", STR},
     {"dec_sep", "sep.json", "decimal_sep", STR},
     {"thous_sep", "sep.json", "thousand_sep", STR},
-    // OpenFW: air alerts app
+    // Magic Box FW: air alerts app
     {"al_src", "alerts.json", "src", STR},
     {"al_token", "alerts.json", "token", STR},
     {"al_i", "alerts.json", "i", INT},
@@ -392,7 +392,7 @@ void begin() {
   });
   server.on("/set", HTTP_GET, handleSet);
   server.on("/v.json", HTTP_GET, [] {
-    server.send(200, "application/json", String("{\"m\":\"") + MODEL_NAME + "\",\"v\":\"OpenFW " FW_VERSION "\"}");
+    server.send(200, "application/json", String("{\"m\":\"") + MODEL_NAME + "\",\"v\":\"Magic Box FW " FW_VERSION "\"}");
   });
   server.on("/space.json", HTTP_GET, [] {
     server.send(200, "application/json",

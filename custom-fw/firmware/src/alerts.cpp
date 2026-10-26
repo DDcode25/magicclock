@@ -58,7 +58,7 @@ static bool fetch(const Config &c, Snapshot &out, String &err) {
   client.setInsecure();  // no CA bundle on the device; data is public and read-only
   HTTPClient http;
   http.setTimeout(10000);
-  http.setUserAgent("SmallTV-PRO-OpenFW");
+  http.setUserAgent("MagicBoxFW/" FW_VERSION);
   if (!http.begin(client, url)) return err = "немає з'єднання", false;
   int code = http.GET();
   if (code != 200) {

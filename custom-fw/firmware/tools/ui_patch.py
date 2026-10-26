@@ -1,4 +1,4 @@
-"""OpenFW additions to the stock web UI (web/stock_index.html).
+"""Magic Box FW additions to the stock web UI (web/stock_index.html).
 
 Each patch replaces one exact anchor in the stock page; a missing anchor fails the build
 instead of silently shipping a broken UI.
@@ -86,7 +86,7 @@ ALERTS_VIEW = """
 """ % _home_options
 
 ALERTS_JS = """
-    // ---- OpenFW: air alerts ----
+    // ---- Magic Box FW: air alerts ----
     state.alerts={src:'klymenko',token:'',interval:30,home:'-1'};
     const ALERT_SRC_LABELS={klymenko:'Klymenko',neptun:'NEPTUN',ubilling:'ubilling',alertsinua:'alerts.in.ua'};
     function syncAlertsForm(){
@@ -143,8 +143,8 @@ PATCHES = [
      r"\1\n\2if(view==='alerts') return loadAlertsConfig(force);"),
     # JS helpers, before loadView
     (r"(\n\s*function loadView\(view,force\)\{)", ALERTS_JS.replace('\\', r'\\') + r"\1"),
-    # version chip shows OpenFW
-    (r"<title>GeekMagic", "<title>OpenFW · GeekMagic"),
+    # firmware name in the tab title and the page header
+    (r"<title>GeekMagic PRO</title>", "<title>Magic Box FW</title>"),
 ]
 
 

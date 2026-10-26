@@ -92,6 +92,7 @@ HTML = {
     "Format and API key": "Формат і API-ключ",
     "Found": "Знайдено",
     "Free": "Вільно",
+    "GeekMagic PRO": "Magic Box FW",
     "GIF Loop": "Повтори GIF",
     "GIF Loop Count": "Кількість повторів GIF",
     "GIF Path": "Шлях до GIF",

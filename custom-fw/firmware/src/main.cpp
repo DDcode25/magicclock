@@ -10,13 +10,13 @@
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("\nSmallTV Pro OpenFW " FW_VERSION);
+  Serial.println("\nMagic Box FW " FW_VERSION);
   esp_ota_mark_app_valid_cancel_rollback();
 
   if (!store::begin()) Serial.println("LittleFS: mount failed (not formatting)");
   settings.load();
   ui::begin();
-  ui::message("SmallTV Pro", "підключення до Wi-Fi…");
+  ui::message("Magic Box FW", "підключення до Wi-Fi…");
   net::begin();
   web::begin();
   alerts::begin();
