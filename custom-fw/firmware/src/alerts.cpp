@@ -276,12 +276,86 @@ static void render(TFT_eSPI &tft, bool full) {
   drawFooter(tft, s, home, upd, err, interval);
 }
 
+// ---- home alarm ---------------------------------------------------------------------
+
+static const uint32_t BLINK_MS = 10000, BLINK_PHASE_MS = 500;
+static uint32_t blinkStart = 0;
+static uint8_t blinkLevel = NONE;
+static bool blinking = false;
+
+bool homeAlertStarted() {
+  static uint32_t seenVersion = 0;
+  static int seenHome = -2;
+  static uint8_t prev = UNKNOWN;
+  uint32_t v;
+  int home;
+  uint8_t level;
+  xSemaphoreTake(lock, portMAX_DELAY);
+  v = version, home = cfg.home;
+  level = home >= 0 ? snap.level[home] : NONE;
+  xSemaphoreGive(lock);
+  if (v == seenVersion && home == seenHome) return false;
+  bool first = seenVersion == 0 || home != seenHome;  // boot or home changed: just remember
+  seenVersion = v, seenHome = home;
+  uint8_t before = prev;
+  prev = level;
+  if (first || v == 0) return false;
+  bool started = (level == FULL || level == PARTIAL) && (before == NONE || before == UNKNOWN || (before == PARTIAL && level == FULL));
+  if (started) {
+    blinking = true;
+    blinkStart = millis();
+    blinkLevel = level;
+  }
+  return started;
+}
+
+void testAlarm(uint8_t level) {
+  blinkLevel = level == PARTIAL ? PARTIAL : FULL;
+  blinkStart = millis();
+  blinking = true;
+}
+
+static void drawAlarmFrame(TFT_eSPI &tft, int home) {
+  uint16_t bg = levelColor(blinkLevel);
+  tft.fillScreen(bg);
+  tft.setTextDatum(MC_DATUM);
+  tft.setTextColor(TFT_BLACK, bg);
+  useFont(tft, FONT_LARGE);
+  tft.drawString(blinkLevel == FULL ? "ТРИВОГА" : "ЧАСТКОВА ТРИВОГА", 120, 105);
+  if (home >= 0) tft.drawString(MAP[home].label, 120, 140);
+}
+
 void draw(TFT_eSPI &tft) {
   tft.fillScreen(TFT_BLACK);
   render(tft, true);
 }
 
+void loop(TFT_eSPI &tft) {
+  if (!blinking) return;
+  uint32_t t = millis() - blinkStart;
+  static int shownPhase = -1;
+  int phase = t / BLINK_PHASE_MS;
+  if (t >= BLINK_MS) {
+    blinking = false;
+    shownPhase = -1;
+    draw(tft);
+    return;
+  }
+  if (phase == shownPhase) return;
+  shownPhase = phase;
+  if (phase % 2 == 0) {
+    int home;
+    xSemaphoreTake(lock, portMAX_DELAY);
+    home = cfg.home;
+    xSemaphoreGive(lock);
+    drawAlarmFrame(tft, home);
+  } else {
+    draw(tft);
+  }
+}
+
 void tick(TFT_eSPI &tft) {
+  if (blinking) return;  // loop() owns the screen while the alarm blinks
   static uint32_t lastFooter = 0;
   if (drawnVersion != version || millis() - lastFooter > 5000) {
     lastFooter = millis();

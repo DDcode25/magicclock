@@ -12,7 +12,13 @@ void pause(bool on);  // stop fetching during OTA: TLS + upload together run sho
 
 String statusJson();  // {"levels":"NPA...","updated":<utc>,"error":"","src":"..."} for /alerts.json
 
+// True once when an alert starts (or grows from partial to full) in the home region;
+// starts the alarm blink. Not triggered by the first data after boot.
+bool homeAlertStarted();
+void testAlarm(uint8_t level);  // blink as if the home region got `level` (FULL/PARTIAL)
+
 void draw(TFT_eSPI &tft);  // full redraw of the app screen
 void tick(TFT_eSPI &tft);  // called every second while the app is shown
+void loop(TFT_eSPI &tft);  // called every UI loop while the app is shown (alarm blink)
 
 }  // namespace alerts

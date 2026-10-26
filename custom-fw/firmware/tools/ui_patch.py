@@ -71,6 +71,7 @@ ALERTS_VIEW = """
           <div class="stack">
             <label class="pair"><span>Виділяти й показувати статус для</span><select class="select" id="alertsHome">%s</select></label>
             <div class="hint">Регіон обведено білим; його статус і час початку тривоги показано під мапою.</div>
+            <div class="hint">Коли в регіоні починається тривога, пристрій відкриває мапу й 10 секунд блимає кольором тривоги.</div>
           </div>
         </div>
       </div>
@@ -78,6 +79,8 @@ ALERTS_VIEW = """
       <div class="panel actions">
         <p>Збереження налаштувань мапи тривог.</p>
         <div class="chip-row">
+          <button class="ghost" id="testAlertRed" type="button">Перевірити сигнал</button>
+          <button class="ghost" id="testAlertOrange" type="button">Перевірити часткову</button>
           <button class="ghost" id="reloadAlerts" type="button">Оновити</button>
           <button class="btn" id="saveAlerts" type="button">Зберегти</button>
         </div>
@@ -124,6 +127,8 @@ ALERTS_JS = """
     setTimeout(()=>{
       byId('saveAlerts').addEventListener('click',saveAlerts);
       byId('reloadAlerts').addEventListener('click',()=>reloadView('alerts',false,true));
+      byId('testAlertRed').addEventListener('click',()=>send('/alerts/test?level=2').then(()=>toast('Сигнал надіслано.',1)).catch(e=>toast(e.message,0)));
+      byId('testAlertOrange').addEventListener('click',()=>send('/alerts/test?level=1').then(()=>toast('Сигнал надіслано.',1)).catch(e=>toast(e.message,0)));
     },0);
 """
 

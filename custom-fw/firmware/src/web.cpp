@@ -413,6 +413,10 @@ void begin() {
   server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateData);
   server.on("/flash", HTTP_GET, handleFlash);
   server.on("/alerts.json", HTTP_GET, [] { server.send(200, "application/json", alerts::statusJson()); });
+  server.on("/alerts/test", HTTP_GET, [] {
+    alerts::testAlarm(server.arg("level").toInt() == 1 ? alerts::PARTIAL : alerts::FULL);
+    ui::open("Alerts") ? ok() : server.send(400, "text/plain", "alerts app disabled");
+  });
   server.onNotFound(handleStatic);
   server.begin();
 }

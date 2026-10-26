@@ -171,12 +171,19 @@ static void handleTouch() {
 void loop() {
   handleTouch();
 
+  // A new alert in the home region brings the alert map up (it blinks there).
+  if (alerts::homeAlertStarted() && settings.appEnabled[APP_ALERTS] && current != APP_ALERTS) {
+    current = APP_ALERTS;
+    dirty = true;
+  }
+
   static uint32_t lastSecond = 0;
   if (dirty) {
     dirty = false;
     drawApp();
     lastSecond = 0;
   }
+  if (current == APP_ALERTS) alerts::loop(tft);
   if (millis() - lastSecond >= 1000) {
     lastSecond = millis();
     if (isPlaceholder()) drawStatus();
