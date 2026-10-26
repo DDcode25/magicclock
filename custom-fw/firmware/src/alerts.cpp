@@ -30,7 +30,7 @@ static volatile bool fetchNow = true;
 static TFT_eSprite *map8 = nullptr;
 static uint32_t drawnVersion = UINT32_MAX;
 
-static const int MAP_Y = 40, MAP_H = 160;
+static const int MAP_Y = 22, MAP_H = 160;  // matches BOX_Y/BOX_H in tools/gen_ukraine_map.py
 
 static void loadConfig() {
   Config c;
@@ -204,17 +204,6 @@ static void drawMap(TFT_eSPI &tft, const Snapshot &s, int home) {
   map8->pushSprite(0, MAP_Y);
 }
 
-static void drawHeader(TFT_eSPI &tft, const Snapshot &s) {
-  int count = 0;
-  for (int r = 0; r < REGIONS; r++) count += s.level[r] == FULL || s.level[r] == PARTIAL;
-  tft.fillRect(0, 0, 240, 36, 0x18E3);
-  tft.setTextDatum(ML_DATUM);
-  tft.setTextColor(TFT_ORANGE, 0x18E3);
-  tft.drawString("AIR ALERTS", 8, 18, 4);
-  tft.setTextDatum(MR_DATUM);
-  tft.setTextColor(count ? TFT_RED : TFT_GREEN, 0x18E3);
-  tft.drawString(String(count) + "/" + REGIONS, 232, 18, 4);
-}
 
 static String hhmm(time_t utc) {
   struct tm t;
@@ -224,25 +213,40 @@ static String hhmm(time_t utc) {
   return b;
 }
 
-static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, const char *err) {
-  tft.fillRect(0, 202, 240, 38, TFT_BLACK);
+// Under the map: home region name and status on the left; current time (large, white)
+// and alerted region count (or fetch problem) on the right.
+static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, const char *err, int interval) {
+  const int y1 = 201, y2 = 226;
+  tft.fillRect(0, MAP_Y + MAP_H, 240, 240 - MAP_Y - MAP_H, TFT_BLACK);
+
+  String clock = net::timeValid() ? hhmm(time(nullptr)) : String("--:--");
+  tft.setTextDatum(MR_DATUM);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.drawString(clock, 234, y1, 4);
+  int clockW = tft.textWidth(clock, 4);
+
+  int count = 0;
+  for (int r = 0; r < REGIONS; r++) count += s.level[r] == FULL || s.level[r] == PARTIAL;
+  bool stale = upd && time(nullptr) - upd > 3 * interval + 30;
+  if (*err || stale || !upd) {
+    tft.setTextColor(*err || stale ? TFT_YELLOW : TFT_DARKGREY, TFT_BLACK);
+    tft.drawString(*err ? String(err) : stale ? "old " + hhmm(upd) : String("loading..."), 234, y2, 2);
+  } else {
+    tft.setTextColor(count ? TFT_RED : TFT_GREEN, TFT_BLACK);
+    tft.drawString(String(count) + "/" + REGIONS, 234, y2, 2);
+  }
+
   tft.setTextDatum(ML_DATUM);
   if (home >= 0) {
     uint8_t l = s.level[home];
     String state = l == FULL ? "ALERT" : l == PARTIAL ? "partial" : l == UNKNOWN ? "no data" : "clear";
     if ((l == FULL || l == PARTIAL) && s.since[home]) state += " since " + hhmm(s.since[home]);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.drawString(MAP[home].label, 6, 212, 2);
+    const char *label = MAP[home].label;
+    tft.drawString(label, 6, y1, tft.textWidth(label, 4) <= 228 - clockW - 8 ? 4 : 2);
     tft.setTextColor(l == FULL ? TFT_RED : l == PARTIAL ? TFT_ORANGE : l == UNKNOWN ? TFT_DARKGREY : TFT_GREEN, TFT_BLACK);
-    tft.drawString(state, 6, 230, 2);
+    tft.drawString(state, 6, y2, 2);
   }
-  tft.setTextDatum(MR_DATUM);
-  String status;
-  if (*err) status = err;
-  else if (!upd) status = "loading...";
-  else status = "upd " + hhmm(upd);
-  tft.setTextColor(*err ? TFT_YELLOW : TFT_DARKGREY, TFT_BLACK);
-  tft.drawString(status, 234, 230, 2);
 }
 
 static void render(TFT_eSPI &tft, bool full) {
@@ -250,17 +254,16 @@ static void render(TFT_eSPI &tft, bool full) {
   uint32_t v;
   time_t upd;
   char err[sizeof error];
-  int home;
+  int home, interval;
   xSemaphoreTake(lock, portMAX_DELAY);
-  s = snap, v = version, upd = updatedAt, home = cfg.home;
+  s = snap, v = version, upd = updatedAt, home = cfg.home, interval = cfg.interval;
   memcpy(err, error, sizeof err);
   xSemaphoreGive(lock);
   if (full || v != drawnVersion) {
     drawnVersion = v;
-    drawHeader(tft, s);
     drawMap(tft, s, home);
   }
-  drawFooter(tft, s, home, upd, err);
+  drawFooter(tft, s, home, upd, err, interval);
 }
 
 void draw(TFT_eSPI &tft) {
