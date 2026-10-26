@@ -1,0 +1,6 @@
+# Flash dumps and local backups
+custom-fw/backup/
+*.dump
+flash_*.bin
+# PlatformIO build output
+.pio/
