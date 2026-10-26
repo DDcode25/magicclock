@@ -16,7 +16,7 @@ static std::string slurp(const char *p) {
 
 static void print(const char *name, const alerts::Snapshot &s) {
   printf("%-10s ", name);
-  for (int i = 0; i < alerts::REGIONS; i++) printf("%c", "NPA"[s.level[i]]);
+  for (int i = 0; i < alerts::REGIONS; i++) printf("%c", "NPAU"[s.level[i]]);
   printf("\n");
 }
 
@@ -35,7 +35,22 @@ int main(int argc, char **argv) {
   print("alertsinua", a);
   // ubilling marks an oblast if any district has an alert, so it must match klymenko's FULL|PARTIAL
   for (int i = 0; i < alerts::REGIONS; i++)
-    if (i != 0 && (k.level[i] != alerts::NONE) != (u.level[i] != alerts::NONE)) printf("mismatch region %d\n", i), fails++;
+    if (u.level[i] != alerts::UNKNOWN && (k.level[i] != alerts::NONE) != (u.level[i] != alerts::NONE)) printf("mismatch region %d\n", i), fails++;
+  if (u.level[0] != alerts::UNKNOWN) printf("ubilling: Crimea should be UNKNOWN\n"), fails++;
+  // all raions alerted -> whole oblast, e.g. {"Донецька область":{"enabled":false,"districts":{8 x enabled}}}
+  {
+    std::string j = "{\"states\":{\"Запорізька область\":{\"enabled\":false,\"districts\":{";
+    for (int i = 0; i < 5; i++) j += std::string(i ? "," : "") + "\"d" + std::to_string(i) + "\":{\"enabled\":true}";
+    j += "}},\"Сумська область\":{\"enabled\":false,\"districts\":{\"a\":{\"enabled\":true},\"b\":{\"enabled\":false}}}}}";
+    alerts::Snapshot t{};
+    alerts::parseKlymenko(j.data(), j.size(), t);
+    if (t.level[7] != alerts::FULL || t.level[19] != alerts::PARTIAL) printf("all-raions rule failed\n"), fails++;
+    std::string nj2 = "{\"oblasts\":[],\"raions\":[";
+    for (int i = 0; i < 5; i++) nj2 += std::string(i ? "," : "") + "{\"key\":\"k" + std::to_string(i) + "\",\"oblast\":\"Запорізька область\"}";
+    nj2 += ",{\"key\":\"k0\",\"oblast\":\"Сумська область\"},{\"key\":\"k0\",\"oblast\":\"Сумська область\"}]}";
+    alerts::parseNeptun(nj2.data(), nj2.size(), t);
+    if (t.level[7] != alerts::FULL || t.level[19] != alerts::PARTIAL) printf("neptun all-raions rule failed\n"), fails++;
+  }
   // occupied regions are alerted as a whole by every source
   for (int i : {0, 12, 18})
     if (n.level[i] != alerts::FULL) printf("neptun: region %d not FULL\n", i), fails++;

@@ -129,7 +129,7 @@ String statusJson() {
   c = cfg;
   xSemaphoreGive(lock);
   char levels[REGIONS + 1];
-  for (int i = 0; i < REGIONS; i++) levels[i] = "NPA"[s.level[i]];
+  for (int i = 0; i < REGIONS; i++) levels[i] = "NPAU"[s.level[i]];
   levels[REGIONS] = 0;
   return String("{\"levels\":\"") + levels + "\",\"updated\":" + (long)upd + ",\"error\":\"" + err + "\",\"src\":\"" +
          c.src + "\",\"home\":" + c.home + "}";
@@ -141,6 +141,7 @@ static uint16_t levelColor(uint8_t l) {
   switch (l) {
     case FULL: return 0xC8A3;     // red (200,20,24)
     case PARTIAL: return 0xE460;  // orange (230,140,0)
+    case UNKNOWN: return 0x52AA;  // grey (80,84,80): no data from this source
     default: return 0x22C5;       // dark green (32,88,40)
   }
 }
@@ -205,7 +206,7 @@ static void drawMap(TFT_eSPI &tft, const Snapshot &s, int home) {
 
 static void drawHeader(TFT_eSPI &tft, const Snapshot &s) {
   int count = 0;
-  for (int r = 0; r < REGIONS; r++) count += s.level[r] != NONE;
+  for (int r = 0; r < REGIONS; r++) count += s.level[r] == FULL || s.level[r] == PARTIAL;
   tft.fillRect(0, 0, 240, 36, 0x18E3);
   tft.setTextDatum(ML_DATUM);
   tft.setTextColor(TFT_ORANGE, 0x18E3);
@@ -223,29 +224,19 @@ static String hhmm(time_t utc) {
   return b;
 }
 
-// Data credit shown under the map (NEPTUN terms require a visible link next to the data).
-static const char *sourceDomain(const String &src) {
-  if (src == "neptun") return "neptun.in.ua";
-  if (src == "ubilling") return "ubilling.net.ua";
-  if (src == "alertsinua") return "alerts.in.ua";
-  return "vadimklimenko.com";
-}
-
-static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, const String &src, time_t upd, const char *err) {
+static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, const char *err) {
   tft.fillRect(0, 202, 240, 38, TFT_BLACK);
   tft.setTextDatum(ML_DATUM);
   if (home >= 0) {
     uint8_t l = s.level[home];
-    String state = l == FULL ? "ALERT" : l == PARTIAL ? "partial" : "clear";
-    if (l != NONE && s.since[home]) state += " since " + hhmm(s.since[home]);
+    String state = l == FULL ? "ALERT" : l == PARTIAL ? "partial" : l == UNKNOWN ? "no data" : "clear";
+    if ((l == FULL || l == PARTIAL) && s.since[home]) state += " since " + hhmm(s.since[home]);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
     tft.drawString(MAP[home].label, 6, 212, 2);
-    tft.setTextColor(l == FULL ? TFT_RED : l == PARTIAL ? TFT_ORANGE : TFT_GREEN, TFT_BLACK);
+    tft.setTextColor(l == FULL ? TFT_RED : l == PARTIAL ? TFT_ORANGE : l == UNKNOWN ? TFT_DARKGREY : TFT_GREEN, TFT_BLACK);
     tft.drawString(state, 6, 230, 2);
   }
   tft.setTextDatum(MR_DATUM);
-  tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-  tft.drawString(sourceDomain(src), 234, 212, 2);
   String status;
   if (*err) status = err;
   else if (!upd) status = "loading...";
@@ -260,9 +251,8 @@ static void render(TFT_eSPI &tft, bool full) {
   time_t upd;
   char err[sizeof error];
   int home;
-  String src;
   xSemaphoreTake(lock, portMAX_DELAY);
-  s = snap, v = version, upd = updatedAt, home = cfg.home, src = cfg.src;
+  s = snap, v = version, upd = updatedAt, home = cfg.home;
   memcpy(err, error, sizeof err);
   xSemaphoreGive(lock);
   if (full || v != drawnVersion) {
@@ -270,7 +260,7 @@ static void render(TFT_eSPI &tft, bool full) {
     drawHeader(tft, s);
     drawMap(tft, s, home);
   }
-  drawFooter(tft, s, home, src, upd, err);
+  drawFooter(tft, s, home, upd, err);
 }
 
 void draw(TFT_eSPI &tft) {

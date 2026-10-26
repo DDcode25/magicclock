@@ -35,6 +35,10 @@ static const char *const NAMES[REGIONS] = {
     "Чернігівська область",
 };
 
+// Number of raions per region since the 2020 reform (0: city or not split), same order as NAMES.
+static const uint8_t RAIONS[REGIONS] = {0, 4, 6, 7, 8, 4, 6, 5, 6, 0, 7, 4, 8, 7,
+                                        4, 7, 4, 4, 0, 5, 3, 7, 5, 3, 4, 3, 5};
+
 int regionByName(const char *name) {
   if (!name) return -1;
   for (int i = 0; i < REGIONS; i++)
@@ -45,9 +49,15 @@ int regionByName(const char *name) {
   return -1;
 }
 
-static void clear(Snapshot &s) {
-  memset(s.level, NONE, sizeof s.level);
+static void clear(Snapshot &s, Level fill = NONE) {
+  memset(s.level, fill, sizeof s.level);
   memset(s.since, 0, sizeof s.since);
+}
+
+// Partial alert in `alerted` raions of region r: FULL when that is all of them.
+static void markRaions(Snapshot &s, int r, int alerted) {
+  if (alerted <= 0 || s.level[r] == FULL) return;
+  s.level[r] = RAIONS[r] && alerted >= RAIONS[r] ? FULL : PARTIAL;
 }
 
 // days since 1970-01-01 for a civil date (Howard Hinnant's algorithm)
@@ -93,13 +103,15 @@ bool parseKlymenko(const char *json, size_t len, Snapshot &out) {
       out.since[r] = parseIso(s["enabled_at"]);
       continue;
     }
+    int alerted = 0;
     for (JsonPair dp : s["districts"].as<JsonObject>()) {
       JsonObject dist = dp.value();
       if (!(dist["enabled"] | false)) continue;
-      out.level[r] = PARTIAL;
+      alerted++;
       time_t t = parseIso(dist["enabled_at"]);
       if (t && (!out.since[r] || t < out.since[r])) out.since[r] = t;
     }
+    markRaions(out, r, alerted);
   }
   return true;
 }
@@ -111,10 +123,10 @@ bool parseUbilling(const char *json, size_t len, Snapshot &out) {
   if (deserializeJson(doc, json, len, DeserializationOption::Filter(filter))) return false;
   JsonObject states = doc["states"];
   if (states.isNull()) return false;
-  clear(out);
+  clear(out, UNKNOWN);
   for (JsonPair st : states) {
     int r = regionByName(st.key().c_str());
-    if (r >= 0 && (st.value()["alertnow"] | false)) out.level[r] = FULL;
+    if (r >= 0) out.level[r] = (st.value()["alertnow"] | false) ? FULL : NONE;
   }
   return true;
 }
@@ -124,6 +136,7 @@ bool parseNeptun(const char *json, size_t len, Snapshot &out) {
   filter["oblasts"][0]["name"] = true;
   filter["oblasts"][0]["since"] = true;
   filter["raions"][0]["oblast"] = true;
+  filter["raions"][0]["key"] = true;
   filter["raions"][0]["since"] = true;
   JsonDocument doc;
   if (deserializeJson(doc, json, len, DeserializationOption::Filter(filter))) return false;
@@ -136,13 +149,23 @@ bool parseNeptun(const char *json, size_t len, Snapshot &out) {
     out.level[r] = FULL;
     out.since[r] = parseIso(o["since"]);
   }
+  // A raion may be listed more than once (one entry per threat); count distinct keys.
+  const char *seen[REGIONS][8] = {};
+  int alerted[REGIONS] = {};
   for (JsonObject d : raions) {
     int r = regionByName(d["oblast"]);
     if (r < 0 || out.level[r] == FULL) continue;
-    out.level[r] = PARTIAL;
+    const char *key = d["key"] | "";
+    bool dup = false;
+    for (int i = 0; i < alerted[r] && i < 8; i++) dup |= strcmp(seen[r][i], key) == 0;
+    if (!dup) {
+      if (alerted[r] < 8) seen[r][alerted[r]] = key;
+      alerted[r]++;
+    }
     time_t t = parseIso(d["since"]);
     if (t && (!out.since[r] || t < out.since[r])) out.since[r] = t;
   }
+  for (int r = 0; r < REGIONS; r++) markRaions(out, r, alerted[r]);
   return true;
 }
 

@@ -81,10 +81,11 @@ String ip() { return connected() ? WiFi.localIP().toString() : (ap ? WiFi.softAP
 String ssid() { return staSsid; }
 
 void applyTime() {
-  // POSIX TZ has the sign inverted: UTC+3 is "UTC-3".
+  // Auto: Europe/Kyiv with DST (EET/EEST). Manual: fixed offset; POSIX TZ sign is inverted.
+  char tz[40] = "EET-2EEST,M3.5.0/3,M10.5.0/4";
   int off = settings.tzOffsetMin;
-  char tz[24];
-  snprintf(tz, sizeof tz, "UTC%c%d:%02d", off >= 0 ? '-' : '+', abs(off) / 60, abs(off) % 60);
+  if (settings.tzManual)
+    snprintf(tz, sizeof tz, "UTC%c%d:%02d", off >= 0 ? '-' : '+', abs(off) / 60, abs(off) % 60);
   configTzTime(tz, settings.ntpServer.c_str(), "pool.ntp.org", "time.windows.com");
 }
 

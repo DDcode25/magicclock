@@ -8,7 +8,7 @@
 namespace alerts {
 
 static const int REGIONS = 27;
-enum Level : uint8_t { NONE = 0, PARTIAL = 1, FULL = 2 };
+enum Level : uint8_t { NONE = 0, PARTIAL = 1, FULL = 2, UNKNOWN = 3 };  // UNKNOWN: region absent from source
 
 struct Snapshot {
   uint8_t level[REGIONS];
@@ -17,9 +17,11 @@ struct Snapshot {
 
 int regionByName(const char *ukName);  // -1 if unknown
 
+// Like the official map, an oblast with alerts in all of its districts counts as FULL.
 // vadimklimenko.com/map/statuses.json: oblast "enabled" -> FULL, any district enabled -> PARTIAL.
 bool parseKlymenko(const char *json, size_t len, Snapshot &out);
-// ubilling.net.ua/aerialalerts/: "alertnow" per oblast -> FULL.
+// ubilling.net.ua/aerialalerts/: "alertnow" per oblast -> FULL (it cannot tell partial alerts);
+// regions it does not list (e.g. Crimea) stay UNKNOWN.
 bool parseUbilling(const char *json, size_t len, Snapshot &out);
 // neptun.in.ua/api/v1/alerts: "oblasts" (whole oblast) -> FULL, "raions" -> PARTIAL.
 bool parseNeptun(const char *json, size_t len, Snapshot &out);

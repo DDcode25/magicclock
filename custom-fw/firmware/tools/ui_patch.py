@@ -25,7 +25,7 @@ ALERTS_VIEW = """
         <div>
           <div class="eyebrow">Air alerts</div>
           <h1>Ukraine Alert Map</h1>
-          <p class="lead">Map of oblasts coloured by air raid alerts: red = whole oblast, orange = some districts.</p>
+          <p class="lead">Map of oblasts coloured by air raid alerts: red = whole oblast (or all its districts), orange = some districts, grey = no data from the source.</p>
         </div>
         <div class="hero-side">
           <div class="chip-row">
@@ -50,7 +50,7 @@ ALERTS_VIEW = """
             <label class="pair"><span>Source</span><select class="select" id="alertsSrc">
               <option value="klymenko">vadimklimenko.com (no token, oblast + districts)</option>
               <option value="neptun">neptun.in.ua (no token, oblast + districts)</option>
-              <option value="ubilling">ubilling.net.ua (no token, oblast only)</option>
+              <option value="ubilling">ubilling.net.ua (no token, oblast only, no Crimea; least accurate)</option>
               <option value="alertsinua">alerts.in.ua (token required)</option>
             </select></label>
             <label class="pair"><span>alerts.in.ua token</span><input class="field" id="alertsToken" placeholder="only for alerts.in.ua" autocomplete="off"></label>
