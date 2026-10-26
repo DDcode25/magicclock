@@ -133,10 +133,12 @@ String statusJson() {
   memcpy(err, error, sizeof err);
   c = cfg;
   xSemaphoreGive(lock);
-  char levels[REGIONS + 1];
+  char levels[REGIONS + 1], raions[RAIONS + 1];
   for (int i = 0; i < REGIONS; i++) levels[i] = "NPAU"[s.level[i]];
   levels[REGIONS] = 0;
-  return String("{\"levels\":\"") + levels + "\",\"updated\":" + (long)upd + ",\"error\":\"" + err + "\",\"src\":\"" +
+  for (int i = 0; i < RAIONS; i++) raions[i] = "NYRI"[s.raion[i]];
+  raions[RAIONS] = 0;
+  return String("{\"levels\":\"") + levels + "\",\"raions\":\"" + raions + "\",\"updated\":" + (long)upd + ",\"error\":\"" + err + "\",\"src\":\"" +
          c.src + "\",\"home\":" + c.home + "}";
 }
 
@@ -151,12 +153,19 @@ static uint16_t levelColor(uint8_t l) {
   }
 }
 
-// Even-odd scanline fill of all rings of a region, into the 8-bit map sprite.
-static void fillRegion(int r, uint16_t color) {
-  const MapRegion &reg = MAP[r];
+static uint16_t raionColor(uint8_t l) {
+  switch (l) {
+    case R_RED: return 0xC8A3;     // same red as a whole-oblast alert
+    case R_YELLOW: return 0xE460;  // orange: drone-level alert
+    default: return 0x22C5;        // dark green
+  }
+}
+
+// Even-odd scanline fill of rings [firstRing, firstRing + rings), into the 8-bit map sprite.
+static void fillRings(int firstRing, int rings, uint16_t color) {
   int y0 = 255, y1 = 0;
-  for (int k = 0; k < reg.rings; k++) {
-    const MapRing &ring = MAP_RINGS[reg.firstRing + k];
+  for (int k = 0; k < rings; k++) {
+    const MapRing &ring = MAP_RINGS[firstRing + k];
     for (int i = 0; i < ring.count; i++) {
       int y = MAP_POINTS[ring.first + i][1];
       y0 = min(y0, y), y1 = max(y1, y);
@@ -165,8 +174,8 @@ static void fillRegion(int r, uint16_t color) {
   static int16_t xs[64];
   for (int y = y0; y <= y1; y++) {
     int n = 0;
-    for (int k = 0; k < reg.rings; k++) {
-      const MapRing &ring = MAP_RINGS[reg.firstRing + k];
+    for (int k = 0; k < rings; k++) {
+      const MapRing &ring = MAP_RINGS[firstRing + k];
       for (int i = 0; i < ring.count && n < 64; i++) {
         const uint8_t *a = MAP_POINTS[ring.first + i], *b = MAP_POINTS[ring.first + (i + 1) % ring.count];
         if ((a[1] <= y && y < b[1]) || (b[1] <= y && y < a[1]))
@@ -200,10 +209,14 @@ static void drawMap(TFT_eSPI &tft, const Snapshot &s, int home) {
     }
   }
   map8->fillSprite(TFT_BLACK);
-  // Kyiv city and Sevastopol sit inside other regions: draw them last.
-  for (int pass = 0; pass < 2; pass++)
-    for (int r = 0; r < REGIONS; r++)
-      if ((r == 9 || r == 18) == (pass == 1)) fillRegion(r, levelColor(s.level[r]));
+  // Oblasts first (the only layer for sources without raion data), then raions on top,
+  // then Kyiv city and Sevastopol, which sit inside other regions. Only oblast borders are drawn.
+  for (int r = 0; r < REGIONS; r++)
+    if (r != 9 && r != 18) fillRings(MAP[r].firstRing, MAP[r].rings, levelColor(s.level[r]));
+  for (int i = 0; i < MAP_RAIONS; i++)
+    if (s.raion[i] != R_INHERIT && s.level[RAION[i].oblast] != UNKNOWN)
+      fillRings(RAION[i].firstRing, RAION[i].rings, raionColor(s.raion[i]));
+  for (int r : {9, 18}) fillRings(MAP[r].firstRing, MAP[r].rings, levelColor(s.level[r]));
   for (int r = 0; r < REGIONS; r++) outlineRegion(r, TFT_BLACK);
   if (home >= 0) outlineRegion(home, TFT_WHITE);
   map8->pushSprite(0, MAP_Y);
