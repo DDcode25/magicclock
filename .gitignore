@@ -4,3 +4,4 @@ custom-fw/backup/
 flash_*.bin
 # PlatformIO build output
 .pio/
+__pycache__/
