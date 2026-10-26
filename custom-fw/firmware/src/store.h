@@ -25,11 +25,14 @@ struct Settings {
   int nightFrom = 22, nightTo = 7;  // hours
   int nightBrightness = 20;         // 0..100 %
   int bootApp = -1;                 // APP_ITEMS index, -1 = none
-  bool appEnabled[9] = {true, true, true, true, true, true, true, true, true};
+  bool appEnabled[16];  // indexed like APP_ITEMS; missing flag = enabled
   bool tzManual = false;
   int tzOffsetMin = 0;
   String ntpServer = "pool.ntp.org";
 
+  Settings() {
+    for (bool &e : appEnabled) e = true;
+  }
   void load();
 };
 

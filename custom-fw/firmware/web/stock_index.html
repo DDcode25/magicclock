@@ -1,0 +1,2531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07131d">
+  <title>GeekMagic PRO</title>
+  <style>
+    :root{
+      --bg:#040a10;--panel:#08131d;--panel2:#0c1823;--line:#123043;--line2:#1c4861;
+      --text:#eaf7ff;--muted:#8ea8ba;--muted2:#61798a;--accent:#74f2ff;--accent2:#37a7ff;
+      --shadow:0 18px 46px rgba(0,0,0,.42);--radius:22px;--w:1120px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;background:
+      radial-gradient(circle at top,#12324b 0,rgba(12,24,35,.92) 18%,rgba(5,10,16,.98) 45%,#030608 100%),
+      linear-gradient(180deg,#050c12 0,#04080c 100%);
+      color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    }
+    button,input,select{font:inherit}
+    a{color:#baf5ff}
+    .topbar{position:sticky;top:0;z-index:10;background:rgba(4,10,16,.76);backdrop-filter:blur(14px);border-bottom:1px solid #133244}
+    .topbar-inner,.wrap{width:min(96%,var(--w));margin:0 auto}
+    .topbar-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:760;letter-spacing:-.02em}
+    .brand i{width:8px;height:8px;border-radius:50%;background:linear-gradient(180deg,var(--accent),var(--accent2));box-shadow:0 0 12px rgba(116,242,255,.55);display:inline-block}
+    .primary-tabs{
+      display:flex;gap:6px;padding:4px;border:1px solid var(--line2);border-radius:999px;background:#08111a;
+    }
+    .main-tab{
+      min-width:98px;padding:10px 16px;border-radius:999px;border:0;background:transparent;color:#95afc2;font-weight:700;cursor:pointer
+    }
+    .main-tab.active{background:linear-gradient(180deg,var(--accent),#4fd2ff);color:#042033;box-shadow:0 0 0 1px rgba(116,242,255,.25) inset}
+    .app-tabs{
+      display:flex;gap:4px;padding:4px;border:1px solid var(--line2);border-radius:999px;background:#08111a;
+      overflow:auto;scrollbar-width:none
+    }
+    .app-tabs::-webkit-scrollbar{display:none}
+    .tab,.ghost,.btn,.choice,.mini-btn,.danger,.soft{border:0;cursor:pointer}
+    .tab{padding:10px 16px;border-radius:999px;background:transparent;color:#7f9aad;font-weight:620;white-space:nowrap}
+    .tab.active{background:linear-gradient(180deg,var(--accent),#4fd2ff);color:#042033;box-shadow:0 0 0 1px rgba(116,242,255,.25) inset}
+    .ghost,.btn,.mini-btn,.danger,.soft{
+      min-height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--line2);display:inline-flex;
+      align-items:center;justify-content:center;text-decoration:none;transition:.16s ease
+    }
+    .ghost,.soft{background:#0b1620;color:#d2eef8}
+    .btn{background:linear-gradient(180deg,var(--accent),#4dcfff);color:#032031;font-weight:760;border-color:#67ecff}
+    .danger{background:#a93f34;border-color:#c85447;color:#fff}
+    .mini-btn{min-height:34px;padding:0 14px;background:#0d1822;color:#dff5ff}
+    .ghost:hover,.btn:hover,.choice:hover,.mini-btn:hover,.danger:hover,.soft:hover{filter:brightness(1.05)}
+    .wrap{padding:28px 0 44px}
+    .subnav{
+      margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap
+    }
+    .subnav-note{color:var(--muted);font-size:12px}
+    .hidden{display:none!important}
+    .view{display:block}
+    .view.hidden{display:none}
+    .panel{
+      background:linear-gradient(180deg,#09121a,#071018);border:1px solid var(--line);border-radius:var(--radius);
+      box-shadow:var(--shadow), inset 0 1px 0 rgba(157,255,248,.06), inset 0 0 0 1px rgba(18,48,67,.28);
+      padding:22px;margin-bottom:18px;position:relative;overflow:hidden
+    }
+    .panel::before{
+      content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+      background:linear-gradient(135deg,rgba(116,242,255,.12),transparent 22%,transparent 78%,rgba(55,167,255,.10));
+      mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      mask-composite:exclude;-webkit-mask-composite:xor;padding:1px
+    }
+    .hero{display:grid;grid-template-columns:1.18fr .82fr;gap:22px}
+    .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+    .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+    .stack,.slots,.filebox,.table-tools{display:grid;gap:12px}
+    .section-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px}
+    .eyebrow{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--muted);font-weight:760}
+    h1,h2,p{margin:0}
+    h1{font-size:28px;line-height:1.06;letter-spacing:-.04em;margin-top:8px}
+    h2{font-size:18px;line-height:1.15;letter-spacing:-.03em}
+    .lead{margin-top:10px;color:#b9bec7;max-width:64ch}
+    .note{color:var(--muted);max-width:62ch}
+    .hero-side{display:grid;gap:12px;align-content:start}
+    .hero-open{min-height:42px;padding:0 18px;font-weight:760}
+    .chip-row{display:flex;flex-wrap:wrap;gap:10px}
+    .chip{
+      display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 12px;background:#0b1722;
+      border:1px solid var(--line2);border-radius:999px;color:#d9f4ff
+    }
+    .chip b{font-weight:760;color:#fff}
+    .slots{display:grid;gap:12px}
+    #btcSlots,#stockSlots{grid-template-columns:repeat(auto-fill,300px);justify-content:start}
+    #cgSlots{grid-template-columns:repeat(auto-fill,260px);justify-content:start}
+    .slot-btc,.slot-cg,.slot-stock{
+      display:grid;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);
+      border-radius:16px;background:#09121a
+    }
+    .slot-btc,.slot-stock{
+      grid-template-columns:34px minmax(0,1fr);
+      grid-template-areas:"idx id" "idx name";
+    }
+    .slot-cg{
+      grid-template-columns:34px minmax(0,1fr);
+      grid-template-areas:"idx id";
+    }
+    .idx{
+      width:34px;height:34px;border-radius:999px;background:#0c1720;border:1px solid var(--line2);
+      display:flex;align-items:center;justify-content:center;color:#a6acb7;font-weight:760;font-size:12px
+    }
+    .slot-btc .idx,.slot-cg .idx,.slot-stock .idx{grid-area:idx}
+    .field,.select{
+      width:100%;height:40px;border-radius:13px;border:1px solid var(--line2);background:#0d1822;color:#eefbff;
+      padding:0 13px;outline:none;transition:border-color .16s ease,box-shadow .16s ease
+    }
+    .slot-btc .field,.slot-cg .field,.slot-stock .field{max-width:none}
+    .btc-id,.stock-id,.cg-id{grid-area:id}
+    .btc-name,.stock-name{grid-area:name}
+    .field[type="color"]{padding:4px}
+    textarea.field{height:110px;padding:12px 13px;resize:vertical}
+    .field:focus,.select:focus{border-color:#4cb8ff;box-shadow:0 0 0 2px rgba(76,184,255,.12)}
+    .field.err{border-color:#7a332d;box-shadow:0 0 0 1px rgba(201,68,57,.2)}
+    .choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .choice{
+      text-align:left;padding:16px;border-radius:18px;background:#0d1822;border:1px solid var(--line2);color:#dff4ff
+    }
+    .choice strong{display:block;font-size:15px;letter-spacing:-.02em}
+    .choice span{display:block;margin-top:6px;color:#99a0ab;font-size:13px}
+    .choice.active{background:linear-gradient(180deg,var(--accent),#47caff);color:#032031;border-color:#7cf3ff}
+    .choice.active span{color:#13384d}
+    .line{
+      display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;
+      background:#0b141d;border:1px solid var(--line);border-radius:16px
+    }
+    .line>div:first-child strong{display:block;font-size:14px}
+    .line>div:first-child span{display:block;color:var(--muted);font-size:12px;margin-top:4px}
+    .switch{display:inline-flex;align-items:center;gap:10px;white-space:nowrap}
+    .switch input{accent-color:#efefef;width:18px;height:18px}
+    .pair{display:grid;gap:8px}
+    .pair span{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.16em}
+    .mini-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .hint{
+      margin-top:10px;padding:12px 14px;border-radius:16px;background:#111318;border:1px solid var(--line);
+      color:#9ea4af;font-size:13px
+    }
+    .panel .actions{
+      display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:18px;padding-top:2px;flex-wrap:wrap
+    }
+    .panel.actions{
+      display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap
+    }
+    .actions p{color:var(--muted);max-width:60ch}
+    .actions .chip-row{align-items:center}
+    .table-wrap{
+      border:1px solid var(--line);border-radius:18px;background:#0b141d;overflow:auto;min-height:76px
+    }
+    .table-wrap table{width:100%;border-collapse:collapse;font-size:13px}
+    .table-wrap th,.table-wrap td{padding:11px 12px;border-bottom:1px solid #171a20;text-align:left}
+    .table-wrap th{color:#98a0aa;font-size:12px;text-transform:uppercase;letter-spacing:.14em;font-weight:700}
+    .table-wrap tr:last-child td{border-bottom:0}
+    .table-wrap a{color:#edf0f4;text-decoration:none}
+    .btndel{
+      height:30px;padding:0 10px;border-radius:999px;border:1px solid #2a2e37;background:#171a1f;color:#eef1f5;cursor:pointer
+    }
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+    .toolbar .chip-row{margin-left:auto}
+    .active-panel{
+      display:grid;grid-template-columns:144px 1fr;gap:18px;padding:16px 18px 10px;border:1px solid var(--line);
+      border-radius:18px;background:#09131c
+    }
+    .thumb-big{
+      width:144px;height:144px;border-radius:12px;overflow:hidden;background:#0d0e13;display:flex;align-items:center;justify-content:center;color:#4b4e59;font-size:14px
+    }
+    .thumb-big img,.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+    .active-meta{display:flex;flex-direction:column;justify-content:flex-start;gap:8px;padding-top:10px;min-width:0}
+    .mini-title{font-size:11px;color:#9d9fa7;letter-spacing:.16em;text-transform:uppercase;font-weight:650}
+    .active-name{font-size:16px;font-weight:740;color:#fff;min-height:22px;letter-spacing:-.01em;word-break:break-word}
+    .stats{display:flex;gap:24px;margin-top:10px;flex-wrap:wrap}
+    .stat strong{display:block;font-size:17px;line-height:1.15;font-weight:760;letter-spacing:-.02em}
+    .stat span{display:block;color:#8b8e96;font-size:12px;margin-top:4px}
+    .storage{margin-top:6px;padding-right:8px}
+    .storage-label{font-size:12px;color:#848791;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+    .storage-row{display:flex;align-items:center;gap:10px}
+    .bar-pct{
+      flex:0 0 auto;min-width:54px;text-align:center;font-size:11px;color:#f6f0dd;background:#17181d;
+      border:1px solid #292b33;border-radius:999px;padding:4px 8px;line-height:1
+    }
+    .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+    .media-card{
+      border:1px solid #213241;background:linear-gradient(180deg,#0b1117,#091017);border-radius:18px;padding:10px 10px 12px;min-height:300px;position:relative;
+      box-shadow:inset 0 1px 0 rgba(157,255,248,.05), inset 0 0 0 1px rgba(10,20,28,.55)
+    }
+    .media-card::before{
+      content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+      background:linear-gradient(145deg,rgba(116,242,255,.18),transparent 26%,transparent 74%,rgba(55,167,255,.14));
+      mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      mask-composite:exclude;-webkit-mask-composite:xor;padding:1px
+    }
+    .media-card.active{border-color:#6e2622;box-shadow:0 0 0 1px rgba(201,67,57,.45) inset}
+    #weatherActivePanel{grid-template-columns:104px 1fr;padding:14px 16px 10px}
+    #weatherActiveThumb{width:104px;height:104px}
+    #weatherCards{grid-template-columns:repeat(auto-fill,140px);justify-content:flex-start}
+    #imageCards{grid-template-columns:repeat(auto-fill,188px);justify-content:flex-start}
+    #weatherCards .media-card{min-height:0;padding:10px 10px 12px}
+    #imageCards .media-card{min-height:0;padding:10px 10px 12px}
+    #weatherCards .thumb{height:auto;aspect-ratio:1/1}
+    #imageCards .thumb{height:auto;aspect-ratio:1/1}
+    .thumb{height:190px;border-radius:16px;overflow:hidden;background:#071018;display:flex;align-items:center;justify-content:center;color:#596070}
+    .media-title{font-size:14px;font-weight:650;margin-top:14px;color:#f5f5f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+    .media-size{font-size:12px;color:#7c818d;margin-top:7px}
+    .card-actions{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+    .trash{
+      margin-left:auto;background:none;border:0;color:#dc3d33;font-size:15px;cursor:pointer;padding:0 4px;
+      min-height:34px;display:inline-flex;align-items:center
+    }
+    .upload-card{
+      border:1px dashed #1d4a61;background:#081119;color:#86a7ba;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;cursor:pointer
+    }
+    .upload-card.disabled{opacity:.42;cursor:not-allowed;pointer-events:none;border-color:#1d1f24}
+    .upload-card .plus{font-size:38px;color:#8d919b;line-height:1;font-weight:300}
+    .upload-card .upload-label{font-size:14px;letter-spacing:-.01em}
+    .upload-card .upload-hint{font-size:12px;color:#8d93a0}
+    .meter{height:12px;border-radius:999px;background:#0a1218;border:1px solid var(--line2);overflow:hidden}
+    .meter>div{height:100%;background:linear-gradient(90deg,#19b1ff 0,#5fe8ff 50%,#9dfff8 100%);width:0}
+    .meter-row{display:grid;gap:8px}
+    .subtle{color:var(--muted);font-size:13px}
+    .wifi-picker{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .wifi-picker .select{flex:1 1 320px}
+    .wifi-note{margin:8px 2px 0;color:#ff9681;font-size:13px;font-weight:700}
+    .app-rows{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px}
+    .app-row{
+      display:grid;grid-template-columns:1fr auto;grid-template-areas:"toggle open" "name name";align-items:start;gap:10px;padding:12px 12px 10px;
+      border:1px solid var(--line2);border-radius:16px;background:#0d1822
+    }
+    .app-toggle{grid-area:toggle;display:flex;align-items:center;min-height:32px}
+    .app-switch{
+      min-width:66px;height:30px;padding:0 12px;border-radius:999px;border:1px solid #21465d;background:#08121a;
+      color:#87cfff;font-size:11px;font-weight:800;letter-spacing:.1em;display:inline-flex;align-items:center;justify-content:center
+    }
+    .app-switch.on{background:linear-gradient(180deg,var(--accent),#47caff);border-color:#7cf3ff;color:#032031}
+    .app-switch.off{background:#0a1218;border-color:#203241;color:#73889a}
+    .app-open{grid-area:open;justify-self:end;min-width:58px}
+    .app-name{grid-area:name;font-size:14px;font-weight:700;color:#eefbff;line-height:1.2;word-break:break-word}
+    .mini-btn:disabled,.ghost:disabled,.btn:disabled,.soft:disabled,.danger:disabled{
+      opacity:.38;cursor:not-allowed;pointer-events:none
+    }
+    .footer{padding:8px 0 0;color:#7f8590;font-size:13px;text-align:center}
+    .toast{
+      position:fixed;right:18px;bottom:18px;max-width:min(420px,calc(100vw - 36px));padding:14px 16px;border-radius:16px;
+      background:rgba(12,13,16,.96);border:1px solid var(--line2);box-shadow:0 24px 60px rgba(0,0,0,.42);
+      color:#eef0f4;opacity:0;transform:translateY(10px);pointer-events:none;transition:.18s ease;z-index:12
+    }
+    .toast.show{opacity:1;transform:translateY(0)}
+    .toast.ok{border-color:rgba(57,216,109,.42)}
+    .toast.bad{border-color:rgba(201,68,57,.42)}
+    .upload-progress{
+      position:fixed;inset:0;z-index:13;display:flex;align-items:center;justify-content:center;
+      background:rgba(6,7,9,.58);backdrop-filter:blur(5px)
+    }
+    .upload-progress-box{
+      width:min(360px,calc(100vw - 32px));padding:18px;border-radius:20px;background:#0d0f13;
+      border:1px solid var(--line2);box-shadow:0 24px 60px rgba(0,0,0,.44)
+    }
+    .upload-progress-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+    .upload-progress-title{font-size:14px;font-weight:760;color:#eef1f5}
+    .upload-progress-text{font-size:12px;color:#98a0ad}
+    .upload-progress-meta{font-size:12px;color:#8f97a3;margin-bottom:12px;word-break:break-word}
+    .upload-bar{height:12px;border-radius:999px;background:#0a1218;border:1px solid #1d4a61;overflow:hidden}
+    .upload-bar>div{height:100%;width:0;background:linear-gradient(90deg,#19b1ff 0,#5fe8ff 50%,#9dfff8 100%)}
+    .busy .btn,.busy .ghost,.busy .mini-btn,.busy .danger,.busy .soft,.busy .choice{pointer-events:none;opacity:.55}
+    @media (max-width:980px){
+      .hero,.grid2,.grid3,.choice-grid,.mini-grid{grid-template-columns:1fr}
+      .active-panel{grid-template-columns:128px 1fr}
+      .thumb-big{width:128px;height:128px}
+      .cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+      #btcSlots,#stockSlots{grid-template-columns:repeat(auto-fill,280px)}
+      #cgSlots{grid-template-columns:repeat(auto-fill,240px)}
+      #weatherActivePanel{grid-template-columns:96px 1fr}
+      #weatherActiveThumb{width:96px;height:96px}
+      #weatherCards{grid-template-columns:repeat(auto-fill,128px)}
+      #imageCards{grid-template-columns:repeat(auto-fill,164px)}
+    }
+    @media (max-width:720px){
+      .topbar-inner{flex-wrap:wrap}
+      .topbar-inner{padding:14px 0}
+      .primary-tabs{width:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-radius:14px}
+      .main-tab{width:100%;text-align:center}
+      .app-tabs{
+        width:100%;
+        display:grid;
+        grid-template-columns:repeat(4,minmax(0,1fr));
+        gap:6px;
+        border-radius:14px;
+        overflow:visible;
+        padding:6px;
+      }
+      .tab{
+        width:100%;
+        text-align:center;
+        padding:10px 8px;
+      }
+      .panel{padding:18px}
+      h1{font-size:24px}
+      #btcSlots,#stockSlots,#cgSlots{grid-template-columns:1fr}
+      .actions .btn,.actions .ghost,.actions .danger,.actions .soft{width:100%}
+      .toolbar{align-items:stretch}
+      .active-panel{grid-template-columns:1fr;padding:14px 14px 10px}
+      .cards{grid-template-columns:1fr}
+      #weatherActivePanel{grid-template-columns:1fr}
+      #weatherActiveThumb{width:88px;height:88px}
+      #weatherCards{grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}
+      #imageCards{grid-template-columns:repeat(auto-fill,minmax(136px,1fr))}
+      #weatherCards .thumb,#imageCards .thumb{height:auto;aspect-ratio:1/1}
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand"><i></i><span>GeekMagic PRO</span></div>
+      <div class="primary-tabs">
+        <button class="main-tab active" data-main="apps" type="button">Apps</button>
+        <button class="main-tab" data-main="system" type="button">System</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="subnav" id="appsSubnav">
+      <div class="app-tabs">
+        <button class="tab active" data-view="btc">Bitcoin</button>
+        <button class="tab" data-view="cg">CoinGecko</button>
+        <button class="tab" data-view="stock">Stock</button>
+        <button class="tab" data-view="weather">Weather</button>
+        <button class="tab" data-view="time">Clock</button>
+        <button class="tab" data-view="image">Picture</button>
+        <button class="tab" data-view="monitor">Monitor</button>
+      </div>
+      <div class="subnav-note">Apps config and quick open.</div>
+    </div>
+
+    <section class="view" id="view-btc">
+      <div class="panel hero">
+        <div>
+          <div class="eyebrow">Bitcoin App</div>
+          <h1>Binance Market</h1>
+          <p class="lead">Configure symbols, chart, refresh, and format.</p>
+        </div>
+        <div class="hero-side">
+          <div class="chip-row">
+            <div class="chip"><span>Theme</span><b id="btcThemeLabel">1-Coin Chart</b></div>
+            <div class="chip"><span>Chart</span><b id="btcChartLabel">Candlestick</b></div>
+            <div class="chip"><span>Interval</span><b id="btcKlineLabel">1d</b></div>
+          </div>
+          <div class="chip-row">
+            <div class="chip"><span>Refresh</span><b id="btcRefreshLabel">30s</b></div>
+            <div class="chip"><span>Rotate</span><b id="btcRotateLabel">10s</b></div>
+          </div>
+          <div class="chip-row">
+            <button class="btn hero-open" type="button" data-open-app="BitCoin" data-app-key="bitcoin" data-app-label="Bitcoin">Open This App</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Symbols</div>
+            <h2>Pairs and optional names</h2>
+          </div>
+          <p class="note">Use Binance pair IDs. Name is optional.</p>
+        </div>
+        <div class="slots" id="btcSlots"></div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Layout</div>
+              <h2>Choose display theme</h2>
+            </div>
+          </div>
+          <div class="choice-grid" id="btcThemes"></div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Chart</div>
+              <h2>Shape and interval</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="choice-grid" id="btcCharts"></div>
+            <div class="mini-grid">
+              <label class="pair"><span>K-Line Interval</span><select class="select" id="btcKline"></select></label>
+              <label class="pair"><span>Change Calculation</span><select class="select" id="btcPct"></select></label>
+            </div>
+            <div class="hint">30 points per chart. <b>1d</b> is about 30 days.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Cadence</div>
+              <h2>Refresh and rotation</h2>
+            </div>
+          </div>
+          <div class="mini-grid">
+            <label class="pair"><span>Data Refresh (sec)</span><input class="field" id="btcInterval" inputmode="numeric" placeholder="30"></label>
+            <label class="pair"><span>Rotation Interval (sec)</span><input class="field" id="btcRot" inputmode="numeric" placeholder="10"></label>
+          </div>
+          <div class="hint">Lower values refresh faster and use more requests.</div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Behavior</div>
+              <h2>Screen behavior</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <label class="line"><div><strong>Rotate symbols</strong><span>Cycle through the configured pairs automatically.</span></div><span class="switch"><input id="btcLoop" type="checkbox"></span></label>
+            <label class="line"><div><strong>Chart animation</strong><span>Keep animated transitions enabled.</span></div><span class="switch"><input id="btcAni" type="checkbox"></span></label>
+            <label class="line"><div><strong>Show loading</strong><span>Display a loading message before refresh.</span></div><span class="switch"><input id="btcLoading" type="checkbox"></span></label>
+            <label class="line"><div><strong>Show clock</strong><span>Overlay clock where the theme supports it.</span></div><span class="switch"><input id="btcClock" type="checkbox"></span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Market Style</div>
+              <h2>Shared price palette</h2>
+            </div>
+            <p class="note">Shared with CoinGecko.</p>
+          </div>
+          <div class="mini-grid">
+            <label class="pair"><span>Up Price Text</span><input class="field" id="upFg" type="color"></label>
+            <label class="pair"><span>Up Background</span><input class="field" id="upBg" type="color"></label>
+            <label class="pair"><span>Down Price Text</span><input class="field" id="downFg" type="color"></label>
+            <label class="pair"><span>Down Background</span><input class="field" id="downBg" type="color"></label>
+            <label class="pair"><span>Coin Name Text</span><input class="field" id="coinFg" type="color"></label>
+            <label class="pair"><span>Coin Name Background</span><input class="field" id="coinBg" type="color"></label>
+            <label class="pair"><span>Percent Up Text</span><input class="field" id="pctUpFg" type="color"></label>
+            <label class="pair"><span>Percent Up Background</span><input class="field" id="pctUpBg" type="color"></label>
+            <label class="pair"><span>Percent Down Text</span><input class="field" id="pctDownFg" type="color"></label>
+            <label class="pair"><span>Percent Down Background</span><input class="field" id="pctDownBg" type="color"></label>
+          </div>
+          <div class="chip-row" style="margin-top:12px">
+            <button class="ghost" id="saveShared" type="button">Save Market Style</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Number Format</div>
+              <h2>Shared separators</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <label class="pair"><span>Decimal Separator</span><select class="select" id="decSep"></select></label>
+            <label class="pair"><span>Thousand Separator</span><select class="select" id="thousSep"></select></label>
+            <div class="hint">Used by Bitcoin and CoinGecko.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel actions">
+        <p>Save Bitcoin settings and shared format.</p>
+        <div class="chip-row">
+          <button class="ghost" id="reloadBtc" type="button">Reload Bitcoin</button>
+          <button class="btn" id="saveBtc" type="button">Save Bitcoin</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view hidden" id="view-cg">
+      <div class="panel hero">
+        <div>
+          <div class="eyebrow">CoinGecko App</div>
+          <h1>CoinGecko Market</h1>
+          <p class="lead">Configure IDs, range, theme, and refresh.</p>
+        </div>
+        <div class="hero-side">
+          <div class="chip-row">
+            <div class="chip"><span>Theme</span><b id="cgThemeLabel">1-Coin Chart</b></div>
+            <div class="chip"><span>Range</span><b id="cgRangeLabel">30d</b></div>
+            <div class="chip"><span>Refresh</span><b id="cgRefreshLabel">60s</b></div>
+          </div>
+          <div class="chip-row">
+            <div class="chip"><span>Rotate</span><b id="cgRotateLabel">60s</b></div>
+            <div class="chip"><span>Source</span><b>CoinGecko</b></div>
+          </div>
+          <div class="chip-row">
+            <button class="btn hero-open" type="button" data-open-app="CoinGecko" data-app-key="coingecko" data-app-label="CoinGecko">Open This App</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Symbols</div>
+            <h2>Coin IDs</h2>
+          </div>
+          <p class="note">Use exact CoinGecko IDs (for example <code>bitcoin</code>, <code>ethereum</code>). Duplicates are not allowed.</p>
+        </div>
+        <div class="slots" id="cgSlots"></div>
+        <div class="hint">Wrong IDs return empty pages.</div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Layout</div>
+              <h2>Choose display theme</h2>
+            </div>
+          </div>
+          <div class="choice-grid" id="cgThemes"></div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Chart</div>
+              <h2>Range and pacing</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <label class="pair"><span>Chart Range</span><select class="select" id="cgRange"></select></label>
+            <div class="mini-grid">
+              <label class="pair"><span>Data Refresh (sec)</span><input class="field" id="cgInterval" inputmode="numeric" placeholder="60"></label>
+              <label class="pair"><span>Rotation Interval (sec)</span><input class="field" id="cgRot" inputmode="numeric" placeholder="60"></label>
+            </div>
+            <div class="hint">CoinGecko is rate-limited. Use moderate refresh values.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Behavior</div>
+            <h2>Screen behavior</h2>
+          </div>
+        </div>
+        <div class="grid2">
+          <div class="stack">
+            <label class="line"><div><strong>Rotate symbols</strong><span>Cycle through configured CoinGecko IDs automatically.</span></div><span class="switch"><input id="cgLoop" type="checkbox"></span></label>
+            <label class="line"><div><strong>Chart animation</strong><span>Keep animated chart transitions enabled.</span></div><span class="switch"><input id="cgAni" type="checkbox"></span></label>
+          </div>
+          <div class="stack">
+            <label class="line"><div><strong>Show loading</strong><span>Display a loading message before update or page switch.</span></div><span class="switch"><input id="cgLoading" type="checkbox"></span></label>
+            <label class="line"><div><strong>Show clock</strong><span>Overlay clock where the theme supports it.</span></div><span class="switch"><input id="cgClock" type="checkbox"></span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel actions">
+        <p>Save CoinGecko settings.</p>
+        <div class="chip-row">
+          <button class="ghost" id="reloadCg" type="button">Reload CoinGecko</button>
+          <button class="btn" id="saveCg" type="button">Save CoinGecko</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view hidden" id="view-stock">
+      <div class="panel hero">
+        <div>
+          <div class="eyebrow">Stock App</div>
+          <h1>Yahoo Finance Watchlist</h1>
+          <p class="lead">Configure symbols, chart interval, refresh, and animation.</p>
+        </div>
+        <div class="hero-side">
+          <div class="chip-row">
+            <div class="chip"><span>K-Line</span><b id="stockKlineLabel">1d</b></div>
+            <div class="chip"><span>Chart</span><b id="stockChartLabel">Candlestick</b></div>
+            <div class="chip"><span>Refresh</span><b id="stockRefreshLabel">30s</b></div>
+          </div>
+          <div class="chip-row">
+            <div class="chip"><span>Symbols</span><b id="stockCountLabel">0</b></div>
+            <div class="chip"><span>Loop</span><b id="stockLoopLabel">Off</b></div>
+          </div>
+          <div class="chip-row">
+            <button class="btn hero-open" type="button" data-open-app="Stock" data-app-key="stock" data-app-label="Stock">Open This App</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Symbols</div>
+            <h2>Codes and optional names</h2>
+          </div>
+          <p class="note">Use exact Yahoo Finance symbols. Name is optional. Examples: <code>AAPL</code>, <code>BTC-USD</code>, <code>EURUSD=X</code>, <code>GC=F</code>.</p>
+        </div>
+        <div class="slots" id="stockSlots"></div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Chart</div>
+              <h2>K-line interval</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <label class="pair"><span>Chart Type</span><select class="select" id="stockChart"></select></label>
+            <label class="pair"><span>K-Line Interval</span><select class="select" id="stockKline"></select></label>
+            <div class="hint">Some intervals may return sparse data. Try another interval first.</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Behavior</div>
+              <h2>Refresh and runtime flags</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <label class="pair"><span>Data Refresh (sec)</span><input class="field" id="stockInterval" inputmode="numeric" placeholder="30"></label>
+            <label class="line"><div><strong>Loop symbols</strong><span>Rotate through the configured stock symbols automatically.</span></div><span class="switch"><input id="stockLoop" type="checkbox"></span></label>
+            <label class="line"><div><strong>Chart animation</strong><span>Keep candlestick/line transitions enabled.</span></div><span class="switch"><input id="stockAni" type="checkbox"></span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel actions">
+        <p>Save stock settings.</p>
+        <div class="chip-row">
+          <button class="ghost" id="reloadStock" type="button">Reload Stock</button>
+          <button class="btn" id="saveStock" type="button">Save Stock</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view hidden" id="view-weather">
+      <div class="panel hero">
+        <div>
+          <div class="eyebrow">Weather</div>
+          <h1>Weather Settings</h1>
+          <p class="lead">Set city, units, API key, and weather GIFs.</p>
+        </div>
+        <div class="hero-side">
+          <div class="chip-row">
+            <div class="chip"><span>City</span><b id="weatherCityLabel">Unset</b></div>
+            <div class="chip"><span>Units</span><b id="weatherUnitLabel">Metric</b></div>
+          </div>
+          <div class="chip-row">
+            <div class="chip"><span>API</span><b id="weatherKeyLabel">Built-in</b></div>
+            <div class="chip"><span>GIF Path</span><b>80x80</b></div>
+          </div>
+          <div class="chip-row">
+            <button class="btn hero-open" type="button" data-open-app="Weather" data-app-key="weather" data-app-label="Weather">Open This App</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Location</div>
+              <h2>City and display name</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <label class="pair"><span>City Code or Name</span><input class="field" id="weatherCity" placeholder="Seoul or 1835848"></label>
+            <label class="pair"><span>Short Display Name</span><input class="field" id="weatherNickname" placeholder="Optional nickname"></label>
+            <label class="pair"><span>Weather Interval (min)</span><input class="field" id="weatherInterval" inputmode="numeric" placeholder="20"></label>
+            <div class="hint">Unit is minutes. Higher values refresh less often.</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Units</div>
+              <h2>Format and API key</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="mini-grid">
+              <label class="pair"><span>Wind Speed</span><select class="select" id="weatherWind"></select></label>
+              <label class="pair"><span>Temperature</span><select class="select" id="weatherTemp"></select></label>
+              <label class="pair"><span>Pressure</span><select class="select" id="weatherPressure"></select></label>
+              <label class="pair"><span>API Key</span><input class="field" id="weatherKey" placeholder="Optional override"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Weather GIFs</div>
+            <h2>80×80 icon library</h2>
+          </div>
+          <p class="note">Set active icon and manage the library.</p>
+        </div>
+        <div class="actions" style="margin-bottom:10px">
+          <p>Save location, units, and weather key settings.</p>
+          <div class="chip-row">
+            <button class="ghost" id="reloadWeather" type="button">Reload Weather</button>
+            <button class="btn" id="saveWeather" type="button">Save Weather</button>
+          </div>
+        </div>
+        <div class="active-panel" id="weatherActivePanel">
+          <div class="thumb-big" id="weatherActiveThumb"><span>No GIF</span></div>
+          <div class="active-meta">
+            <div>
+              <div class="mini-title">Active</div>
+              <div class="active-name" id="weatherActiveName">None</div>
+            </div>
+            <div class="stats">
+              <div class="stat"><strong id="weatherFilesCount">0</strong><span>Files</span></div>
+              <div class="stat"><strong id="weatherUsedKb">0KB</strong><span>Library Used</span></div>
+              <div class="stat"><strong id="weatherFreeKb">0KB</strong><span>Free</span></div>
+            </div>
+            <div class="storage">
+              <div class="storage-label">Storage</div>
+              <div class="storage-row">
+                <div class="meter"><div id="weatherStorageBar"></div></div>
+                <div class="bar-pct" id="weatherStoragePct">0%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="toolbar" style="margin-top:18px">
+          <div class="subtle">Path: <span id="weatherDir">/image/80x80.gif</span></div>
+          <div class="chip-row">
+            <button class="ghost" id="reloadWeatherFiles" type="button">Reload</button>
+            <button class="danger" id="clearWeatherFiles" type="button">Delete All</button>
+          </div>
+        </div>
+        <div class="cards" id="weatherCards" style="margin-top:18px"></div>
+      </div>
+    </section>
+
+    <section class="view hidden" id="view-time">
+      <div class="panel hero">
+        <div>
+          <div class="eyebrow">Time</div>
+          <h1>Time Settings</h1>
+          <p class="lead">Set colors, format, time zone, and NTP.</p>
+        </div>
+        <div class="hero-side">
+          <div class="chip-row">
+            <div class="chip"><span>Clock</span><b id="timeFormatLabel">24h</b></div>
+            <div class="chip"><span>Date</span><b id="timeDayLabel">DD/MM/YYYY</b></div>
+          </div>
+          <div class="chip-row">
+            <div class="chip"><span>Time Zone</span><b id="timeTzLabel">Auto</b></div>
+            <div class="chip"><span>NTP</span><b id="timeNtpLabel">Default</b></div>
+          </div>
+          <div class="chip-row">
+            <button class="btn hero-open" type="button" data-open-app="Clock" data-app-key="clock" data-app-label="Clock">Open This App</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Color</div>
+              <h2>Hour, minute, second</h2>
+            </div>
+          </div>
+          <div class="mini-grid">
+            <label class="pair"><span>Hour</span><input class="field" id="timeHourColor" type="color"></label>
+            <label class="pair"><span>Minute</span><input class="field" id="timeMinuteColor" type="color"></label>
+            <label class="pair"><span>Second</span><input class="field" id="timeSecondColor" type="color"></label>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Format</div>
+              <h2>Clock and server settings</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <label class="line"><div><strong>12-Hour Clock</strong><span>24-hour display stays default unless this is enabled.</span></div><span class="switch"><input id="timeHour12" type="checkbox"></span></label>
+            <label class="pair"><span>Date Format</span><select class="select" id="timeDayFormat"></select></label>
+            <label class="pair"><span>Time Zone</span><select class="select" id="timeTimezone"></select></label>
+            <label class="pair"><span>NTP Server Domain</span><input class="field" id="timeNtp" placeholder="pool.ntp.org"></label>
+            <div class="hint">Auto uses the Weather city. Manual uses the selected UTC offset.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel actions">
+        <p>Save clock color, format, and NTP settings.</p>
+        <div class="chip-row">
+          <button class="ghost" id="reloadTime" type="button">Reload Time</button>
+          <button class="btn" id="saveTime" type="button">Save Time</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view hidden" id="view-image">
+      <div class="panel hero">
+        <div>
+          <div class="eyebrow">Image</div>
+          <h1>Image Library</h1>
+          <p class="lead">Set playback and manage files.</p>
+        </div>
+        <div class="hero-side">
+          <div class="chip-row">
+            <div class="chip"><span>Auto Play</span><b id="imageAutoLabel">Off</b></div>
+            <div class="chip"><span>Interval</span><b id="imageIntervalLabel">30s</b></div>
+          </div>
+          <div class="chip-row">
+            <div class="chip"><span>GIF Loop</span><b id="imageLoopLabel">5</b></div>
+            <div class="chip"><span>Free</span><b id="spaceLabel">-</b></div>
+          </div>
+          <div class="chip-row">
+            <button class="btn hero-open" type="button" data-open-app="Picture" data-app-key="picture" data-app-label="Picture">Open This App</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Playback</div>
+              <h2>Playback</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <label class="line"><div><strong>Auto display</strong><span>Cycle through stored images automatically.</span></div><span class="switch"><input id="imageAutoplay" type="checkbox"></span></label>
+            <div class="mini-grid">
+              <label class="pair"><span>JPG Interval (sec)</span><input class="field" id="imageInterval" inputmode="numeric" placeholder="30"></label>
+              <label class="pair"><span>GIF Loop Count</span><input class="field" id="imageGifLoop" inputmode="numeric" placeholder="5"></label>
+            </div>
+            <div class="hint">Use display-sized files for best results.</div>
+            <div class="actions">
+              <p>Save album playback settings.</p>
+              <div class="chip-row">
+                <button class="ghost" id="reloadImage" type="button">Reload Image</button>
+                <button class="btn" id="saveImage" type="button">Save Image</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Storage</div>
+              <h2>Flash usage</h2>
+            </div>
+          </div>
+          <div class="meter-row">
+            <div class="subtle" id="spaceText">Storage unavailable</div>
+            <div class="meter"><div id="spaceBar"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Library</div>
+            <h2>Image files</h2>
+          </div>
+          <p class="note">Set cover image, upload files, or delete files.</p>
+        </div>
+        <div class="active-panel">
+          <div class="thumb-big" id="imageActiveThumb"><span>No File</span></div>
+          <div class="active-meta">
+            <div>
+              <div class="mini-title" id="imageActiveTitle">Selected</div>
+              <div class="active-name" id="imageActiveName">None</div>
+            </div>
+            <div class="stats">
+              <div class="stat"><strong id="imageFilesCount">0</strong><span>Files</span></div>
+              <div class="stat"><strong id="imageUsedKb">0KB</strong><span>Library Used</span></div>
+              <div class="stat"><strong id="imageFreeKb">0KB</strong><span>Free</span></div>
+            </div>
+            <div class="storage">
+              <div class="storage-label">Storage</div>
+              <div class="storage-row">
+                <div class="meter"><div id="imageStorageBar"></div></div>
+                <div class="bar-pct" id="imageStoragePct">0%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="toolbar" style="margin-top:18px">
+          <div class="subtle">Path: <span id="imageDir">/image</span></div>
+          <div class="chip-row">
+            <button class="ghost" id="reloadImageFiles" type="button">Reload</button>
+            <button class="danger" id="clearImageFiles" type="button">Delete All</button>
+          </div>
+        </div>
+        <div class="cards" id="imageCards" style="margin-top:18px"></div>
+      </div>
+
+    </section>
+
+    <section class="view hidden" id="view-monitor">
+      <div class="panel hero">
+        <div>
+          <div class="eyebrow">Monitor</div>
+          <h1>Monitor Settings</h1>
+          <p class="lead">Set host and refresh interval. Manual: <a href="https://github.com/GeekMagicClock/smalltv-pro/tree/main/user%20manual" target="_blank" rel="noopener noreferrer">user manual</a>.</p>
+        </div>
+        <div class="hero-side">
+          <div class="chip-row">
+            <div class="chip"><span>Host</span><b id="monitorHostLabel">Unset</b></div>
+            <div class="chip"><span>Refresh</span><b id="monitorRefreshLabel">1s</b></div>
+          </div>
+          <div class="chip-row">
+            <div class="chip"><span>Transport</span><b>HTTP /sse</b></div>
+            <div class="chip"><span>LAN</span><b>Required</b></div>
+          </div>
+          <div class="chip-row">
+            <button class="btn hero-open" type="button" data-open-app="Monitor" data-app-key="monitor" data-app-label="Monitor">Open This App</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Connection</div>
+              <h2>Host and cadence</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <label class="pair"><span>Host IP or IP:Port</span><input class="field" id="monitorHost" placeholder="192.168.1.100 or 192.168.1.100:80"></label>
+            <label class="pair"><span>Refresh Interval (sec)</span><input class="field" id="monitorInterval" inputmode="numeric" placeholder="1"></label>
+            <div class="hint">Default port is 80. Endpoint is <b>/sse</b>.</div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Requirements</div>
+              <h2>Checklist</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <div class="line"><div><strong>Same local network</strong><span>Device and host must be on the same LAN.</span></div></div>
+            <div class="line"><div><strong>Metrics server ready</strong><span>Your PC service must expose the HTTP stream.</span></div></div>
+            <div class="line"><div><strong>Stable refresh</strong><span>Start with 1 to 2 seconds.</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel actions">
+        <p>Save monitor host and refresh interval.</p>
+        <div class="chip-row">
+          <button class="ghost" id="reloadMonitor" type="button">Reload Monitor</button>
+          <button class="btn" id="saveMonitor" type="button">Save Monitor</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="view hidden" id="view-settings">
+      <div class="panel hero">
+        <div>
+          <div class="eyebrow">Settings</div>
+          <h1>System Settings</h1>
+          <p class="lead">Network, display, startup, and actions.</p>
+        </div>
+        <div class="hero-side">
+          <div class="chip-row">
+            <div class="chip"><span>Model</span><b id="deviceModelLabel">-</b></div>
+            <div class="chip"><span>Version</span><b id="deviceVersionLabel">-</b></div>
+          </div>
+          <div class="chip-row">
+            <div class="chip"><span>Brightness</span><b id="deviceBrtLabel">50%</b></div>
+            <div class="chip"><span>Wi-Fi</span><b id="wifiLabel">Unconfigured</b></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Network</div>
+            <h2>Wi-Fi configuration</h2>
+          </div>
+          <p class="note">Saving Wi-Fi will reboot.</p>
+        </div>
+        <div class="stack">
+          <div class="wifi-picker">
+            <select class="select" id="wifiSelect"></select>
+            <button class="ghost" id="rescanWifi" type="button">Rescan</button>
+            <div class="chip"><span>Found</span><b id="wifiCountLabel">0</b></div>
+          </div>
+          <p class="wifi-note">Use a strong 2.4G Wi-Fi signal. 5G is not supported.</p>
+          <div class="mini-grid">
+            <label class="pair"><span>SSID</span><input class="field" id="wifiSsid" placeholder="Select or type SSID"></label>
+            <label class="pair"><span>Password</span><input class="field" id="wifiPwd" type="password" placeholder="Wi-Fi password"></label>
+            <label class="pair"><span>Boot Delay (sec)</span><input class="field" id="wifiDelay" inputmode="numeric" placeholder="30"></label>
+          </div>
+        </div>
+        <div class="actions">
+          <p>Save Wi-Fi and boot delay.</p>
+          <div class="chip-row">
+            <button class="soft" id="saveDelay" type="button">Save Delay</button>
+            <button class="btn" id="saveWifi" type="button">Save Wi-Fi</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Display</div>
+              <h2>Brightness and night mode</h2>
+            </div>
+          </div>
+          <div class="stack">
+            <label class="pair"><span>Brightness</span><input class="field" id="deviceBrt" type="range" min="0" max="100"></label>
+            <label class="line"><div><strong>Night Mode</strong><span>Apply reduced brightness between the selected hours.</span></div><span class="switch"><input id="nightEnable" type="checkbox"></span></label>
+            <div class="mini-grid">
+              <label class="pair"><span>Start</span><select class="select" id="nightStart"></select></label>
+              <label class="pair"><span>End</span><select class="select" id="nightEnd"></select></label>
+              <label class="pair"><span>Night Brightness</span><input class="field" id="nightBrt" type="range" min="0" max="100"></label>
+            </div>
+          </div>
+          <div class="actions">
+            <p>Save brightness and night mode.</p>
+            <div class="chip-row">
+              <button class="btn" id="saveDevice" type="button">Save Display</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="section-head">
+            <div>
+            <div class="eyebrow">Startup</div>
+            <h2>Startup app and controls</h2>
+          </div>
+        </div>
+        <div class="stack">
+          <label class="pair"><span>Auto Start App</span><select class="select" id="bootTheme"></select></label>
+          <div class="hint">Disabled apps are skipped at startup and app cycling.</div>
+          <div class="app-rows" id="appControlRows"></div>
+          <div class="line">
+            <div><strong>Quick Navigation</strong><span>Send navigation commands from this page.</span></div>
+            <div class="chip-row">
+              <button class="mini-btn" id="navLeft" type="button">← Left</button>
+              <button class="mini-btn" id="navRight" type="button">→ Right</button>
+                <button class="mini-btn" id="navEnter" type="button">⏎ Enter/Exit</button>
+              </div>
+            </div>
+        </div>
+        <div class="actions">
+          <p>Save startup app and app states.</p>
+          <div class="chip-row">
+            <button class="btn" id="saveBootTheme" type="button">Save Startup</button>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Actions</div>
+            <h2>Reboot, reset, and update</h2>
+          </div>
+        </div>
+        <div class="actions">
+          <p>Reset keeps uploaded media. Firmware: <a href="https://github.com/GeekMagicClock/smalltv-pro" target="_blank" rel="noopener">github.com/GeekMagicClock/smalltv-pro</a></p>
+          <div class="chip-row">
+            <a class="soft" href="/update" target="_blank" rel="noopener">Firmware Update</a>
+            <button class="danger" id="rebootDevice" type="button">Reboot</button>
+            <button class="danger" id="resetDevice" type="button">Factory Reset</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel actions">
+        <p>System controls.</p>
+        <div class="chip-row">
+          <button class="ghost" id="reloadSettings" type="button">Reload Settings</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">Copyright © GeekMagic. All rights reserved.</div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+  <input id="weatherUpload" type="file" accept="image/gif" multiple hidden>
+  <input id="imageUpload" type="file" accept="image/jpeg,image/gif" multiple hidden>
+  <div id="uploadProgress" class="upload-progress hidden">
+    <div class="upload-progress-box">
+      <div class="upload-progress-head">
+        <div class="upload-progress-title" id="uploadProgressTitle">Uploading</div>
+        <div class="upload-progress-text" id="uploadProgressText">0%</div>
+      </div>
+      <div class="upload-progress-meta" id="uploadProgressMeta">Preparing files...</div>
+      <div class="upload-bar"><div id="uploadProgressBar"></div></div>
+    </div>
+  </div>
+
+  <script>
+    const BTC_THEMES=[['0','1-Coin Chart','Price, change, chart, clock'],['1','1-Coin Large','Large text with clock'],['2','2-Coin Split','Two symbols vertically'],['3','3-Coin Compact','Three symbols stacked']];
+    const CG_THEMES=BTC_THEMES.slice();
+    const BTC_CHARTS=[['0','Candlestick','OHLC view for traders'],['1','Line','Minimal trend chart']];
+    const BTC_KLINES=['1m','5m','15m','30m','1h','2h','4h','6h','8h','12h','1d','3d','1w','1M'];
+    const STOCK_KLINES=['1m','2m','5m','15m','30m','1h','1d','5d','1wk','1mo'];
+    const STOCK_CHARTS=[['0','Candlestick'],['1','Line']];
+    const CG_RANGES=['24h','48h','96h','7d','15d','30d','60d','90d','180d'];
+    const BTC_PCT=[['0','Rolling 24h (Binance default)'],['1','Previous Closed Candle (Trader Mode)']];
+    const WIND_OPTS=['m/s','km/h','mile/h'];
+    const TEMP_OPTS=['°C','°F'];
+    const PRESSURE_OPTS=['hPa','kPa','mmHg','inHg'];
+    const DAY_OPTS=[['1','DD/MM/YYYY'],['2','YYYY/MM/DD'],['3','MM/DD/YYYY'],['4','MM/DD'],['5','DD/MM']];
+    const TIMEZONE_OPTS=[
+      ['auto','Auto (Weather city)'],
+      ['-720','UTC-12:00'],['-660','UTC-11:00'],['-600','UTC-10:00'],['-570','UTC-09:30'],['-540','UTC-09:00'],
+      ['-480','UTC-08:00'],['-420','UTC-07:00'],['-360','UTC-06:00'],['-300','UTC-05:00'],['-240','UTC-04:00'],
+      ['-210','UTC-03:30'],['-180','UTC-03:00'],['-120','UTC-02:00'],['-60','UTC-01:00'],['0','UTC+00:00'],
+      ['60','UTC+01:00'],['120','UTC+02:00'],['180','UTC+03:00'],['210','UTC+03:30'],['240','UTC+04:00'],
+      ['270','UTC+04:30'],['300','UTC+05:00'],['330','UTC+05:30'],['345','UTC+05:45'],['360','UTC+06:00'],
+      ['390','UTC+06:30'],['420','UTC+07:00'],['480','UTC+08:00'],['525','UTC+08:45'],['540','UTC+09:00'],
+      ['570','UTC+09:30'],['600','UTC+10:00'],['630','UTC+10:30'],['660','UTC+11:00'],['720','UTC+12:00'],
+      ['765','UTC+12:45'],['780','UTC+13:00'],['825','UTC+13:45'],['840','UTC+14:00']
+    ];
+    const DEC_OPTS=[['.','Dot (.)'],[',','Comma (,)']];
+    const THOUS_OPTS=[[',','Comma (,)'],['.','Dot (.)'],[' ','Space'],["'","Apostrophe (')"]];
+    const APP_ITEMS=[
+      {key:'bitcoin',label:'Bitcoin',name:'BitCoin',index:'0'},
+      {key:'coingecko',label:'CoinGecko',name:'CoinGecko',index:'1'},
+      {key:'stock',label:'Stock',name:'Stock',index:'2'},
+      {key:'weather',label:'Weather',name:'Weather',index:'3'},
+      {key:'picture',label:'Picture',name:'Picture',index:'4'},
+      {key:'monitor',label:'Monitor',name:'Monitor',index:'5'},
+      {key:'clock',label:'Clock',name:'Clock',index:'6'},
+      {key:'idea',label:'Idea',name:'Idea',index:'7'},
+      {key:'settings',label:'Settings',name:'Settings',index:'8'}
+    ];
+    const APP_OPTS=[['-1','None']].concat(APP_ITEMS.map(item=>[item.index,`${Number(item.index)+1}. ${item.label}`]));
+    const HOURS=Array.from({length:24},(_,i)=>[String(i),String(i).padStart(2,'0')+':00']);
+    const WEATHER_GIF_DIR='/image/80x80.gif';
+    const IMAGE_DIR='/image';
+    const APP_VIEWS=['btc','cg','stock','weather','time','image','monitor'];
+    const SYSTEM_VIEW='settings';
+    const VIEW_KEYS=APP_VIEWS.concat([SYSTEM_VIEW]);
+    const VIEW_STORAGE_KEY='gm_pro_active_tab';
+    const MAIN_STORAGE_KEY='gm_pro_main_tab';
+    const VIEW_LABELS={btc:'Bitcoin',cg:'CoinGecko',stock:'Stock',weather:'Weather',time:'Time',image:'Image',monitor:'Monitor',settings:'Settings'};
+
+    const $=s=>document.querySelector(s);
+    const $$=s=>Array.from(document.querySelectorAll(s));
+    const byId=id=>document.getElementById(id);
+    const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    const boolish=v=>v===1||v==='1'||v===true;
+    const toInt=(v,d)=>{v=parseInt(v,10);return Number.isFinite(v)?v:d};
+    const fmtBytes=n=>{n=Number(n)||0;if(n<1024)return n+' B';if(n<1048576)return (n/1024).toFixed(n<10240?1:0)+' KB';return (n/1048576).toFixed(1)+' MB'};
+    const formatTimezoneLabel=(mode,offset)=>{
+      if(mode==='auto') return 'Auto';
+      const total=toInt(offset,0);
+      const sign=total>=0?'+':'-';
+      const abs=Math.abs(total);
+      const hh=String(Math.floor(abs/60)).padStart(2,'0');
+      const mm=String(abs%60).padStart(2,'0');
+      return `UTC${sign}${hh}:${mm}`;
+    };
+
+    const state={
+      main:'apps',
+      view:'btc',
+      btc:{theme:'0',chart:'0',kline:'1d',pct:'0',interval:30,rot:10,loop:true,ani:false,loading:true,clock:false,ids:Array(12).fill(''),names:Array(12).fill('')},
+      cg:{theme:'0',range:'30d',interval:60,rot:60,loop:true,ani:false,loading:true,clock:false,ids:Array(12).fill('')},
+      stock:{chart:'0',kline:'1d',interval:30,loop:false,ani:false,ids:Array(10).fill(''),names:Array(10).fill('')},
+      weather:{city:'',nickname:'',interval:20,wind:'m/s',temp:'°C',pressure:'hPa',key:'',gifPath:''},
+      time:{hour12:false,day:'1',ntp:'',tzMode:'auto',tzOffset:'0',hc:'#ffffff',mc:'#feba01',sc:'#ff5900'},
+      image:{autoplay:false,interval:30,gifLoop:5,selectedPath:''},
+      monitor:{host:'',interval:1},
+      settings:{model:'-',version:'-',brt:50,delay:30,timeBrtEn:false,time1:'22',time2:'7',timeBrt:50,bootTheme:'-1',ssid:'',pwd:'',apps:Object.fromEntries(APP_ITEMS.map(item=>[item.key,true]))},
+      shared:{up_fg:'#000000',up_bg:'#00ff00',down_fg:'#ffffff',down_bg:'#ff0000',coin_fg:'#ffffff',coin_bg:'#000000',pct_up_fg:'#000000',pct_up_bg:'#00ff00',pct_down_fg:'#ffffff',pct_down_bg:'#ff0000',dec_sep:'.',thous_sep:','},
+      media:{weather:[],image:[]},
+      space:{total:0,free:0},
+      wifiAps:[],
+      wifiCount:0,
+      wifiScanning:false,
+      uploading:false
+    };
+    const loaded={btc:0,cg:0,stock:0,weather:0,time:0,image:0,monitor:0,settings:0,shared:0,space:0,weatherMedia:0,imageMedia:0,wifi:0};
+    const inflight={};
+
+    function isValidView(view){
+      return VIEW_KEYS.includes(view);
+    }
+    function isValidMain(main){
+      return main==='apps' || main==='system';
+    }
+    function persistView(view){
+      if(!isValidView(view)) return;
+      try{sessionStorage.setItem(VIEW_STORAGE_KEY,view)}catch(_){}
+      if(location.hash!=='#'+view){
+        history.replaceState(null,'','#'+view);
+      }
+    }
+    function persistMain(main){
+      if(!isValidMain(main)) return;
+      try{sessionStorage.setItem(MAIN_STORAGE_KEY,main)}catch(_){}
+    }
+    function restoreView(){
+      const hashView=(location.hash||'').replace(/^#/,'').trim();
+      if(isValidView(hashView)) return hashView;
+      try{
+        const saved=sessionStorage.getItem(VIEW_STORAGE_KEY)||'';
+        if(isValidView(saved)) return saved;
+      }catch(_){}
+      return 'btc';
+    }
+    function restoreMain(){
+      try{
+        const saved=sessionStorage.getItem(MAIN_STORAGE_KEY)||'';
+        if(isValidMain(saved)) return saved;
+      }catch(_){}
+      return 'apps';
+    }
+    function applyMainState(main){
+      state.main=isValidMain(main)?main:'apps';
+      $$('.main-tab').forEach(b=>b.classList.toggle('active',b.dataset.main===state.main));
+      byId('appsSubnav').classList.toggle('hidden',state.main!=='apps');
+    }
+    function applyViewState(view){
+      state.view=view;
+      $$('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+      VIEW_KEYS.forEach(v=>byId('view-'+v).classList.toggle('hidden',v!==view));
+    }
+    function setMain(main){
+      const target=isValidMain(main)?main:'apps';
+      applyMainState(target);
+      persistMain(target);
+      if(target==='system'){
+        if(state.view!==SYSTEM_VIEW){
+          applyViewState(SYSTEM_VIEW);
+          persistView(SYSTEM_VIEW);
+        }
+      }else{
+        if(!APP_VIEWS.includes(state.view)){
+          const restored=restoreView();
+          const appView=APP_VIEWS.includes(restored)?restored:'btc';
+          applyViewState(appView);
+          persistView(appView);
+        }
+      }
+      loadCurrent(true,target==='system');
+    }
+
+    function setBusy(on){document.body.classList.toggle('busy',on)}
+    function toast(msg,ok){
+      const el=byId('toast');
+      el.textContent=msg;
+      el.className='toast '+(ok?'ok':'bad')+' show';
+      clearTimeout(el._t);
+      el._t=setTimeout(()=>el.className='toast',2400);
+    }
+    function showUploadProgress(title){
+      byId('uploadProgressTitle').textContent=title;
+      byId('uploadProgressText').textContent='0%';
+      byId('uploadProgressMeta').textContent='Preparing files...';
+      byId('uploadProgressBar').style.width='0%';
+      byId('uploadProgress').classList.remove('hidden');
+    }
+    function setUploadProgress(percent,text,meta){
+      const safe=Math.max(0,Math.min(100,Math.round(percent)));
+      byId('uploadProgressBar').style.width=safe+'%';
+      byId('uploadProgressText').textContent=text||(`${safe}%`);
+      if(meta!=null) byId('uploadProgressMeta').textContent=meta;
+    }
+    function hideUploadProgress(delay){
+      setTimeout(()=>byId('uploadProgress').classList.add('hidden'),delay==null?200:delay);
+    }
+    function syncUploadControls(){
+      const disabled=!!state.uploading;
+      ['weatherUpload','imageUpload'].forEach(id=>{
+        const input=byId(id);
+        if(input) input.disabled=disabled;
+      });
+      renderMediaCards('weather');
+      renderMediaCards('image');
+    }
+    function syncWifiScanUi(){
+      const btn=byId('rescanWifi');
+      const select=byId('wifiSelect');
+      if(btn){
+        btn.textContent=state.wifiScanning?'Scanning...':'Rescan';
+        btn.disabled=!!state.wifiScanning;
+      }
+      if(select && state.wifiScanning){
+        select.disabled=true;
+        if(!select.options.length || /Loading|Scanning/.test(select.options[0]?.text||'')){
+          select.innerHTML='<option value="">Scanning Wi-Fi...</option>';
+        }
+      }
+    }
+    async function send(url,check){
+      const r=await fetch(url,{cache:'no-store'});
+      const t=await r.text();
+      const ok=check?check(t,r):t.trim()==='OK';
+      if(!r.ok||!ok) throw new Error(t||('HTTP '+r.status));
+      return t;
+    }
+    async function getJson(url){
+      try{
+        const r=await fetch(url+'?_='+Date.now(),{cache:'no-store'});
+        if(!r.ok) return {};
+        return await r.json();
+      }catch(_){return {}}
+    }
+    async function getText(url){
+      const r=await fetch(url+(url.includes('?')?'&':'?')+'_='+Date.now(),{cache:'no-store'});
+      return r.ok?await r.text():'';
+    }
+    function once(key,force,job){
+      if(force) loaded[key]=0;
+      if(!force&&loaded[key]) return Promise.resolve();
+      if(inflight[key]) return inflight[key];
+      inflight[key]=(async()=>{
+        await job();
+        loaded[key]=1;
+      })().finally(()=>{delete inflight[key]});
+      return inflight[key];
+    }
+    function buildChoices(hostId,group,items){
+      byId(hostId).innerHTML=items.map(([value,title,desc])=>`<button class="choice" type="button" data-group="${group}" data-value="${value}"><strong>${esc(title)}</strong><span>${esc(desc)}</span></button>`).join('');
+    }
+    function buildOptions(hostId,items){
+      byId(hostId).innerHTML=items.map(v=>Array.isArray(v)?`<option value="${esc(v[0])}">${esc(v[1])}</option>`:`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+    }
+    function buildSlots(){
+      byId('btcSlots').innerHTML=Array.from({length:12},(_,i)=>`<div class="slot-btc"><div class="idx">${i+1}</div><input class="field btc-id" id="btc-id-${i}" placeholder="BTCUSDT"><input class="field btc-name" id="btc-name-${i}" placeholder="Optional"></div>`).join('');
+      byId('cgSlots').innerHTML=Array.from({length:12},(_,i)=>`<div class="slot-cg"><div class="idx">${i+1}</div><input class="field cg-id" id="cg-id-${i}" placeholder="bitcoin"></div>`).join('');
+      byId('stockSlots').innerHTML=Array.from({length:10},(_,i)=>`<div class="slot-stock"><div class="idx">${i+1}</div><input class="field stock-id" id="stock-id-${i}" placeholder="AAPL"><input class="field stock-name" id="stock-name-${i}" placeholder="Optional"></div>`).join('');
+    }
+    function buildAppControls(){
+      byId('appControlRows').innerHTML=APP_ITEMS.map(item=>`<div class="app-row"><div class="app-toggle"><button class="app-switch on" id="app-toggle-${item.key}" type="button" data-toggle-app="${esc(item.key)}" aria-pressed="true">ON</button></div><button class="mini-btn app-open" id="open-app-${item.key}" type="button" data-open-app="${esc(item.name)}" data-app-key="${esc(item.key)}" data-app-label="${esc(item.label)}">Open</button><div class="app-name">${esc(item.label)}</div></div>`).join('');
+    }
+    function ensureValidBootTheme(){
+      const selected=APP_ITEMS.find(item=>item.index===state.settings.bootTheme);
+      if(selected && !state.settings.apps[selected.key]) state.settings.bootTheme='-1';
+    }
+    function normalizeBootTheme(rawTheme){
+      if(rawTheme==null) return '-1';
+      const normalized=String(rawTheme).trim();
+      if(normalized==='-1') return '-1';
+      if(APP_ITEMS.some(item=>item.index===normalized)) return normalized;
+      return '-1';
+    }
+    function syncAppControls(){
+      APP_ITEMS.forEach(item=>{
+        const enabled=!!state.settings.apps[item.key];
+        const toggle=byId('app-toggle-'+item.key);
+        const openBtn=byId('open-app-'+item.key);
+        if(toggle){
+          toggle.textContent=enabled?'ON':'OFF';
+          toggle.className='app-switch '+(enabled?'on':'off');
+          toggle.setAttribute('aria-pressed',enabled?'true':'false');
+        }
+        if(openBtn) openBtn.disabled=!enabled;
+      });
+      if(byId('bootTheme')) byId('bootTheme').value=state.settings.bootTheme;
+    }
+    function syncChoices(){
+      $$('[data-group="btc-theme"]').forEach(b=>b.classList.toggle('active',b.dataset.value===state.btc.theme));
+      $$('[data-group="cg-theme"]').forEach(b=>b.classList.toggle('active',b.dataset.value===state.cg.theme));
+      $$('[data-group="btc-chart"]').forEach(b=>b.classList.toggle('active',b.dataset.value===state.btc.chart));
+    }
+    function syncLabels(){
+      byId('btcThemeLabel').textContent=BTC_THEMES.find(v=>v[0]===state.btc.theme)?.[1]||state.btc.theme;
+      byId('btcChartLabel').textContent=BTC_CHARTS.find(v=>v[0]===state.btc.chart)?.[1]||state.btc.chart;
+      byId('btcKlineLabel').textContent=state.btc.kline;
+      byId('btcRefreshLabel').textContent=state.btc.interval+'s';
+      byId('btcRotateLabel').textContent=state.btc.loop?(state.btc.rot+'s'):'Off';
+
+      byId('cgThemeLabel').textContent=CG_THEMES.find(v=>v[0]===state.cg.theme)?.[1]||state.cg.theme;
+      byId('cgRangeLabel').textContent=state.cg.range;
+      byId('cgRefreshLabel').textContent=state.cg.interval+'s';
+      byId('cgRotateLabel').textContent=state.cg.loop?(state.cg.rot+'s'):'Off';
+
+      byId('stockKlineLabel').textContent=state.stock.kline;
+      byId('stockChartLabel').textContent=STOCK_CHARTS.find(v=>v[0]===state.stock.chart)?.[1]||state.stock.chart;
+      byId('stockRefreshLabel').textContent=state.stock.interval+'s';
+      byId('stockCountLabel').textContent=String(state.stock.ids.filter(Boolean).length);
+      byId('stockLoopLabel').textContent=state.stock.loop?'On':'Off';
+
+      byId('weatherCityLabel').textContent=state.weather.nickname||state.weather.city||'Unset';
+      byId('weatherUnitLabel').textContent=state.weather.temp==='°F'?'Imperial':'Metric';
+      byId('weatherKeyLabel').textContent=state.weather.key?'Custom':'Built-in';
+
+      byId('timeFormatLabel').textContent=state.time.hour12?'12h':'24h';
+      byId('timeDayLabel').textContent=DAY_OPTS.find(v=>v[0]===state.time.day)?.[1]||state.time.day;
+      byId('timeTzLabel').textContent=formatTimezoneLabel(state.time.tzMode,state.time.tzOffset);
+      byId('timeNtpLabel').textContent=state.time.ntp||'Default';
+
+      byId('imageAutoLabel').textContent=state.image.autoplay?'On':'Off';
+      byId('imageIntervalLabel').textContent=state.image.interval+'s';
+      byId('imageLoopLabel').textContent=String(state.image.gifLoop);
+      byId('spaceLabel').textContent=state.space.free?fmtBytes(state.space.free):'-';
+
+      byId('monitorHostLabel').textContent=state.monitor.host||'Unset';
+      byId('monitorRefreshLabel').textContent=state.monitor.interval+'s';
+
+      byId('deviceModelLabel').textContent=state.settings.model||'-';
+      byId('deviceVersionLabel').textContent=state.settings.version||'-';
+      byId('deviceBrtLabel').textContent=state.settings.brt+'%';
+      byId('wifiLabel').textContent=state.settings.ssid||'Unconfigured';
+      byId('wifiCountLabel').textContent=String(state.wifiCount);
+
+      const used=Math.max(0,(state.space.total||0)-(state.space.free||0));
+      const pct=state.space.total?Math.min(100,Math.round(used*100/state.space.total)):0;
+      byId('spaceText').textContent=state.space.total?`Total ${fmtBytes(state.space.total)} · Free ${fmtBytes(state.space.free)} · Used ${pct}%`:'Storage unavailable';
+      byId('spaceBar').style.width=pct+'%';
+    }
+    function applyState(){
+      for(let i=0;i<12;i++){
+        byId('btc-id-'+i).value=state.btc.ids[i]||'';
+        byId('btc-name-'+i).value=state.btc.names[i]||'';
+        byId('cg-id-'+i).value=state.cg.ids[i]||'';
+      }
+      for(let i=0;i<10;i++){
+        byId('stock-id-'+i).value=state.stock.ids[i]||'';
+        byId('stock-name-'+i).value=state.stock.names[i]||'';
+      }
+      byId('btcKline').value=state.btc.kline;
+      byId('btcPct').value=state.btc.pct;
+      byId('btcInterval').value=state.btc.interval;
+      byId('btcRot').value=state.btc.rot;
+      byId('btcLoop').checked=!!state.btc.loop;
+      byId('btcAni').checked=!!state.btc.ani;
+      byId('btcLoading').checked=!!state.btc.loading;
+      byId('btcClock').checked=!!state.btc.clock;
+
+      byId('cgRange').value=state.cg.range;
+      byId('cgInterval').value=state.cg.interval;
+      byId('cgRot').value=state.cg.rot;
+      byId('cgLoop').checked=!!state.cg.loop;
+      byId('cgAni').checked=!!state.cg.ani;
+      byId('cgLoading').checked=!!state.cg.loading;
+      byId('cgClock').checked=!!state.cg.clock;
+
+      byId('stockKline').value=state.stock.kline;
+      byId('stockChart').value=state.stock.chart;
+      byId('stockInterval').value=state.stock.interval;
+      byId('stockLoop').checked=!!state.stock.loop;
+      byId('stockAni').checked=!!state.stock.ani;
+
+      byId('weatherCity').value=state.weather.city;
+      byId('weatherNickname').value=state.weather.nickname;
+      byId('weatherInterval').value=state.weather.interval;
+      byId('weatherWind').value=state.weather.wind;
+      byId('weatherTemp').value=state.weather.temp;
+      byId('weatherPressure').value=state.weather.pressure;
+      byId('weatherKey').value=state.weather.key;
+
+      byId('timeHourColor').value=state.time.hc;
+      byId('timeMinuteColor').value=state.time.mc;
+      byId('timeSecondColor').value=state.time.sc;
+      byId('timeHour12').checked=!!state.time.hour12;
+      byId('timeDayFormat').value=state.time.day;
+      byId('timeTimezone').value=state.time.tzMode==='auto'?'auto':String(state.time.tzOffset);
+      byId('timeNtp').value=state.time.ntp;
+
+      byId('imageAutoplay').checked=!!state.image.autoplay;
+      byId('imageInterval').value=state.image.interval;
+      byId('imageGifLoop').value=state.image.gifLoop;
+
+      byId('monitorHost').value=state.monitor.host;
+      byId('monitorInterval').value=state.monitor.interval;
+
+      byId('deviceBrt').value=state.settings.brt;
+      byId('wifiDelay').value=state.settings.delay;
+      byId('nightEnable').checked=!!state.settings.timeBrtEn;
+      byId('nightStart').value=state.settings.time1;
+      byId('nightEnd').value=state.settings.time2;
+      byId('nightBrt').value=state.settings.timeBrt;
+      byId('bootTheme').value=state.settings.bootTheme;
+      byId('wifiSsid').value=state.settings.ssid;
+      byId('wifiPwd').value=state.settings.pwd;
+
+      byId('upFg').value=state.shared.up_fg;
+      byId('upBg').value=state.shared.up_bg;
+      byId('downFg').value=state.shared.down_fg;
+      byId('downBg').value=state.shared.down_bg;
+      byId('coinFg').value=state.shared.coin_fg;
+      byId('coinBg').value=state.shared.coin_bg;
+      byId('pctUpFg').value=state.shared.pct_up_fg;
+      byId('pctUpBg').value=state.shared.pct_up_bg;
+      byId('pctDownFg').value=state.shared.pct_down_fg;
+      byId('pctDownBg').value=state.shared.pct_down_bg;
+      byId('decSep').value=state.shared.dec_sep;
+      byId('thousSep').value=state.shared.thous_sep;
+
+      syncChoices();
+      syncAppControls();
+      syncLabels();
+    }
+    function setView(view){
+      if(!isValidView(view)) view='btc';
+      if(APP_VIEWS.includes(view) && state.main!=='apps'){
+        applyMainState('apps');
+        persistMain('apps');
+      }
+      if(view===SYSTEM_VIEW && state.main!=='system'){
+        applyMainState('system');
+        persistMain('system');
+      }
+      applyViewState(view);
+      persistView(view);
+      loadCurrent(true,view===SYSTEM_VIEW);
+    }
+    function clearDupMarks(cls){$$('.'+cls).forEach(el=>el.classList.remove('err'))}
+    function validateIds(cls,values,prefix){
+      clearDupMarks(cls);
+      if(!values.some(Boolean)){toast('Add at least one symbol before saving.',0);return false}
+      const seen={};let dup=false;
+      values.forEach((v,i)=>{
+        if(!v) return;
+        const key=v.toLowerCase();
+        if(seen[key]!=null){
+          byId(prefix+i).classList.add('err');
+          byId(prefix+seen[key]).classList.add('err');
+          dup=true;
+        }else seen[key]=i;
+      });
+      if(dup){toast('Duplicate symbols are not allowed.',0);return false}
+      return true;
+    }
+    function readBtcForm(){
+      state.btc.ids=Array.from({length:12},(_,i)=>byId('btc-id-'+i).value.trim());
+      state.btc.names=Array.from({length:12},(_,i)=>byId('btc-name-'+i).value.trim());
+      state.btc.kline=byId('btcKline').value;
+      state.btc.pct=byId('btcPct').value;
+      state.btc.interval=toInt(byId('btcInterval').value,30);
+      state.btc.rot=toInt(byId('btcRot').value,10);
+      state.btc.loop=byId('btcLoop').checked;
+      state.btc.ani=byId('btcAni').checked;
+      state.btc.loading=byId('btcLoading').checked;
+      state.btc.clock=byId('btcClock').checked;
+    }
+    function readCgForm(){
+      state.cg.ids=Array.from({length:12},(_,i)=>byId('cg-id-'+i).value.trim());
+      state.cg.range=byId('cgRange').value;
+      state.cg.interval=toInt(byId('cgInterval').value,60);
+      state.cg.rot=toInt(byId('cgRot').value,60);
+      state.cg.loop=byId('cgLoop').checked;
+      state.cg.ani=byId('cgAni').checked;
+      state.cg.loading=byId('cgLoading').checked;
+      state.cg.clock=byId('cgClock').checked;
+    }
+    function readStockForm(){
+      state.stock.ids=Array.from({length:10},(_,i)=>byId('stock-id-'+i).value.trim());
+      state.stock.names=Array.from({length:10},(_,i)=>byId('stock-name-'+i).value.trim());
+      state.stock.chart=byId('stockChart').value;
+      state.stock.kline=byId('stockKline').value;
+      state.stock.interval=toInt(byId('stockInterval').value,30);
+      state.stock.loop=byId('stockLoop').checked;
+      state.stock.ani=byId('stockAni').checked;
+    }
+    function readWeatherForm(){
+      state.weather.city=byId('weatherCity').value.trim();
+      state.weather.nickname=byId('weatherNickname').value.trim();
+      state.weather.interval=toInt(byId('weatherInterval').value,20);
+      state.weather.wind=byId('weatherWind').value;
+      state.weather.temp=byId('weatherTemp').value;
+      state.weather.pressure=byId('weatherPressure').value;
+      state.weather.key=byId('weatherKey').value.trim();
+    }
+    function readTimeForm(){
+      state.time.hc=byId('timeHourColor').value;
+      state.time.mc=byId('timeMinuteColor').value;
+      state.time.sc=byId('timeSecondColor').value;
+      state.time.hour12=byId('timeHour12').checked;
+      state.time.day=byId('timeDayFormat').value;
+      const tzValue=byId('timeTimezone').value;
+      state.time.tzMode=tzValue==='auto'?'auto':'manual';
+      state.time.tzOffset=tzValue==='auto'?'0':tzValue;
+      state.time.ntp=byId('timeNtp').value.trim();
+    }
+    function readImageForm(){
+      state.image.autoplay=byId('imageAutoplay').checked;
+      state.image.interval=toInt(byId('imageInterval').value,30);
+      state.image.gifLoop=toInt(byId('imageGifLoop').value,5);
+    }
+    function readMonitorForm(){
+      state.monitor.host=byId('monitorHost').value.trim();
+      state.monitor.interval=Math.max(1,toInt(byId('monitorInterval').value,1));
+    }
+    function readSettingsForm(){
+      state.settings.brt=toInt(byId('deviceBrt').value,50);
+      state.settings.delay=toInt(byId('wifiDelay').value,30);
+      state.settings.timeBrtEn=byId('nightEnable').checked;
+      state.settings.time1=byId('nightStart').value;
+      state.settings.time2=byId('nightEnd').value;
+      state.settings.timeBrt=toInt(byId('nightBrt').value,50);
+      state.settings.bootTheme=byId('bootTheme').value;
+      state.settings.ssid=byId('wifiSsid').value.trim();
+      state.settings.pwd=byId('wifiPwd').value;
+      APP_ITEMS.forEach(item=>{
+        const input=byId('app-toggle-'+item.key);
+        if(input) state.settings.apps[item.key]=input.getAttribute('aria-pressed')==='true';
+      });
+      ensureValidBootTheme();
+    }
+    function readSharedForm(){
+      state.shared.up_fg=byId('upFg').value;
+      state.shared.up_bg=byId('upBg').value;
+      state.shared.down_fg=byId('downFg').value;
+      state.shared.down_bg=byId('downBg').value;
+      state.shared.coin_fg=byId('coinFg').value;
+      state.shared.coin_bg=byId('coinBg').value;
+      state.shared.pct_up_fg=byId('pctUpFg').value;
+      state.shared.pct_up_bg=byId('pctUpBg').value;
+      state.shared.pct_down_fg=byId('pctDownFg').value;
+      state.shared.pct_down_bg=byId('pctDownBg').value;
+      state.shared.dec_sep=byId('decSep').value;
+      state.shared.thous_sep=byId('thousSep').value;
+    }
+    function readAllForms(){
+      readBtcForm();readCgForm();readStockForm();readWeatherForm();readTimeForm();readImageForm();readMonitorForm();readSettingsForm();readSharedForm();syncAppControls();syncLabels();
+    }
+    async function fetchSpace(){
+      const data=await getJson('/space.json');
+      state.space.total=toInt(data.total,0);
+      state.space.free=toInt(data.free,0);
+      syncLabels();
+      if(byId('weatherActiveName')) renderMediaActive('weather');
+      if(byId('imageActiveName')) renderMediaActive('image');
+    }
+    function loadSpace(force){
+      return once('space',force,fetchSpace);
+    }
+    function mediaUrl(path){
+      if(!path) return '';
+      return path.split('/').map((part,i)=>i===0?'':encodeURIComponent(part)).join('/');
+    }
+    function parseDirListing(html){
+      const doc=new DOMParser().parseFromString(html||'','text/html');
+      return Array.from(doc.querySelectorAll('tbody tr')).map(tr=>{
+        const a=tr.querySelector('a[href]');
+        const cells=tr.querySelectorAll('td');
+        if(!a||cells.length<3) return null;
+        const path=a.getAttribute('href')||'';
+        return {
+          path,
+          name:(a.textContent||'').trim(),
+          sizeKb:toInt((cells[2].textContent||'').replace(/[^\d]/g,''),0)
+        };
+      }).filter(v=>v&&v.path&&v.path[0]==='/');
+    }
+    function renderMediaActive(kind){
+      const items=state.media[kind];
+      if(kind==='image'&&!state.image.autoplay&&state.image.selectedPath&&!items.some(item=>item.path===state.image.selectedPath)){
+        state.image.selectedPath='';
+      }
+      const activePath=kind==='weather'
+        ? state.weather.gifPath
+        : (state.image.autoplay ? (items[0]?.path||'') : (state.image.selectedPath||items[0]?.path||''));
+      const active=items.find(item=>item.path===activePath)||items[0]||null;
+      const prefix=kind==='weather'?'weather':'image';
+      if(kind==='image'){
+        byId('imageActiveTitle').textContent=state.image.autoplay?'Auto Display':'Selected';
+        byId(prefix+'ActiveName').textContent=state.image.autoplay?(active?'Auto Display':'None'):(active?active.name:'None');
+      }else{
+        byId(prefix+'ActiveName').textContent=active?active.name:'None';
+      }
+      byId(prefix+'ActiveThumb').innerHTML=active?`<img loading="lazy" src="${mediaUrl(active.path)}" alt="${esc(active.name)}">`:`<span>${kind==='weather'?'No GIF':'No File'}</span>`;
+      byId(prefix+'FilesCount').textContent=String(items.length);
+      byId(prefix+'UsedKb').textContent=(items.reduce((sum,item)=>sum+(item.sizeKb||0),0))+'KB';
+      byId(prefix+'FreeKb').textContent=Math.max(0,Math.floor((state.space.free||0)/1024))+'KB';
+      const used=Math.max(0,(state.space.total||0)-(state.space.free||0));
+      const pct=state.space.total?Math.min(100,Math.round(used*100/state.space.total)):0;
+      byId(prefix+'StorageBar').style.width=pct+'%';
+      byId(prefix+'StoragePct').textContent=pct+'%';
+    }
+    function createMediaCard(item,kind){
+      const active=kind==='weather'
+        ? item.path===state.weather.gifPath
+        : (!state.image.autoplay && item.path===state.image.selectedPath);
+      const card=document.createElement('div');
+      card.className='media-card'+(active?' active':'');
+      card.innerHTML=`
+        <div class="thumb"><img loading="lazy" decoding="async" src="${mediaUrl(item.path)}" alt="${esc(item.name)}"></div>
+        <div class="media-title">${esc(item.name)}</div>
+        <div class="media-size">${item.sizeKb}KB</div>
+        <div class="card-actions"></div>`;
+      const actions=card.querySelector('.card-actions');
+      if(kind==='weather'){
+        const setBtn=document.createElement('button');
+        setBtn.className='mini-btn';
+        setBtn.textContent=active?'Active':'Set';
+        setBtn.addEventListener('click',()=>window.setgif(item.path));
+        actions.appendChild(setBtn);
+      }else{
+        const setBtn=document.createElement('button');
+        setBtn.className='mini-btn';
+        setBtn.textContent=active?'Selected':'Set';
+        setBtn.addEventListener('click',()=>window.setAlbumImage(item.path));
+        actions.appendChild(setBtn);
+      }
+      const delBtn=document.createElement('button');
+      delBtn.className='trash';
+      delBtn.innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v8h-2V9zm4 0h2v8h-2V9zM7 9h2v8H7V9zm-1 11h12l1-12H5l1 12z"/></svg>';
+      delBtn.title='Delete';
+      delBtn.setAttribute('aria-label','Delete');
+      delBtn.addEventListener('click',()=>window.deletef(item.path));
+      actions.appendChild(delBtn);
+      return card;
+    }
+    function createUploadCard(kind){
+      const inputId=kind==='weather'?'weatherUpload':'imageUpload';
+      const card=document.createElement('label');
+      card.className='media-card upload-card'+(state.uploading?' disabled':'');
+      card.setAttribute('for',inputId);
+      card.setAttribute('aria-disabled',state.uploading?'true':'false');
+      card.innerHTML=`<div class="plus">+</div><div class="upload-label">${kind==='weather'?'Add Weather GIF':'Add Image'}</div><div class="upload-hint">${kind==='weather'?'GIF only · 80×80 preferred':'JPG or GIF · 240×240 preferred'}</div>`;
+      return card;
+    }
+    function renderMediaCards(kind){
+      const box=byId(kind==='weather'?'weatherCards':'imageCards');
+      box.innerHTML='';
+      box.appendChild(createUploadCard(kind));
+      state.media[kind].forEach(item=>box.appendChild(createMediaCard(item,kind)));
+    }
+    async function fetchMediaLibrary(kind,dir){
+      const html=await getText('/filelist?dir='+encodeURIComponent(dir));
+      state.media[kind]=parseDirListing(html);
+      if(kind==='weather') byId('weatherDir').textContent=dir;
+      if(kind==='image') byId('imageDir').textContent=dir;
+      renderMediaActive(kind);
+      renderMediaCards(kind);
+    }
+    function loadWeatherMedia(force){
+      return once('weatherMedia',force,()=>fetchMediaLibrary('weather',WEATHER_GIF_DIR));
+    }
+    function loadImageMedia(force){
+      return once('imageMedia',force,()=>fetchMediaLibrary('image',IMAGE_DIR));
+    }
+    function applyWifiList(data,silent){
+      const select=byId('wifiSelect');
+      const aps=Array.isArray(data.aps)?data.aps.slice().sort((a,b)=>(b.r||0)-(a.r||0)):[];
+      state.wifiAps=aps;
+      state.wifiCount=aps.length;
+      select.disabled=false;
+      select.innerHTML='<option value="">Click Here To Select Wi-Fi</option>'+aps.map(ap=>{
+        const q=Number(ap.r)||0;
+        const badge=q>=70?'Strong':q>=40?'Medium':'Weak';
+        const icon=q>=70?'📶🟢':q>=40?'📶🟠':'📶🔴';
+        return `<option value="${esc(ap.ss||'')}">${esc(`${icon} ${badge}: ${ap.ss||''} (${q}%)`)}</option>`;
+      }).join('');
+      loaded.wifi=1;
+      syncLabels();
+      if(!silent&&aps.length) toast('Wi-Fi scan refreshed.',1);
+      if(!aps.length&&!silent) toast('No networks found.',0);
+    }
+    async function loadWifiList(silent,force){
+      const select=byId('wifiSelect');
+      if(force) loaded.wifi=0;
+      select.innerHTML='<option value="">Scanning Wi-Fi...</option>';
+      state.wifiScanning=true;
+      syncWifiScanUi();
+      try{
+        const data=await getJson('/wifi.json');
+        applyWifiList(data,silent);
+      }catch(err){
+        if(!silent) toast('Wi-Fi scan failed: '+err.message,0);
+      }finally{
+        state.wifiScanning=false;
+        syncWifiScanUi();
+      }
+    }
+    function resetWifiList(){
+      const select=byId('wifiSelect');
+      select.disabled=false;
+      select.innerHTML='<option value="">Click Here To Select Wi-Fi</option>';
+      state.wifiAps=[];
+      state.wifiCount=0;
+      state.wifiScanning=false;
+      syncLabels();
+      syncWifiScanUi();
+    }
+    function loadBitcoinConfig(force){
+      return once('btc',force,async()=>{
+        const [coin,rot,kline,cChart,cTheme]=await Promise.all([
+          getJson('/.sys/coin2.json'),
+          getJson('/.sys/cr.json'),
+          getJson('/.sys/k.json'),
+          getJson('/.sys/c_chart.json'),
+          getJson('/.sys/c_theme.json')
+        ]);
+        state.btc.theme=String(cTheme.c_theme??'0');
+        state.btc.chart=String(cChart.c_chart??'0');
+        state.btc.kline=String(kline.k??'1d');
+        state.btc.pct=String(coin.c_pct_mode??'0');
+        state.btc.interval=toInt(coin.c_i,30);
+        state.btc.rot=toInt(rot.rot_i,10);
+        state.btc.loop=String(coin.c_l??'1')==='1';
+        state.btc.ani=String(coin.c_ani??'0')==='1';
+        state.btc.loading=String(coin.c_loading??'1')==='1';
+        state.btc.clock=String(coin.c_clock??'0')==='1';
+        state.btc.ids=Array.from({length:12},(_,i)=>String(coin['cin'+i]??''));
+        state.btc.names=Array.from({length:12},(_,i)=>String(coin['cn'+i]??''));
+        applyState();
+      });
+    }
+    function loadCoinGeckoConfig(force){
+      return once('cg',force,async()=>{
+        const [cg,cgRange,gTheme]=await Promise.all([
+          getJson('/.sys/cgk.json'),
+          getJson('/.sys/cg_range.json'),
+          getJson('/.sys/g_theme.json')
+        ]);
+        state.cg.theme=String(gTheme.g_theme??'0');
+        state.cg.range=String(cgRange.range??'30d');
+        state.cg.interval=toInt(cg.g_i,60);
+        state.cg.rot=toInt(cg.g_rot_i,60);
+        state.cg.loop=String(cg.g_l??'1')==='1';
+        state.cg.ani=String(cg.g_ani??'0')==='1';
+        state.cg.loading=String(cg.g_loading??'1')==='1';
+        state.cg.clock=String(cg.g_clock??'0')==='1';
+        state.cg.ids=Array.from({length:12},(_,i)=>String(cg['gin'+i]??''));
+        applyState();
+      });
+    }
+    function loadStockConfig(force){
+      return once('stock',force,async()=>{
+        const [stock,stockKline,stockChart]=await Promise.all([
+          getJson('/.sys/stock2.json'),
+          getJson('/.sys/stk.json'),
+          getJson('/.sys/st_chart.json')
+        ]);
+        state.stock.chart=String(stockChart.st_chart??'0');
+        state.stock.kline=String(stockKline.st_kline??'1d');
+        state.stock.interval=toInt(stock.s_i,30);
+        state.stock.loop=String(stock.s_l??'0')==='1';
+        state.stock.ani=String(stock.s_ani??'0')==='1';
+        state.stock.ids=Array.from({length:10},(_,i)=>String(stock['c'+i]??''));
+        state.stock.names=Array.from({length:10},(_,i)=>String(stock['cn'+i]??''));
+        applyState();
+      });
+    }
+    function loadWeatherConfig(force){
+      return once('weather',force,async()=>{
+        const [gifCfg,city,unit,key]=await Promise.all([
+          getJson('/.sys/gif.json'),
+          getJson('/.sys/city.json'),
+          getJson('/.sys/unit.json'),
+          getJson('/.sys/key.json')
+        ]);
+        state.weather.city=String(city.cd1??'');
+        state.weather.nickname=String(city.nickname??'');
+        state.weather.interval=toInt(city.w_i,20);
+        state.weather.wind=String(unit.w_u??'m/s');
+        state.weather.temp=String(unit.t_u??'°C');
+        state.weather.pressure=String(unit.p_u??'hPa');
+        state.weather.key=String(key.key??'');
+        state.weather.gifPath=String(gifCfg.gif??'');
+        applyState();
+        if(byId('weatherActiveName')){
+          renderMediaActive('weather');
+          renderMediaCards('weather');
+        }
+      });
+    }
+    function loadTimeConfig(force){
+      return once('time',force,async()=>{
+        const [hour12,ntp,timeColor,day,tz]=await Promise.all([
+          getJson('/.sys/hour12.json'),
+          getJson('/.sys/ntp.json'),
+          getJson('/.sys/timecolor.json'),
+          getJson('/.sys/day.json'),
+          getJson('/.sys/tz.json')
+        ]);
+        state.time.hour12=String(hour12.h??'0')==='1';
+        state.time.ntp=String(ntp.ntp??'');
+        state.time.hc=String(timeColor.hc??'#FFFFFF').toLowerCase();
+        state.time.mc=String(timeColor.mc??'#FEBA01').toLowerCase();
+        state.time.sc=String(timeColor.sc??'#FF5900').toLowerCase();
+        state.time.day=String(day.day??'1');
+        state.time.tzMode=String(tz.mode??'0')==='1'?'manual':'auto';
+        state.time.tzOffset=String(tz.offset??'0');
+        applyState();
+      });
+    }
+    function loadImageConfig(force){
+      return once('image',force,async()=>{
+        const album=await getJson('/.sys/album.json');
+        state.image.autoplay=boolish(album.autoplay);
+        state.image.interval=toInt(album.i_i,30);
+        state.image.gifLoop=toInt(album.gif_loop,5);
+        state.image.selectedPath=String(album.path??album.activePath??'');
+        applyState();
+        if(byId('imageActiveName')){
+          renderMediaActive('image');
+          renderMediaCards('image');
+        }
+      });
+    }
+    function loadMonitorConfig(force){
+      return once('monitor',force,async()=>{
+        const monitor=await getJson('/.sys/monitor.json');
+        state.monitor.host=String(monitor.ip??'');
+        state.monitor.interval=Math.max(1,toInt(monitor.m_i,1));
+        applyState();
+      });
+    }
+    function loadSettingsConfig(force){
+      return once('settings',force,async()=>{
+        const [brt,delay,app,timeBrt,config,ver]=await Promise.all([
+          getJson('/.sys/brt.json'),
+          getJson('/.sys/delay.json'),
+          getJson('/.sys/app.json'),
+          getJson('/.sys/timebrt.json'),
+          getJson('/.sys/config.json'),
+          getJson('/v.json')
+        ]);
+        state.settings.model=String(ver.m??'-');
+        state.settings.version=String(ver.v??'-');
+        state.settings.brt=Math.max(0,Math.min(100,255-toInt(brt.brt,205)));
+        state.settings.delay=toInt(delay.delay,30);
+        state.settings.timeBrtEn=boolish(timeBrt.en);
+        state.settings.time1=String(timeBrt.t1??'22');
+        state.settings.time2=String(timeBrt.t2??'7');
+        state.settings.timeBrt=Math.max(0,Math.min(100,255-toInt(timeBrt.b2,205)));
+        const rawTheme = app.theme ?? app.auto_start_app_index ?? app.autoStartAppIndex ?? '-1';
+        state.settings.bootTheme=normalizeBootTheme(rawTheme);
+        const appFlags=app&&app.apps&&typeof app.apps==='object'?app.apps:{};
+        APP_ITEMS.forEach(item=>{
+          state.settings.apps[item.key]=Object.prototype.hasOwnProperty.call(appFlags,item.key)?boolish(appFlags[item.key]):true;
+        });
+        ensureValidBootTheme();
+        state.settings.ssid=String(config.a??'');
+        state.settings.pwd=String(config.p??'');
+        applyState();
+      });
+    }
+    function loadSharedConfig(force){
+      return once('shared',force,async()=>{
+        const [colors,sep]=await Promise.all([
+          getJson('/.sys/ccolor.json'),
+          getJson('/.sys/sep.json')
+        ]);
+        state.shared.up_fg=String(colors.up_fg??'#000000').toLowerCase();
+        state.shared.up_bg=String(colors.up_bg??'#00ff00').toLowerCase();
+        state.shared.down_fg=String(colors.down_fg??'#ffffff').toLowerCase();
+        state.shared.down_bg=String(colors.down_bg??'#ff0000').toLowerCase();
+        state.shared.coin_fg=String(colors.coin_fg??'#ffffff').toLowerCase();
+        state.shared.coin_bg=String(colors.coin_bg??'#000000').toLowerCase();
+        state.shared.pct_up_fg=String(colors.pct_up_fg??'#000000').toLowerCase();
+        state.shared.pct_up_bg=String(colors.pct_up_bg??'#00ff00').toLowerCase();
+        state.shared.pct_down_fg=String(colors.pct_down_fg??'#ffffff').toLowerCase();
+        state.shared.pct_down_bg=String(colors.pct_down_bg??'#ff0000').toLowerCase();
+        state.shared.dec_sep=String(sep.decimal_sep??'.');
+        state.shared.thous_sep=String(sep.thousand_sep??',');
+        applyState();
+      });
+    }
+    function loadView(view,force){
+      if(view==='btc') return Promise.all([loadBitcoinConfig(force),loadSharedConfig(force)]);
+      if(view==='cg') return loadCoinGeckoConfig(force);
+      if(view==='stock') return loadStockConfig(force);
+      if(view==='weather') return Promise.all([loadWeatherConfig(force),loadSpace(force),loadWeatherMedia(force)]);
+      if(view==='time') return loadTimeConfig(force);
+      if(view==='image') return Promise.all([loadImageConfig(force),loadSpace(force),loadImageMedia(force)]);
+      if(view==='monitor') return loadMonitorConfig(force);
+      if(view==='settings') return Promise.all([loadSettingsConfig(force),loadSharedConfig(force),loadSpace(force)]);
+      return Promise.resolve();
+    }
+    async function reloadView(view,silent,force){
+      setBusy(true);
+      try{
+        await loadView(view,force);
+        if(!silent) toast((VIEW_LABELS[view]||view)+' refreshed.',1);
+      }catch(err){
+        if(!silent) toast('Load failed: '+err.message,0);
+      }
+      setBusy(false);
+    }
+    async function loadCurrent(silent,force){
+      return reloadView(state.view,silent,force);
+    }
+    async function loadAll(silent){
+      setBusy(true);
+      try{
+        await Promise.all([
+          loadBitcoinConfig(true),
+          loadCoinGeckoConfig(true),
+          loadStockConfig(true),
+          loadWeatherConfig(true),
+          loadTimeConfig(true),
+          loadImageConfig(true),
+          loadMonitorConfig(true),
+          loadSettingsConfig(true),
+          loadSharedConfig(true),
+          loadSpace(true)
+        ]);
+        if(loaded.weatherMedia) await loadWeatherMedia(true);
+        if(loaded.imageMedia) await loadImageMedia(true);
+        if(!silent) toast('Loaded from device.',1);
+      }catch(err){
+        if(!silent) toast('Load failed: '+err.message,0);
+      }
+      setBusy(false);
+    }
+    async function saveBitcoin(){
+      readBtcForm();
+      if(!validateIds('btc-id',state.btc.ids,'btc-id-')) return;
+      setBusy(true);
+      try{
+        await send('/set?c_theme='+encodeURIComponent(state.btc.theme));
+        await send('/set?c_chart='+encodeURIComponent(state.btc.chart));
+        await send('/set?kline='+encodeURIComponent(state.btc.kline));
+        const p=new URLSearchParams();
+        state.btc.names.forEach((v,i)=>p.set('cn'+i,v));
+        state.btc.ids.forEach((v,i)=>p.set('cin'+i,v));
+        p.set('c_loading',state.btc.loading?1:0);
+        p.set('c_clock',state.btc.clock?1:0);
+        p.set('ani',state.btc.ani?1:0);
+        p.set('c_pct_mode',state.btc.pct);
+        p.set('c_i',state.btc.interval);
+        p.set('c_l',state.btc.loop?1:0);
+        p.set('rot_i',state.btc.rot);
+        await send('/set?'+p.toString());
+        toast('Bitcoin settings saved.',1);
+      }catch(err){toast('Bitcoin save failed: '+err.message,0)}
+      setBusy(false);
+    }
+    async function saveCoinGecko(){
+      readCgForm();
+      if(!validateIds('cg-id',state.cg.ids,'cg-id-')) return;
+      setBusy(true);
+      try{
+        await send('/set?g_theme='+encodeURIComponent(state.cg.theme));
+        await send('/set?g_range='+encodeURIComponent(state.cg.range));
+        const p=new URLSearchParams();
+        state.cg.ids.forEach((v,i)=>p.set('gin'+i,v));
+        p.set('g_loading',state.cg.loading?1:0);
+        p.set('g_clock',state.cg.clock?1:0);
+        p.set('g_ani',state.cg.ani?1:0);
+        p.set('g_i',state.cg.interval);
+        p.set('g_l',state.cg.loop?1:0);
+        p.set('g_rot_i',state.cg.rot);
+        await send('/set?'+p.toString());
+        toast('CoinGecko settings saved.',1);
+      }catch(err){toast('CoinGecko save failed: '+err.message,0)}
+      setBusy(false);
+    }
+    async function applyThemeChoice(group,value){
+      setBusy(true);
+      try{
+        if(group==='btc-theme'){
+          await send('/set?c_theme='+encodeURIComponent(value));
+          toast('Bitcoin theme applied.',1);
+        }else if(group==='cg-theme'){
+          await send('/set?g_theme='+encodeURIComponent(value));
+          toast('CoinGecko theme applied.',1);
+        }
+      }catch(err){
+        toast('Theme apply failed: '+err.message,0);
+      }
+      setBusy(false);
+    }
+    async function saveStock(){
+      readStockForm();
+      if(!validateIds('stock-id',state.stock.ids,'stock-id-')) return;
+      setBusy(true);
+      try{
+        await send('/set?st_chart='+encodeURIComponent(state.stock.chart));
+        await send('/set?st_kline='+encodeURIComponent(state.stock.kline));
+        const p=new URLSearchParams();
+        p.set('s_i',state.stock.interval);
+        p.set('s_l',state.stock.loop?1:0);
+        p.set('s_ani',state.stock.ani?1:0);
+        state.stock.ids.forEach((v,i)=>p.set('c'+i,v));
+        state.stock.names.forEach((v,i)=>p.set('cn'+i,v));
+        await send('/set?'+p.toString());
+        toast('Stock settings saved.',1);
+      }catch(err){toast('Stock save failed: '+err.message,0)}
+      setBusy(false);
+    }
+    async function saveWeather(){
+      readWeatherForm();
+      if(!state.weather.city){toast('City code or name is required.',0);return}
+      setBusy(true);
+      try{
+        const city=state.weather.city;
+        await send('/set?cd1='+encodeURIComponent(city)+'&cd2='+encodeURIComponent(city)+'&nickname='+encodeURIComponent(state.weather.nickname)+'&interval='+encodeURIComponent(state.weather.interval));
+        await send('/set?w_u='+encodeURIComponent(state.weather.wind)+'&t_u='+encodeURIComponent(state.weather.temp)+'&p_u='+encodeURIComponent(state.weather.pressure));
+        if(state.weather.key) await send('/set?key='+encodeURIComponent(state.weather.key));
+        toast('Weather settings saved.',1);
+      }catch(err){toast('Weather save failed: '+err.message,0)}
+      setBusy(false);
+    }
+    async function saveTime(){
+      readTimeForm();
+      setBusy(true);
+      try{
+        await send('/set?hc='+encodeURIComponent(state.time.hc)+'&mc='+encodeURIComponent(state.time.mc)+'&sc='+encodeURIComponent(state.time.sc));
+        await send('/set?hour='+(state.time.hour12?1:0));
+        await send('/set?day='+encodeURIComponent(state.time.day));
+        await send('/set?tz_mode='+encodeURIComponent(state.time.tzMode)+'&tz_offset='+encodeURIComponent(state.time.tzOffset));
+        await send('/set?ntp='+encodeURIComponent(state.time.ntp));
+        toast('Time settings saved.',1);
+      }catch(err){toast('Time save failed: '+err.message,0)}
+      setBusy(false);
+    }
+    async function saveImage(){
+      readImageForm();
+      setBusy(true);
+      try{
+        await send('/set?gif_loop='+encodeURIComponent(state.image.gifLoop)+'&i_i='+encodeURIComponent(state.image.interval)+'&autoplay='+(state.image.autoplay?1:0));
+        toast('Image settings saved.',1);
+      }catch(err){toast('Image save failed: '+err.message,0)}
+      setBusy(false);
+    }
+    async function saveMonitor(){
+      readMonitorForm();
+      if(!state.monitor.host){toast('Monitor host is required.',0);return}
+      setBusy(true);
+      try{
+        await send('/set?ip='+encodeURIComponent(state.monitor.host)+'&m_i='+encodeURIComponent(state.monitor.interval));
+        toast('Monitor settings saved.',1);
+      }catch(err){toast('Monitor save failed: '+err.message,0)}
+      setBusy(false);
+    }
+    async function saveDelay(){
+      readSettingsForm();
+      setBusy(true);
+      try{
+        await send('/set?delay='+encodeURIComponent(state.settings.delay));
+        toast('Delay saved.',1);
+      }catch(err){toast('Delay save failed: '+err.message,0)}
+      setBusy(false);
+    }
+    async function saveWifi(){
+      readSettingsForm();
+      if(!state.settings.ssid){toast('SSID is required.',0);return}
+      const ap=state.wifiAps.find(item=>String(item.ss||'')===state.settings.ssid);
+      const requiresPassword=ap ? Number(ap.e)===1 : false;
+      if(requiresPassword && state.settings.pwd.length < 8){
+        toast('Encrypted Wi-Fi requires a password with at least 8 characters.',0);
+        return;
+      }
+      if(!requiresPassword && state.settings.pwd && state.settings.pwd.length < 8){
+        toast('Wi-Fi password must be at least 8 characters.',0);
+        return;
+      }
+      setBusy(true);
+      try{
+        await send('/wifisave?s='+encodeURIComponent(state.settings.ssid)+'&p='+encodeURIComponent(state.settings.pwd),t=>/saved/i.test(t));
+        toast('Wi-Fi saved. Device will reboot.',1);
+      }catch(err){toast('Wi-Fi save failed: '+err.message,0)}
+      setBusy(false);
+    }
+    async function saveDevice(){
+      readSettingsForm();
+      setBusy(true);
+      try{
+        await send('/set?brt='+encodeURIComponent(state.settings.brt));
+        await send('/set?t1='+encodeURIComponent(state.settings.time1)+'&t2='+encodeURIComponent(state.settings.time2)+'&b1=50&b2='+encodeURIComponent(state.settings.timeBrt)+'&en='+(state.settings.timeBrtEn?1:0));
+        toast('Display settings saved.',1);
+      }catch(err){toast('Display save failed: '+err.message,0)}
+      setBusy(false);
+    }
+    async function saveBootTheme(){
+      const ok=await persistAppSettings('Startup app saved.');
+      if(!ok) return;
+    }
+    async function persistAppSettings(successMsg){
+      readSettingsForm();
+      if(!APP_ITEMS.some(item=>state.settings.apps[item.key])){
+        toast('Keep at least one app enabled.',0);
+        return false;
+      }
+      setBusy(true);
+      try{
+        const query=['theme='+encodeURIComponent(state.settings.bootTheme)];
+        APP_ITEMS.forEach(item=>query.push('app_'+item.key+'='+(state.settings.apps[item.key]?1:0)));
+        await send('/set?'+query.join('&'));
+        if(successMsg) toast(successMsg,1);
+        return true;
+      }catch(err){
+        toast('Startup save failed: '+err.message,0);
+        return false;
+      }finally{
+        setBusy(false);
+      }
+    }
+    async function toggleAppEnabled(appKey){
+      const prevApps={...state.settings.apps};
+      const prevBootTheme=state.settings.bootTheme;
+      state.settings.apps[appKey]=!state.settings.apps[appKey];
+      if(!APP_ITEMS.some(item=>state.settings.apps[item.key])){
+        state.settings.apps=prevApps;
+        state.settings.bootTheme=prevBootTheme;
+        syncAppControls();
+        syncLabels();
+        toast('Keep at least one app enabled.',0);
+        return;
+      }
+      ensureValidBootTheme();
+      syncAppControls();
+      syncLabels();
+      const appLabel=APP_ITEMS.find(item=>item.key===appKey)?.label||appKey;
+      const ok=await persistAppSettings(appLabel+(state.settings.apps[appKey]?' enabled.':' disabled.'));
+      if(!ok){
+        state.settings.apps=prevApps;
+        state.settings.bootTheme=prevBootTheme;
+        syncAppControls();
+        syncLabels();
+      }
+    }
+    async function openDeviceApp(appName,appLabel,appKey){
+      readSettingsForm();
+      if(!state.settings.apps[appKey]){
+        toast(appLabel+' is disabled.',0);
+        return;
+      }
+      setBusy(true);
+      try{
+        await send('/set?open_app='+encodeURIComponent(appName));
+        toast(appLabel+' opened.',1);
+      }catch(err){toast('Open failed: '+err.message,0)}
+      setBusy(false);
+    }
+    async function saveShared(){
+      readSharedForm();
+      setBusy(true);
+      try{
+        await send('/set?up_fg='+encodeURIComponent(state.shared.up_fg)+'&up_bg='+encodeURIComponent(state.shared.up_bg)+'&down_fg='+encodeURIComponent(state.shared.down_fg)+'&down_bg='+encodeURIComponent(state.shared.down_bg)+'&coin_fg='+encodeURIComponent(state.shared.coin_fg)+'&coin_bg='+encodeURIComponent(state.shared.coin_bg)+'&pct_up_fg='+encodeURIComponent(state.shared.pct_up_fg)+'&pct_up_bg='+encodeURIComponent(state.shared.pct_up_bg)+'&pct_down_fg='+encodeURIComponent(state.shared.pct_down_fg)+'&pct_down_bg='+encodeURIComponent(state.shared.pct_down_bg));
+        await send('/set?dec_sep='+encodeURIComponent(state.shared.dec_sep)+'&thous_sep='+encodeURIComponent(state.shared.thous_sep));
+        toast('Shared market styling saved.',1);
+      }catch(err){toast('Shared style save failed: '+err.message,0)}
+      setBusy(false);
+    }
+    function isGifFile(file){
+      const name=String(file&&file.name||'').toLowerCase();
+      return String(file&&file.type||'').toLowerCase()==='image/gif'||name.endsWith('.gif');
+    }
+    function loadImageDimensions(file){
+      return new Promise((resolve,reject)=>{
+        const url=URL.createObjectURL(file);
+        const img=new Image();
+        img.onload=()=>{
+          const result={width:img.naturalWidth,height:img.naturalHeight};
+          URL.revokeObjectURL(url);
+          resolve(result);
+        };
+        img.onerror=()=>{
+          URL.revokeObjectURL(url);
+          reject(new Error('Unable to read image dimensions.'));
+        };
+        img.src=url;
+      });
+    }
+    async function validateUploadFile(dir,file){
+      const weather=dir===WEATHER_GIF_DIR;
+      const gif=isGifFile(file);
+      if(weather&&!gif) throw new Error(`${file.name}: weather uploads only accept GIF files.`);
+      if(!gif) return;
+      const required=weather?80:240;
+      const dimensions=await loadImageDimensions(file);
+      if(dimensions.width!==required||dimensions.height!==required){
+        throw new Error(`${file.name}: GIF must be exactly ${required}x${required}px. Current file: ${dimensions.width}x${dimensions.height}px.`);
+      }
+    }
+    async function validateUploads(dir,files){
+      await loadSpace(true);
+      const freeBytes=Number(state.space.free)||0;
+      const totalBytes=files.reduce((sum,file)=>sum+(Number(file.size)||0),0);
+      if(totalBytes>freeBytes){
+        throw new Error(`Selected files exceed remaining storage. Need ${fmtBytes(totalBytes)}, free ${fmtBytes(freeBytes)}.`);
+      }
+      for(const file of files) await validateUploadFile(dir,file);
+      return totalBytes;
+    }
+    function uploadSingleFile(dir,file,onProgress){
+      return new Promise((resolve,reject)=>{
+        const fd=new FormData();
+        fd.append('update',file,file.name.replace(/&/g,'_'));
+        const xhr=new XMLHttpRequest();
+        xhr.open('POST','/doUpload?dir='+encodeURIComponent(dir),true);
+        xhr.upload.addEventListener('progress',event=>{
+          if(!event.lengthComputable||!onProgress) return;
+          onProgress(event.loaded,event.total||file.size||0);
+        });
+        xhr.onload=()=>{
+          const text=xhr.responseText||'';
+          if(xhr.status>=200&&xhr.status<300&&text.trim()==='OK') resolve();
+          else reject(new Error(text||('HTTP '+xhr.status)));
+        };
+        xhr.onerror=()=>reject(new Error('Upload failed.'));
+        xhr.send(fd);
+      });
+    }
+    async function uploadFiles(inputId,dir,doneText){
+      const input=byId(inputId);
+      const files=Array.from(input.files||[]);
+      if(!files.length){toast('Choose at least one file first.',0);return}
+      if(state.uploading){input.value='';return}
+      const title=dir===WEATHER_GIF_DIR?'Uploading Weather GIFs':'Uploading Images';
+      state.uploading=true;
+      syncUploadControls();
+      setBusy(true);
+      try{
+        const totalBytes=await validateUploads(dir,files);
+        let uploadedBytes=0;
+        showUploadProgress(title);
+        for(let i=0;i<files.length;i++){
+          const file=files[i];
+          setUploadProgress(
+            totalBytes?uploadedBytes*100/totalBytes:0,
+            `${Math.round(totalBytes?uploadedBytes*100/totalBytes:0)}%`,
+            `${i+1}/${files.length} · ${file.name}`
+          );
+          await uploadSingleFile(dir,file,(loaded)=>{
+            const percent=totalBytes?((uploadedBytes+loaded)*100/totalBytes):100;
+            setUploadProgress(percent,`${Math.round(percent)}%`,`${i+1}/${files.length} · ${file.name} · ${fmtBytes(uploadedBytes+loaded)} / ${fmtBytes(totalBytes)}`);
+          });
+          uploadedBytes+=Number(file.size)||0;
+        }
+        setUploadProgress(100,'100%','Upload complete');
+        input.value='';
+        await Promise.all([(dir===WEATHER_GIF_DIR?loadWeatherMedia(true):loadImageMedia(true)),loadSpace(true)]);
+        toast(doneText,1);
+      }catch(err){toast('Upload failed: '+err.message,0)}
+      state.uploading=false;
+      syncUploadControls();
+      hideUploadProgress();
+      setBusy(false);
+    }
+    async function clearDir(kind,dir,boxId,label){
+      if(!confirm('Delete all files in '+label+'?')) return;
+      setBusy(true);
+      try{
+        await send('/set?clear='+encodeURIComponent(kind));
+        if(dir===IMAGE_DIR) state.image.selectedPath='';
+        await Promise.all([(boxId==='weatherFiles'?loadWeatherMedia(true):loadImageMedia(true)),loadSpace(true)]);
+        toast(label+' cleared.',1);
+      }catch(err){toast('Clear failed: '+err.message,0)}
+      setBusy(false);
+    }
+    async function quickAction(url,msg){
+      try{await fetch(url,{cache:'no-store'})}catch(_){}
+      toast(msg,1);
+    }
+    window.listDir=el=>{
+      const dir=(el&&el.getAttribute&&el.getAttribute('path'))||IMAGE_DIR;
+      const weather=dir.indexOf('/80x80.gif')!==-1;
+      fetchMediaLibrary(weather?'weather':'image',dir);
+      return false;
+    };
+    window.deletef=async path=>{
+      if(!confirm('Delete this file?')) return;
+      setBusy(true);
+      try{
+        await fetch('/delete?file='+encodeURIComponent(path),{cache:'no-store'});
+        const weather=path.indexOf('/80x80.gif/')!==-1;
+        if(!weather&&state.image.selectedPath===path) state.image.selectedPath='';
+        await Promise.all([(weather?loadWeatherMedia(true):loadImageMedia(true)),loadSpace(true)]);
+        toast('File deleted.',1);
+      }catch(err){toast('Delete failed: '+err.message,0)}
+      setBusy(false);
+    };
+    window.setAlbumImage=async path=>{
+      setBusy(true);
+      try{
+        await send('/set?album_path='+encodeURIComponent(path)+'&album_autoplay=0');
+        state.image.selectedPath=path;
+        state.image.autoplay=false;
+        applyState();
+        renderMediaActive('image');
+        renderMediaCards('image');
+        toast('Album image fixed. Auto display turned off.',1);
+      }catch(err){toast('Set image failed: '+err.message,0)}
+      setBusy(false);
+    };
+    window.setgif=async path=>{
+      setBusy(true);
+      try{
+        await send('/set?gif='+encodeURIComponent(path));
+        state.weather.gifPath=path;
+        renderMediaActive('weather');
+        renderMediaCards('weather');
+        toast('Weather GIF selected.',1);
+      }catch(err){toast('Set GIF failed: '+err.message,0)}
+      setBusy(false);
+    };
+    function bind(){
+      $$('.tab').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.view)));
+      $$('.main-tab').forEach(b=>b.addEventListener('click',()=>setMain(b.dataset.main)));
+      window.addEventListener('hashchange',()=>{
+        const nextView=restoreView();
+        if(nextView!==state.view){
+          applyMainState(nextView===SYSTEM_VIEW?'system':'apps');
+          persistMain(state.main);
+          applyViewState(nextView);
+          persistView(nextView);
+          loadCurrent(true);
+        }
+      });
+      document.addEventListener('click',e=>{
+        const toggleBtn=e.target.closest('[data-toggle-app]');
+        if(toggleBtn){
+          toggleAppEnabled(toggleBtn.dataset.toggleApp);
+          return;
+        }
+        const openBtn=e.target.closest('[data-open-app]');
+        if(openBtn){
+          openDeviceApp(openBtn.dataset.openApp,openBtn.dataset.appLabel,openBtn.dataset.appKey);
+          return;
+        }
+        const btn=e.target.closest('.choice');
+        if(!btn) return;
+        const {group,value}=btn.dataset;
+        if(group==='btc-theme') state.btc.theme=value;
+        if(group==='cg-theme') state.cg.theme=value;
+        if(group==='btc-chart') state.btc.chart=value;
+        syncChoices();syncLabels();
+        if(group==='btc-theme' || group==='cg-theme') applyThemeChoice(group,value);
+      });
+      document.addEventListener('input',e=>{
+        if(e.target.classList.contains('btc-id')||e.target.classList.contains('cg-id')||e.target.classList.contains('stock-id')) e.target.classList.remove('err');
+        readAllForms();
+      });
+      document.addEventListener('change',()=>readAllForms());
+
+      byId('saveBtc').addEventListener('click',saveBitcoin);
+      byId('saveCg').addEventListener('click',saveCoinGecko);
+      byId('saveStock').addEventListener('click',saveStock);
+      byId('saveWeather').addEventListener('click',saveWeather);
+      byId('saveTime').addEventListener('click',saveTime);
+      byId('saveImage').addEventListener('click',saveImage);
+      byId('saveMonitor').addEventListener('click',saveMonitor);
+      byId('saveDelay').addEventListener('click',saveDelay);
+      byId('saveWifi').addEventListener('click',saveWifi);
+      byId('saveDevice').addEventListener('click',saveDevice);
+      byId('saveBootTheme').addEventListener('click',saveBootTheme);
+      byId('saveShared').addEventListener('click',saveShared);
+
+      byId('reloadBtc').addEventListener('click',()=>loadCurrent(false,true));
+      byId('reloadCg').addEventListener('click',()=>loadCurrent(false,true));
+      byId('reloadStock').addEventListener('click',()=>loadCurrent(false,true));
+      byId('reloadWeather').addEventListener('click',()=>loadCurrent(false,true));
+      byId('reloadTime').addEventListener('click',()=>loadCurrent(false,true));
+      byId('reloadImage').addEventListener('click',()=>loadCurrent(false,true));
+      byId('reloadMonitor').addEventListener('click',()=>loadCurrent(false,true));
+      byId('reloadSettings').addEventListener('click',()=>loadCurrent(false,true));
+
+      byId('reloadWeatherFiles').addEventListener('click',()=>loadWeatherMedia(true));
+      byId('reloadImageFiles').addEventListener('click',()=>loadImageMedia(true));
+      byId('clearWeatherFiles').addEventListener('click',()=>clearDir('gif',WEATHER_GIF_DIR,'weatherFiles','Weather GIF library'));
+      byId('clearImageFiles').addEventListener('click',()=>clearDir('image',IMAGE_DIR,'imageFiles','Image library'));
+      byId('weatherUpload').addEventListener('change',()=>uploadFiles('weatherUpload',WEATHER_GIF_DIR,'Weather GIF upload complete.'));
+      byId('imageUpload').addEventListener('change',()=>uploadFiles('imageUpload',IMAGE_DIR,'Image upload complete.'));
+
+      byId('rescanWifi').addEventListener('click',()=>loadWifiList(false,true));
+      byId('wifiSelect').addEventListener('change',e=>{byId('wifiSsid').value=e.target.value;byId('wifiPwd').value='';readSettingsForm();syncLabels()});
+      byId('navLeft').addEventListener('click',()=>quickAction('/set?page=-1','Sent: Left'));
+      byId('navRight').addEventListener('click',()=>quickAction('/set?page=1','Sent: Right'));
+      byId('navEnter').addEventListener('click',()=>quickAction('/set?enter=-1','Sent: Enter/Exit'));
+      byId('rebootDevice').addEventListener('click',()=>{if(confirm('Reboot the device now?')) quickAction('/set?reboot=1','Reboot requested.')});
+      byId('resetDevice').addEventListener('click',()=>{if(confirm('Factory reset and reboot?')) quickAction('/set?reset=1','Factory reset requested.')});
+    }
+    function init(){
+      const restoredView=restoreView();
+      const restoredMain=restoreMain();
+      const initialMain=restoredView===SYSTEM_VIEW?'system':restoredMain;
+      applyMainState(initialMain);
+      if(initialMain==='system'){
+        applyViewState(SYSTEM_VIEW);
+        persistView(SYSTEM_VIEW);
+      }else{
+        applyViewState(APP_VIEWS.includes(restoredView)?restoredView:'btc');
+      }
+      buildSlots();
+      buildAppControls();
+      buildChoices('btcThemes','btc-theme',BTC_THEMES);
+      buildChoices('cgThemes','cg-theme',CG_THEMES);
+      buildChoices('btcCharts','btc-chart',BTC_CHARTS);
+      buildOptions('btcKline',BTC_KLINES);
+      buildOptions('stockChart',STOCK_CHARTS);
+      buildOptions('stockKline',STOCK_KLINES);
+      buildOptions('btcPct',BTC_PCT);
+      buildOptions('cgRange',CG_RANGES);
+      buildOptions('weatherWind',WIND_OPTS);
+      buildOptions('weatherTemp',TEMP_OPTS);
+      buildOptions('weatherPressure',PRESSURE_OPTS);
+      buildOptions('timeDayFormat',DAY_OPTS);
+      buildOptions('timeTimezone',TIMEZONE_OPTS);
+      buildOptions('nightStart',HOURS);
+      buildOptions('nightEnd',HOURS);
+      buildOptions('bootTheme',APP_OPTS);
+      buildOptions('decSep',DEC_OPTS);
+      buildOptions('thousSep',THOUS_OPTS);
+      applyState();
+      resetWifiList();
+      bind();
+      loadCurrent(true,true).then(()=>toast('Console ready.',1));
+    }
+    init();
+  </script>
+</body>
+</html>

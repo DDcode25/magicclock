@@ -4,6 +4,7 @@
 #include <Update.h>
 #include <esp_flash.h>
 #include <map>
+#include "alerts.h"
 #include "apps.h"
 #include "board.h"
 #include "net.h"
@@ -120,6 +121,11 @@ static const Field FIELDS[] = {
     {"pct_down_bg", "ccolor.json", "pct_down_bg", STR},
     {"dec_sep", "sep.json", "decimal_sep", STR},
     {"thous_sep", "sep.json", "thousand_sep", STR},
+    // OpenFW: air alerts app
+    {"al_src", "alerts.json", "src", STR},
+    {"al_token", "alerts.json", "token", STR},
+    {"al_i", "alerts.json", "i", INT},
+    {"al_home", "alerts.json", "home", INT},
 };
 
 // "cin3" -> true, idx 3 for prefix "cin"
@@ -146,12 +152,14 @@ class Batch {
   std::map<String, JsonDocument> docs;
 };
 
-static void setValue(JsonVariant dst, const String &v, Kind kind) {
+// Assign through doc[key] directly: converting it to JsonVariant first would not create
+// a missing key, and the value would be silently dropped.
+static void setValue(JsonDocument &doc, const char *key, const String &v, Kind kind) {
   switch (kind) {
-    case STR: dst.set(v); break;
-    case INT: dst.set(v.toInt()); break;
-    case INV_STR: dst.set(String(255 - constrain(v.toInt(), 0, 100))); break;
-    case INV_INT: dst.set(255 - constrain(v.toInt(), 0, 100)); break;
+    case STR: doc[key] = v; break;
+    case INT: doc[key] = v.toInt(); break;
+    case INV_STR: doc[key] = String(255 - constrain(v.toInt(), 0, 100)); break;
+    case INV_INT: doc[key] = 255 - constrain(v.toInt(), 0, 100); break;
   }
 }
 
@@ -206,14 +214,14 @@ static void handleSet() {
 
   Batch batch;
   bool stockForm = server.hasArg("s_i");  // cn0..9 belongs to stock2.json in the stock form
-  bool timeChanged = false;
+  bool timeChanged = false, alertsChanged = false;
   for (int i = 0; i < server.args(); i++) {
     String name = server.argName(i), v = server.arg(i);
     if (name == "plain") continue;
     bool handled = false;
     for (const Field &f : FIELDS) {
       if (name == f.param) {
-        setValue(batch.doc(f.file)[f.key], v, f.kind);
+        setValue(batch.doc(f.file), f.key, v, f.kind);
         handled = true;
         break;
       }
@@ -221,6 +229,7 @@ static void handleSet() {
     if (handled) {
       if (name == "cd1") batch.doc("city.json")["ct1"] = v;
       if (name == "tz_offset" || name == "ntp") timeChanged = true;
+      if (name.startsWith("al_")) alertsChanged = true;
       continue;
     }
     if (name == "tz_mode") {
@@ -244,6 +253,7 @@ static void handleSet() {
   settings.load();
   ui::applySettings();
   if (timeChanged) net::applyTime();
+  if (alertsChanged) alerts::reload();
   ok();
 }
 
@@ -399,6 +409,7 @@ void begin() {
   server.on("/update", HTTP_GET, [] { server.send_P(200, "text/html", UPDATE_PAGE); });
   server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateData);
   server.on("/flash", HTTP_GET, handleFlash);
+  server.on("/alerts.json", HTTP_GET, [] { server.send(200, "application/json", alerts::statusJson()); });
   server.onNotFound(handleStatic);
   server.begin();
 }

@@ -1,6 +1,7 @@
 #include "ui.h"
 #include <TFT_eSPI.h>
 #include <time.h>
+#include "alerts.h"
 #include "apps.h"
 #include "board.h"
 #include "net.h"
@@ -107,7 +108,10 @@ void message(const String &title, const String &text) {
 }
 
 // Placeholder screen until each app is implemented: name, clock, network.
+static bool isPlaceholder() { return current != APP_ALERTS; }
+
 static void drawApp() {
+  if (current == APP_ALERTS) return alerts::draw(tft);
   tft.fillScreen(TFT_BLACK);
   tft.fillRect(0, 0, 240, 36, 0x18E3);
   tft.setTextDatum(MC_DATUM);
@@ -165,7 +169,8 @@ void loop() {
   }
   if (millis() - lastSecond >= 1000) {
     lastSecond = millis();
-    drawStatus();
+    if (isPlaceholder()) drawStatus();
+    else if (current == APP_ALERTS) alerts::tick(tft);
     static int lastBrightness = -1;
     int b = effectiveBrightness();
     if (b != lastBrightness) {

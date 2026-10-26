@@ -1,8 +1,8 @@
-// SmallTV Pro open firmware: stage 1 (core). Stock-compatible settings, web UI/API and OTA;
-// apps are placeholders for now.
+// SmallTV Pro open firmware. Stock-compatible settings, web UI/API and OTA; see ../SPEC.md.
 
 #include <Arduino.h>
 #include <esp_ota_ops.h>
+#include "alerts.h"
 #include "net.h"
 #include "store.h"
 #include "ui.h"
@@ -19,6 +19,7 @@ void setup() {
   ui::message("SmallTV Pro", "connecting Wi-Fi...");
   net::begin();
   web::begin();
+  alerts::begin();
   ui::applySettings();
 }
 
