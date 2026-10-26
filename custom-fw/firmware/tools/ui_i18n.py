@@ -63,7 +63,7 @@ HTML = {
     "Configure symbols, chart interval, refresh, and animation.": "Тікери, інтервал графіка, оновлення й анімація.",
     "Configure symbols, chart, refresh, and format.": "Пари, графік, оновлення й формат.",
     "Connection": "Підключення",
-    "Copyright © GeekMagic. All rights reserved.": "Інтерфейс © GeekMagic. Прошивка OpenFW.",
+    "Copyright © GeekMagic. All rights reserved.": "Copyright © Magic Box FW. All rights reserved.",
     "Cycle through configured CoinGecko IDs automatically.": "Автоматично перемикати монети CoinGecko.",
     "Cycle through stored images automatically.": "Автоматично перемикати збережені зображення.",
     "Cycle through the configured pairs automatically.": "Автоматично перемикати пари.",
