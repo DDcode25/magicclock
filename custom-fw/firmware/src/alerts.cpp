@@ -316,7 +316,8 @@ void testAlarm(uint8_t level) {
 }
 
 static void drawAlarmFrame(TFT_eSPI &tft, int home) {
-  uint16_t bg = levelColor(blinkLevel);
+  // Pure red for a full alert: the map red (200,20,24) looks pink as a full-screen fill.
+  uint16_t bg = blinkLevel == FULL ? 0xF800 : levelColor(blinkLevel);
   tft.fillScreen(bg);
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(TFT_BLACK, bg);
