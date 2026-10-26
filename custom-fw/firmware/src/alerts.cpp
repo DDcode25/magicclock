@@ -252,7 +252,7 @@ static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, c
   }
   if (home >= 0) {
     uint8_t l = s.level[home];
-    String state = !upd ? "завантаження…" : l == FULL ? "ТРИВОГА" : l == PARTIAL ? "часткова тривога" : l == UNKNOWN ? "немає даних" : "без тривоги";
+    String state = !upd ? "завантаження…" : l == FULL ? "ТРИВОГА" : l == PARTIAL ? "Тривога" : l == UNKNOWN ? "немає даних" : "без тривоги";
     if (upd && (l == FULL || l == PARTIAL) && s.since[home]) state += " з " + hhmm(s.since[home]);
     tft.setTextColor(l == FULL ? TFT_RED : l == PARTIAL ? TFT_ORANGE : l == UNKNOWN || !upd ? TFT_DARKGREY : TFT_GREEN, TFT_BLACK);
     tft.drawString(state, 4, y2);
@@ -322,7 +322,7 @@ static void drawAlarmFrame(TFT_eSPI &tft, int home) {
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(TFT_BLACK, bg);
   useFont(tft, FONT_LARGE);
-  tft.drawString(blinkLevel == FULL ? "ТРИВОГА" : "ЧАСТКОВА ТРИВОГА", 120, 105);
+  tft.drawString("ТРИВОГА", 120, 105);  // full vs partial differs by colour only
   if (home >= 0) tft.drawString(MAP[home].label, 120, 140);
 }
 
