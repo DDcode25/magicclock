@@ -172,7 +172,8 @@ PlatformIO, `custom-fw/firmware/`:
 ## 8. Название и язык
 
 - Название прошивки: **Magic Box FW** (`/v.json`, заголовок и шапка веб-интерфейса, копирайт в подвале
-  «Copyright © Magic Box FW. All rights reserved.», User-Agent `MagicBoxFW/x.y.z`).
+  «Copyright © Magic Box FW. All rights reserved.»).
+- Запросы к источникам тревог идут с User-Agent настольного Chrome (часть сервисов отклоняет неизвестных клиентов).
 - Модель железа (`GeekMagic SmallTV-PRO`), имя в сети `smalltv-pro` и точка доступа `SmallTV-PRO` не меняются.
 
 - Все надписи на экране и в веб-интерфейсе — на украинском.
