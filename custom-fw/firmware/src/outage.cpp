@@ -53,6 +53,22 @@ static time_t localMidnight(int y, int m, int d) {
   return mktime(&t);
 }
 
+// After midnight yesterday's "tomorrow" becomes today until the next fetch. false when the schedule
+// has nothing for the current day.
+static bool rollOver(Schedule &s) {
+  if (!net::timeValid()) return true;
+  time_t now = time(nullptr);
+  struct tm t;
+  localtime_r(&now, &t);
+  time_t today = localMidnight(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday);
+  if (today <= s.today + 43200) return true;
+  if (!s.hasTomorrow || today > s.today + 86400 + 43200) return false;
+  memcpy(s.day[0], s.day[1], outage::SLOTS);
+  memset(s.day[1], outage::UNKNOWN, outage::SLOTS);
+  s.today = today, s.hasToday = true, s.hasTomorrow = false;
+  return true;
+}
+
 // Official Poltavaoblenergo page: day blocks with a 48-cell row per subqueue. Days are matched to
 // today/tomorrow by the device clock.
 static bool fetchPoe(WiFiClient &stream, const Config &c, Schedule &s, String &err) {
@@ -264,14 +280,9 @@ static void render(TFT_eSPI &tft, bool clear) {
   c = cfg, s = sched, ok = valid, drawnVersion = version;
   memcpy(err, error, sizeof err);
   xSemaphoreGive(lock);
-  if (ok && net::timeValid()) {  // after midnight the old "today" is gone until the next fetch
-    time_t now = time(nullptr);
-    struct tm t;
-    localtime_r(&now, &t);
-    if (localMidnight(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday) > s.today + 43200) {
-      ok = false;
-      if (!*err) strlcpy(err, "графік застарів", sizeof err);
-    }
+  if (ok && !rollOver(s)) {  // no schedule for the new day yet
+    ok = false;
+    if (!*err) strlcpy(err, "графік застарів", sizeof err);
   }
   if (clear) tft.fillScreen(TFT_BLACK);
   if (!ok) {
@@ -345,7 +356,7 @@ bool nextChange(time_t now, bool &powerOn, time_t &at) {
   bool ok = valid;
   s = sched;
   xSemaphoreGive(lock);
-  if (!ok || !s.today) return false;
+  if (!ok || !s.today || !rollOver(s)) return false;
   struct tm base;
   localtime_r(&s.today, &base);
   auto start = [&](int i) {  // slot i of today + tomorrow, DST-safe
