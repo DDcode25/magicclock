@@ -273,6 +273,20 @@ static void drawIcon(TFT_eSPI &tft, int x, int y, int code, bool day) {
   }
 }
 
+// Small reading icons, 16 px wide, vertically centred on cy.
+static void dropIcon(TFT_eSPI &tft, int x, int cy, uint16_t c) {
+  tft.fillTriangle(x + 8, cy - 9, x + 3, cy + 1, x + 13, cy + 1, c);
+  tft.fillCircle(x + 8, cy + 3, 5, c);
+}
+
+static void windIcon(TFT_eSPI &tft, int x, int cy, uint16_t c) {
+  tft.drawWideLine(x, cy - 4, x + 11, cy - 4, 2, c, TFT_BLACK);
+  tft.drawArc(x + 11, cy - 7, 3, 2, 270, 180, c, TFT_BLACK);
+  tft.drawWideLine(x, cy + 1, x + 15, cy + 1, 2, c, TFT_BLACK);
+  tft.drawWideLine(x + 3, cy + 6, x + 10, cy + 6, 2, c, TFT_BLACK);
+  tft.drawArc(x + 10, cy + 9, 3, 2, 180, 90, c, TFT_BLACK);
+}
+
 // ---- screen ---------------------------------------------------------------------------
 
 static uint32_t drawnVersion = UINT32_MAX;
@@ -341,10 +355,21 @@ static void render(TFT_eSPI &tft) {
   useFont(tft, FONT_SMALL);
   tft.setTextColor(*err ? TFT_YELLOW : TFT_LIGHTGREY, TFT_BLACK);
   tft.drawString(*err ? String(err) : "відчувається як " + deg(d.feels), 120, 180);
+  // Humidity and wind as icon + value, centred together on one line.
+  String hum = String(d.humidity) + "%", wind = windText(d.wind, c.wind);
+  const int icon = 16, pad = 4, gap = 22;
+  int total = icon + pad + tft.textWidth(hum) + gap + icon + pad + tft.textWidth(wind), rx = (240 - total) / 2;
+  tft.setTextDatum(ML_DATUM);
   tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-  tft.drawString("вологість " + String(d.humidity) + "%", 120, 198);
-  tft.drawString("вітер " + windText(d.wind, c.wind), 120, 216);
-  tft.drawString("тиск " + pressureText(d.pressureHpa, c.pressure), 120, 234);
+  dropIcon(tft, rx, 204, 0x5D9F);
+  rx += icon + pad;
+  tft.drawString(hum, rx, 204);
+  rx += tft.textWidth(hum) + gap;
+  windIcon(tft, rx, 204, 0xBDF7);
+  rx += icon + pad;
+  tft.drawString(wind, rx, 204);
+  tft.setTextDatum(MC_DATUM);
+  tft.drawString("тиск " + pressureText(d.pressureHpa, c.pressure), 120, 228);
 }
 
 void draw(TFT_eSPI &tft) {
