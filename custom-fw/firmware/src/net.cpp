@@ -91,6 +91,10 @@ void applyTime() {
 
 bool timeValid() { return time(nullptr) > 1700000000; }
 
+static SemaphoreHandle_t fetchMutex = xSemaphoreCreateMutex();
+void fetchLock() { xSemaphoreTake(fetchMutex, portMAX_DELAY); }
+void fetchUnlock() { xSemaphoreGive(fetchMutex); }
+
 String scanJson() {
   int n = WiFi.scanNetworks(false, false);
   String j = "{\"aps\":[";

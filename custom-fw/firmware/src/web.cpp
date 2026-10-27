@@ -11,6 +11,7 @@
 #include "pictures.h"
 #include "store.h"
 #include "ui.h"
+#include "weather.h"
 #include "web_index.h"
 
 namespace web {
@@ -217,7 +218,7 @@ static void handleSet() {
 
   Batch batch;
   bool stockForm = server.hasArg("s_i");  // cn0..9 belongs to stock2.json in the stock form
-  bool timeChanged = false, alertsChanged = false, albumChanged = false;
+  bool timeChanged = false, alertsChanged = false, albumChanged = false, weatherChanged = false;
   for (int i = 0; i < server.args(); i++) {
     String name = server.argName(i), v = server.arg(i);
     if (name == "plain") continue;
@@ -226,6 +227,7 @@ static void handleSet() {
       if (name == f.param) {
         setValue(batch.doc(f.file), f.key, v, f.kind);
         if (!strcmp(f.file, "album.json")) albumChanged = true;
+        if (!strcmp(f.file, "city.json") || !strcmp(f.file, "unit.json") || !strcmp(f.file, "key.json")) weatherChanged = true;
         handled = true;
         break;
       }
@@ -259,6 +261,7 @@ static void handleSet() {
   if (timeChanged) net::applyTime();
   if (alertsChanged) alerts::reload();
   if (albumChanged) pictures::reload();
+  if (weatherChanged) weather::reload();
   ok();
 }
 
@@ -428,6 +431,7 @@ void begin() {
   server.on("/alerts.json", HTTP_GET, [] { server.send(200, "application/json", alerts::statusJson()); });
   server.on("/gifcheck", HTTP_GET, [] { server.send(200, "application/json", pictures::checkJson(server.arg("file"), server.arg("n").toInt())); });
   server.on("/pic.json", HTTP_GET, [] { server.send(200, "application/json", pictures::statsJson()); });
+  server.on("/weather.json", HTTP_GET, [] { server.send(200, "application/json", weather::statusJson()); });
   server.on("/state.json", HTTP_GET, [] { server.send(200, "application/json", ui::stateJson()); });
   server.on("/touch.json", HTTP_GET, [] { server.send(200, "application/json", ui::touchJson()); });
   server.on("/alerts/test", HTTP_GET, [] {

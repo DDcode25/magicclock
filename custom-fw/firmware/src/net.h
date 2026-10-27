@@ -15,6 +15,11 @@ String ip();     // STA IP, or AP IP when only the AP is up
 String ssid();
 
 void applyTime();      // (re)configure NTP and timezone from settings
+
+// Background fetches (alerts over TLS, weather) take this so they never run at the same time:
+// two at once run short of RAM next to the map sprite and the GIF decoder.
+void fetchLock();
+void fetchUnlock();
 bool timeValid();
 
 String scanJson();     // {"aps":[{"ss":..,"r":quality%,"e":0|1}]} for /wifi.json

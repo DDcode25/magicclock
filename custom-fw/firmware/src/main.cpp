@@ -6,6 +6,7 @@
 #include "net.h"
 #include "store.h"
 #include "ui.h"
+#include "weather.h"
 #include "web.h"
 
 void setup() {
@@ -20,6 +21,7 @@ void setup() {
   net::begin();
   web::begin();
   alerts::begin();
+  weather::begin();
   ui::applySettings();
 }
 

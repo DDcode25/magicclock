@@ -104,7 +104,9 @@ static void task(void *) {
 
     Snapshot s;
     String err;
+    net::fetchLock();
     bool ok = fetch(c, s, err);
+    net::fetchUnlock();
     Serial.printf("alerts: %s %s in %lu ms\n", c.src.c_str(), ok ? "ok" : err.c_str(), millis() - last);
     lastFetchMs = millis() - last;
     xSemaphoreTake(lock, portMAX_DELAY);

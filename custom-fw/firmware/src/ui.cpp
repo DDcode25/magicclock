@@ -9,6 +9,7 @@
 #include "net.h"
 #include "pictures.h"
 #include "store.h"
+#include "weather.h"
 
 namespace ui {
 
@@ -175,7 +176,8 @@ static void drawSettings() {
 
 // Placeholder screen until each app is implemented: name, clock, network.
 static bool isPlaceholder() {
-  return current != APP_ALERTS && current != APP_PICTURE && current != APP_SETTINGS && current != APP_CLOCK;
+  return current != APP_ALERTS && current != APP_PICTURE && current != APP_SETTINGS && current != APP_CLOCK &&
+         current != APP_WEATHER;
 }
 
 static void drawApp() {
@@ -186,6 +188,7 @@ static void drawApp() {
   if (current == APP_PICTURE) return pictures::show(tft);
   if (current == APP_SETTINGS) return drawSettings();
   if (current == APP_CLOCK) return clockapp::draw(tft);
+  if (current == APP_WEATHER) return weather::draw(tft);
   tft.fillScreen(TFT_BLACK);
   tft.fillRect(0, 0, 240, 36, 0x18E3);
   tft.setTextDatum(MC_DATUM);
@@ -298,6 +301,7 @@ void loop() {
     if (isPlaceholder()) drawStatus();
     else if (current == APP_ALERTS) alerts::tick(tft);
     else if (current == APP_CLOCK) clockapp::tick(tft);
+    else if (current == APP_WEATHER) weather::tick(tft);
     static int lastBrightness = -1;
     int b = effectiveBrightness();
     if (b != lastBrightness) {
