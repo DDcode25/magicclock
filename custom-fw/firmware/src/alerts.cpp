@@ -145,6 +145,25 @@ String statusJson() {
          c.src + "\",\"home\":" + c.home + "}";
 }
 
+// Alert colour of a region as the map shows it: 0 none, 1 orange (drones / some districts),
+// 2 red (missiles / whole oblast), 3 no data. Raion colours win when the source has them, so
+// "yellow in every raion" is orange, not red.
+enum Severity : uint8_t { SEV_NONE = 0, SEV_ORANGE = 1, SEV_RED = 2, SEV_UNKNOWN = 3 };
+
+static uint8_t severity(const Snapshot &s, int region) {
+  if (region < 0) return SEV_NONE;
+  if (s.level[region] == UNKNOWN) return SEV_UNKNOWN;
+  bool raionData = false;
+  uint8_t worst = R_NONE;
+  for (int i = 0; i < MAP_RAIONS; i++) {
+    if (RAION[i].oblast != region || s.raion[i] == R_INHERIT) continue;
+    raionData = true;
+    if (s.raion[i] > worst) worst = s.raion[i];
+  }
+  if (raionData && worst != R_NONE) return worst == R_RED ? SEV_RED : SEV_ORANGE;
+  return s.level[region] == FULL ? SEV_RED : s.level[region] == PARTIAL ? SEV_ORANGE : SEV_NONE;
+}
+
 // ---- drawing --------------------------------------------------------------------------
 
 static uint16_t levelColor(uint8_t l) {
@@ -256,9 +275,9 @@ static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, c
   tft.drawString(clock, 237, y);
 
   if (home >= 0) {
-    uint8_t l = s.level[home];
+    uint8_t sev = severity(s, home);
     tft.setTextDatum(ML_DATUM);
-    tft.setTextColor(!upd || l == UNKNOWN ? TFT_DARKGREY : l == FULL ? TFT_RED : l == PARTIAL ? TFT_ORANGE : TFT_GREEN, TFT_BLACK);
+    tft.setTextColor(!upd || sev == SEV_UNKNOWN ? TFT_DARKGREY : sev == SEV_RED ? TFT_RED : sev == SEV_ORANGE ? TFT_ORANGE : TFT_GREEN, TFT_BLACK);
     tft.drawString(MAP[home].label, 3, y);
   }
 
@@ -300,13 +319,13 @@ static bool blinking = false;
 bool homeAlertStarted() {
   static uint32_t seenVersion = 0;
   static int seenHome = -2;
-  static uint8_t prev = UNKNOWN;
+  static uint8_t prev = SEV_UNKNOWN;
   uint32_t v;
   int home;
-  uint8_t level;
+  uint8_t level;  // severity of the home region
   xSemaphoreTake(lock, portMAX_DELAY);
   v = version, home = cfg.home;
-  level = home >= 0 ? snap.level[home] : NONE;
+  level = severity(snap, home);
   xSemaphoreGive(lock);
   if (v == seenVersion && home == seenHome) return false;
   bool first = seenVersion == 0 || home != seenHome;  // boot or home changed: just remember
@@ -314,11 +333,13 @@ bool homeAlertStarted() {
   uint8_t before = prev;
   prev = level;
   if (first || v == 0) return false;
-  bool started = (level == FULL || level == PARTIAL) && (before == NONE || before == UNKNOWN || (before == PARTIAL && level == FULL));
+  // New alert, or orange turned red.
+  bool started = (level == SEV_ORANGE || level == SEV_RED) &&
+                 (before == SEV_NONE || before == SEV_UNKNOWN || (before == SEV_ORANGE && level == SEV_RED));
   if (started) {
     blinking = true;
     blinkStart = millis();
-    blinkLevel = level;
+    blinkLevel = level == SEV_RED ? FULL : PARTIAL;  // FULL = red frame, PARTIAL = orange frame
   }
   return started;
 }
