@@ -7,8 +7,11 @@
 // FONT_CLOCK_BIG / FONT_CLOCK_SEC: bold 71 / 36 px (Clock app); FONT_ALERT_CLOCK: bold 45 px
 // (alert map). All three hold digits and ":" only.
 // FONT_TEMP: bold 56 px digits and "-" (weather temperature); FONT_DIAL: bold 16 px digits (outage dial);
-// FONT_NUM: bold 20 px digits, "+", "-", "." (outage totals).
-enum UiFont { FONT_BUILTIN, FONT_SMALL, FONT_LARGE, FONT_CLOCK_BIG, FONT_CLOCK_SEC, FONT_ALERT_CLOCK, FONT_TEMP, FONT_DIAL, FONT_NUM };
+// FONT_NUM / FONT_NUM_BIG: bold 24 / 28 px digits, "+", "-", "." (outage centre).
+enum UiFont {
+  FONT_BUILTIN, FONT_SMALL, FONT_LARGE, FONT_CLOCK_BIG, FONT_CLOCK_SEC, FONT_ALERT_CLOCK, FONT_TEMP, FONT_DIAL,
+  FONT_NUM, FONT_NUM_BIG
+};
 
 void useFont(TFT_eSPI &tft, UiFont font);
 // Bold font sized so the city of `region` fills its own line (tools/gen_city_fonts.py); holds only
