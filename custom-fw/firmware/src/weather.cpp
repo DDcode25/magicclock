@@ -332,44 +332,51 @@ static void render(TFT_eSPI &tft) {
   }
 
   drawIcon(tft, 4, 40, d.code, d.day);
-  // Temperature: digits font + a drawn degree ring.
+
+  // Right of the icon: temperature large (digits font + a drawn degree ring), "як <feels>" under it.
   useFont(tft, FONT_TEMP);
   String t = String(lround(d.temp));
   int w = tft.textWidth(t), x = 172 - (w + 16) / 2;
   tft.setTextDatum(ML_DATUM);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString(t, x, 88);
-  tft.drawCircle(x + w + 9, 70, 6, TFT_WHITE);
-  tft.drawCircle(x + w + 9, 70, 5, TFT_WHITE);
-  useFont(tft, FONT_SMALL);
+  tft.drawString(t, x, 82);
+  tft.drawCircle(x + w + 9, 64, 6, TFT_WHITE);
+  tft.drawCircle(x + w + 9, 64, 5, TFT_WHITE);
+  useFont(tft, FONT_LARGE);
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-  tft.drawString(String(c.fahrenheit ? "°F" : "°C") + "  " + deg(d.tmax) + " / " + deg(d.tmin), 172, 124);
+  tft.drawString("як " + deg(d.feels), 172, 126);
 
+  // Under the icon: description (or a fetch problem), on two lines if wider than the icon column.
+  const int colX = 52, colW = 112;
+  String desc = *err ? String(err) : String(describe(d.code));
   useFont(tft, FONT_LARGE);
-  if (tft.textWidth(describe(d.code)) > 234) useFont(tft, FONT_SMALL);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString(describe(d.code), 120, 153);
+  if (tft.textWidth(desc) > colW) useFont(tft, FONT_SMALL);
+  tft.setTextColor(*err ? TFT_YELLOW : TFT_WHITE, TFT_BLACK);
+  int sp = desc.indexOf(' ');
+  if (tft.textWidth(desc) > colW && sp > 0) {
+    tft.drawString(desc.substring(0, sp), colX, 146);
+    tft.drawString(desc.substring(sp + 1), colX, 164);
+  } else {
+    tft.drawString(desc, colX, 150);
+  }
 
-  // One reading per line: two per line do not fit 240 px with long units (e.g. "миль/год").
   useFont(tft, FONT_SMALL);
-  tft.setTextColor(*err ? TFT_YELLOW : TFT_LIGHTGREY, TFT_BLACK);
-  tft.drawString(*err ? String(err) : deg(d.temp) + " як " + deg(d.feels), 120, 180);  // "7° як 4°": feels like
   // Humidity and wind as icon + value, centred together on one line.
   String hum = String(d.humidity) + "%", wind = windText(d.wind, c.wind);
   const int icon = 16, pad = 4, gap = 22;
   int total = icon + pad + tft.textWidth(hum) + gap + icon + pad + tft.textWidth(wind), rx = (240 - total) / 2;
   tft.setTextDatum(ML_DATUM);
   tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-  dropIcon(tft, rx, 204, 0x5D9F);
+  dropIcon(tft, rx, 194, 0x5D9F);
   rx += icon + pad;
-  tft.drawString(hum, rx, 204);
+  tft.drawString(hum, rx, 194);
   rx += tft.textWidth(hum) + gap;
-  windIcon(tft, rx, 204, 0xBDF7);
+  windIcon(tft, rx, 194, 0xBDF7);
   rx += icon + pad;
-  tft.drawString(wind, rx, 204);
+  tft.drawString(wind, rx, 194);
   tft.setTextDatum(MC_DATUM);
-  tft.drawString("тиск " + pressureText(d.pressureHpa, c.pressure), 120, 228);
+  tft.drawString("тиск " + pressureText(d.pressureHpa, c.pressure), 120, 220);
 }
 
 void draw(TFT_eSPI &tft) {
