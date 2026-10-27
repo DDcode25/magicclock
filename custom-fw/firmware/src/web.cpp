@@ -8,6 +8,7 @@
 #include "apps.h"
 #include "board.h"
 #include "net.h"
+#include "pictures.h"
 #include "store.h"
 #include "ui.h"
 #include "web_index.h"
@@ -209,12 +210,13 @@ static void handleSet() {
   if (server.hasArg("clear")) {
     String kind = server.arg("clear");
     bool done = kind == "gif" ? clearDir("/image/80x80.gif") : kind == "image" ? clearDir("/image") : false;
+    pictures::reload();
     return done ? ok() : server.send(400, "text/plain", "bad clear");
   }
 
   Batch batch;
   bool stockForm = server.hasArg("s_i");  // cn0..9 belongs to stock2.json in the stock form
-  bool timeChanged = false, alertsChanged = false;
+  bool timeChanged = false, alertsChanged = false, albumChanged = false;
   for (int i = 0; i < server.args(); i++) {
     String name = server.argName(i), v = server.arg(i);
     if (name == "plain") continue;
@@ -222,6 +224,7 @@ static void handleSet() {
     for (const Field &f : FIELDS) {
       if (name == f.param) {
         setValue(batch.doc(f.file), f.key, v, f.kind);
+        if (!strcmp(f.file, "album.json")) albumChanged = true;
         handled = true;
         break;
       }
@@ -254,6 +257,7 @@ static void handleSet() {
   ui::applySettings();
   if (timeChanged) net::applyTime();
   if (alertsChanged) alerts::reload();
+  if (albumChanged) pictures::reload();
   ok();
 }
 
@@ -305,6 +309,7 @@ static void handleUploadData() {
 }
 
 static void handleDelete() {
+  pictures::reload();
   String path = server.arg("file");
   if (path.isEmpty() || path == "/.sys/config.json" || !LittleFS.exists(path))
     return server.send(400, "text/plain", "bad file");
@@ -407,7 +412,12 @@ void begin() {
   });
   server.on("/filelist", HTTP_GET, handleFileList);
   server.on(
-      "/doUpload", HTTP_POST, [] { uploadOk ? ok() : server.send(500, "text/plain", "upload failed"); }, handleUploadData);
+      "/doUpload", HTTP_POST,
+      [] {
+        pictures::reload();
+        uploadOk ? ok() : server.send(500, "text/plain", "upload failed");
+      },
+      handleUploadData);
   server.on("/delete", HTTP_GET, handleDelete);
   server.on("/update", HTTP_GET, [] { server.send_P(200, "text/html", UPDATE_PAGE); });
   server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateData);

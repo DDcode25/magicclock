@@ -6,6 +6,7 @@
 #include "board.h"
 #include "fonts.h"
 #include "net.h"
+#include "pictures.h"
 #include "store.h"
 
 namespace ui {
@@ -17,6 +18,7 @@ static int touchThreshold = 60;
 
 static const uint32_t TOUCH_SAMPLE_MS = 20;
 static const uint32_t LONG_PRESS_MS = 800;
+static const uint32_t DOUBLE_TAP_MS = 350;  // stock: double tap = previous screen
 
 // Backlight is active-low: duty 255 = off, 0 = full brightness.
 static void setBacklight(int pct) {
@@ -84,8 +86,9 @@ void next(int dir) {
   dirty = true;
 }
 
+// Long press. Pictures: next file. Other apps get an inner mode in later stages.
 void enter() {
-  // Apps get an inner mode in later stages; for now just redraw.
+  if (current == APP_PICTURE) return pictures::next(tft);
   dirty = true;
 }
 
@@ -112,11 +115,37 @@ void message(const String &title, const String &text) {
   tft.drawString(text, 120, 140);
 }
 
+// Device info, like the stock Settings screen: firmware, Wi-Fi mode, SSID, IP.
+static void drawSettings() {
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextDatum(MC_DATUM);
+  useFont(tft, FONT_LARGE);
+  tft.setTextColor(TFT_ORANGE, TFT_BLACK);
+  tft.drawString("Magic Box FW", 120, 40);
+  useFont(tft, FONT_SMALL);
+  const char *labels[] = {"Версія", "Wi-Fi", "Мережа", "IP"};
+  String values[] = {FW_VERSION, net::connected() ? "клієнт" : net::apActive() ? "точка доступу" : "немає",
+                     net::connected() ? net::ssid() : net::apActive() ? String(AP_SSID) : String("-"), net::ip()};
+  for (int i = 0; i < 4; i++) {
+    tft.setTextDatum(MR_DATUM);
+    tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
+    tft.drawString(labels[i], 92, 90 + i * 30);
+    tft.setTextDatum(ML_DATUM);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.drawString(values[i], 102, 90 + i * 30);
+  }
+}
+
 // Placeholder screen until each app is implemented: name, clock, network.
-static bool isPlaceholder() { return current != APP_ALERTS; }
+static bool isPlaceholder() { return current != APP_ALERTS && current != APP_PICTURE && current != APP_SETTINGS; }
 
 static void drawApp() {
+  static int shown = -1;
+  if (shown == APP_PICTURE && current != APP_PICTURE) pictures::hide();
+  shown = current;
   if (current == APP_ALERTS) return alerts::draw(tft);
+  if (current == APP_PICTURE) return pictures::show(tft);
+  if (current == APP_SETTINGS) return drawSettings();
   tft.fillScreen(TFT_BLACK);
   tft.fillRect(0, 0, 240, 36, 0x18E3);
   tft.setTextDatum(MC_DATUM);
@@ -149,9 +178,15 @@ static void drawStatus() {
   tft.drawString(status, 120, 220);
 }
 
+// Stock controls: tap = next app, double tap = previous app, long press = enter().
+// A single tap waits DOUBLE_TAP_MS for a second one before acting.
 static void handleTouch() {
-  static uint32_t lastSample = 0, pressStart = 0;
-  static bool pressed = false, longFired = false;
+  static uint32_t lastSample = 0, pressStart = 0, tapAt = 0;
+  static bool pressed = false, longFired = false, tapPending = false;
+  if (tapPending && millis() - tapAt > DOUBLE_TAP_MS) {
+    tapPending = false;
+    next(1);
+  }
   if (millis() - lastSample < TOUCH_SAMPLE_MS) return;
   lastSample = millis();
   bool down = touchRead(PIN_TOUCH) < touchThreshold;
@@ -161,10 +196,18 @@ static void handleTouch() {
     pressStart = millis();
   } else if (down && pressed && !longFired && millis() - pressStart > LONG_PRESS_MS) {
     longFired = true;
+    tapPending = false;
     enter();
   } else if (!down && pressed) {
     pressed = false;
-    if (!longFired && millis() - pressStart > 40) next(1);
+    if (longFired || millis() - pressStart <= 40) return;
+    if (tapPending) {
+      tapPending = false;
+      next(-1);
+    } else {
+      tapPending = true;
+      tapAt = millis();
+    }
   }
 }
 
@@ -184,6 +227,7 @@ void loop() {
     lastSecond = 0;
   }
   if (current == APP_ALERTS) alerts::loop(tft);
+  if (current == APP_PICTURE) pictures::loop(tft);
   if (millis() - lastSecond >= 1000) {
     lastSecond = millis();
     if (isPlaceholder()) drawStatus();
