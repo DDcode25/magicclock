@@ -5,7 +5,7 @@
 #include "fonts/font_digits_36b.h"
 #include "fonts/font_digits_45b.h"
 #include "fonts/font_digits_56b.h"
-#include "fonts/font_digits_13b.h"
+#include "fonts/font_digits_16b.h"
 #include "fonts/font_digits_71b.h"
 
 static const uint8_t *loaded = nullptr;  // VLW data currently loaded, nullptr = built-in fonts
@@ -18,7 +18,7 @@ static void load(TFT_eSPI &tft, const uint8_t *data) {
 }
 
 void useFont(TFT_eSPI &tft, UiFont font) {
-  static const uint8_t *const DATA[] = {nullptr, FONT_UA_15, FONT_UA_24B, FONT_DIGITS_71B, FONT_DIGITS_36B, FONT_DIGITS_45B, FONT_DIGITS_56B, FONT_DIGITS_13B};
+  static const uint8_t *const DATA[] = {nullptr, FONT_UA_15, FONT_UA_24B, FONT_DIGITS_71B, FONT_DIGITS_36B, FONT_DIGITS_45B, FONT_DIGITS_56B, FONT_DIGITS_16B};
   load(tft, DATA[font]);
 }
 

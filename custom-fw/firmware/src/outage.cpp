@@ -179,8 +179,11 @@ static void drawRings(TFT_eSPI &tft, const uint8_t *slots) {
     float a = (h % 12) * 30, r0 = bandIn(2 * h);
     tft.drawWideLine(px(a, r0), py(a, r0), px(a, r0 + 5), py(a, r0 + 5), 1.5, C_INK, slotColor(slots[2 * h]));
     tft.drawLine(px(a + 15, r0 + STEP), py(a + 15, r0 + STEP), px(a + 15, r0 + STEP + 3), py(a + 15, r0 + STEP + 3), C_INK);
-    tft.setTextColor(C_INK, slotColor(slots[2 * h]));
-    tft.drawString(String(h), px(a + 8, r0 + W * 0.58f), py(a + 8, r0 + W * 0.58f));
+    // Hour label: black, drawn twice 1 px apart for extra weight (the band is pale and the font small).
+    int lx = px(a + 8, r0 + W * 0.55f), ly = py(a + 8, r0 + W * 0.55f);
+    tft.setTextColor(TFT_BLACK, slotColor(slots[2 * h]));
+    tft.drawString(String(h), lx, ly);
+    tft.drawString(String(h), lx + 1, ly);
   }
 }
 

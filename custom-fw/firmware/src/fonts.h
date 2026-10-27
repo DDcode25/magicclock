@@ -6,7 +6,7 @@
 // (e.g. font 7 for big digits).
 // FONT_CLOCK_BIG / FONT_CLOCK_SEC: bold 71 / 36 px (Clock app); FONT_ALERT_CLOCK: bold 45 px
 // (alert map). All three hold digits and ":" only.
-// FONT_TEMP: bold 56 px digits and "-" (weather temperature); FONT_DIAL: bold 13 px digits (outage dial).
+// FONT_TEMP: bold 56 px digits and "-" (weather temperature); FONT_DIAL: bold 16 px digits (outage dial).
 enum UiFont { FONT_BUILTIN, FONT_SMALL, FONT_LARGE, FONT_CLOCK_BIG, FONT_CLOCK_SEC, FONT_ALERT_CLOCK, FONT_TEMP, FONT_DIAL };
 
 void useFont(TFT_eSPI &tft, UiFont font);
