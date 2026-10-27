@@ -47,4 +47,38 @@ inline bool parse(const char *json, size_t len, const char *group, Schedule &out
   return fromDoc(doc, group, out);
 }
 
+// ---- Poltavaoblenergo official page (poe.pl.ua/customs/dynamicgpv-info.php) -------------------
+// HTML: per day a block "... <b>27 жовтня 2026 року</b> ..." with a table; rows carry the queue
+// ("1 черга") and subqueue ("1"/"2") cells, then 48 half-hour cells class="light_1|2|3"
+// (1 = power on, 2 = off, 3 = possible). Parsed as a character stream, nothing buffered.
+struct PoeDay {
+  int year = 0, month = 0, day = 0;  // date of the block
+  bool found = false;                // the requested group had a full row
+  uint8_t slots[SLOTS];
+};
+
+class PoeParser {
+ public:
+  explicit PoeParser(const char *group);  // "1.1"
+  void feed(char c);
+  int days() const { return count; }
+  const PoeDay &day(int i) const { return found[i]; }
+
+ private:
+  enum Want { NONE, DATE, QUEUE, SUBQUEUE };
+  void onTag();
+  void onText();
+  int wantQueue, wantSub;
+  int queue = 0, sub = 0, cells = 0;
+  uint8_t row[SLOTS];
+  PoeDay found[2];
+  int count = 0, curY = 0, curM = 0, curD = 0;
+  bool inTag = false, inB = false;
+  Want want = NONE;
+  char tag[96];
+  int tagLen = 0;
+  char text[64];
+  int textLen = 0;
+};
+
 }  // namespace outage

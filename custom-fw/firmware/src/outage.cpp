@@ -18,7 +18,7 @@ using outage::Schedule;
 static const char *CONFIG = "/.sys/outage.json";
 
 struct Config {
-  String src = "y:Poltavaoblenergo";
+  String src = "poe";
   String group = "1.1";
   int intervalMin = 10;
 };
@@ -34,7 +34,7 @@ static volatile bool fetchNow = true, paused = false;
 
 static void loadConfig() {
   Config c;
-  c.src = store::getStr(CONFIG, "src", "y:Poltavaoblenergo");
+  c.src = store::getStr(CONFIG, "src", "poe");
   c.group = store::getStr(CONFIG, "grp", "1.1");
   c.intervalMin = max(5, store::getInt(CONFIG, "i", 10));
   xSemaphoreTake(lock, portMAX_DELAY);
@@ -44,7 +44,44 @@ static void loadConfig() {
   xSemaphoreGive(lock);
 }
 
+static const char *POE_URL = "https://www.poe.pl.ua/customs/dynamicgpv-info.php";
+
+// Local midnight of y-m-d (device time zone).
+static time_t localMidnight(int y, int m, int d) {
+  struct tm t = {};
+  t.tm_year = y - 1900, t.tm_mon = m - 1, t.tm_mday = d, t.tm_isdst = -1;
+  return mktime(&t);
+}
+
+// Official Poltavaoblenergo page: day blocks with a 48-cell row per subqueue. Days are matched to
+// today/tomorrow by the device clock.
+static bool fetchPoe(WiFiClient &stream, const Config &c, Schedule &s, String &err) {
+  outage::PoeParser p(c.group.c_str());
+  NetReader r{stream, 15000};
+  for (int ch; (ch = r.read()) >= 0;) p.feed((char)ch);
+  if (!p.days()) return err = "немає графіка для черги", false;
+  if (!net::timeValid()) return err = "немає часу", false;
+  time_t now = time(nullptr);
+  struct tm t;
+  localtime_r(&now, &t);
+  time_t today = localMidnight(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday);
+  s = Schedule();
+  memset(s.day, outage::UNKNOWN, sizeof s.day);
+  s.today = today;
+  for (int i = 0; i < p.days(); i++) {
+    const outage::PoeDay &d = p.day(i);
+    long diff = lround(difftime(localMidnight(d.year, d.month, d.day), today) / 86400.0);
+    if (diff < 0 || diff > 1) continue;
+    memcpy(s.day[diff], d.slots, outage::SLOTS);
+    (diff ? s.hasTomorrow : s.hasToday) = true;
+  }
+  strlcpy(s.update, "poe.pl.ua", sizeof s.update);
+  if (!s.hasToday) return err = "немає графіка на сьогодні", false;
+  return true;
+}
+
 static String sourceUrl(const String &src) {
+  if (src == "poe") return POE_URL;
   String name = src.substring(2);
   if (src.startsWith("b:")) return "https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/data/" + name + ".json";
   return "https://raw.githubusercontent.com/yaroslav2901/OE_OUTAGE_DATA/main/data/" + name + ".json";
@@ -63,8 +100,14 @@ static bool fetch(const Config &c, Schedule &s, String &err) {
     http.end();
     return false;
   }
+  bool ok;
+  if (c.src == "poe") {
+    ok = fetchPoe(http.getStream(), c, s, err);
+    http.end();
+    return ok;
+  }
   NetReader reader{http.getStream(), 15000};
-  bool ok = outage::parse(reader, c.group.c_str(), s);
+  ok = outage::parse(reader, c.group.c_str(), s);
   http.end();
   if (!ok) err = String("немає графіка: ") + outage::lastError;
   return ok;

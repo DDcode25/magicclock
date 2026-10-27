@@ -100,7 +100,8 @@ ALERTS_VIEW = """
 """ % _home_options
 
 OUTAGE_REGIONS = [
-    ("y:Poltavaoblenergo", "Полтавська (Полтаваобленерго)"), ("y:Cherkasyoblenergo", "Черкаська"),
+    ("poe", "Полтавська — офіційний сайт Полтаваобленерго"),
+    ("y:Poltavaoblenergo", "Полтавська — копія (yaroslav2901)"), ("y:Cherkasyoblenergo", "Черкаська"),
     ("y:Chernihivoblenergo", "Чернігівська"), ("y:Kharkivoblenerho", "Харківська"),
     ("y:Khmelnytskoblenerho", "Хмельницька"), ("y:Lvivoblenerho", "Львівська"),
     ("y:Prykarpattiaoblenerho", "Івано-Франківська"), ("y:Rivneoblenergo", "Рівненська"),
@@ -142,7 +143,8 @@ OUTAGE_VIEW = """
           <label class="pair"><span>Область (обленерго)</span><select class="select" id="outageSrc">%s</select></label>
           <label class="pair"><span>Черга (підчерга)</span><select class="select" id="outageGroup">%s</select></label>
           <label class="pair"><span>Інтервал оновлення (хв, мінімум 5)</span><input class="field" id="outageInterval" inputmode="numeric" placeholder="10"></label>
-          <div class="hint">Дані: відкриті копії сайтів обленерго —
+          <div class="hint">Полтава: офіційний графік з <a href="https://www.poe.pl.ua/disconnection/power-outages/" target="_blank" rel="noopener noreferrer">poe.pl.ua</a>.
+            Інші області: відкриті копії сайтів обленерго —
             <a href="https://github.com/yaroslav2901/OE_OUTAGE_DATA" target="_blank" rel="noopener noreferrer">yaroslav2901/OE_OUTAGE_DATA</a>
             та <a href="https://github.com/Baskerville42/outage-data-ua" target="_blank" rel="noopener noreferrer">Baskerville42/outage-data-ua</a> (ДТЕК).
             Можуть відставати від офіційного сайту і не містять аварійних відключень.</div>
@@ -161,7 +163,7 @@ OUTAGE_VIEW = """
 
 OUTAGE_JS = """
     // ---- Magic Box FW: power outage schedule ----
-    state.outage={src:'y:Poltavaoblenergo',grp:'1.1',interval:10};
+    state.outage={src:'poe',grp:'1.1',interval:10};
     function syncOutageForm(){
       byId('outageSrc').value=state.outage.src;
       byId('outageGroup').value=state.outage.grp;
@@ -172,7 +174,7 @@ OUTAGE_JS = """
     function loadOutageConfig(force){
       return once('outage',force,async()=>{
         const o=await getJson('/.sys/outage.json');
-        state.outage.src=String(o.src??'y:Poltavaoblenergo');
+        state.outage.src=String(o.src??'poe');
         state.outage.grp=String(o.grp??'1.1');
         state.outage.interval=Math.max(5,toInt(o.i,10));
         syncOutageForm();
