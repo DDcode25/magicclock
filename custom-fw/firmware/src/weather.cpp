@@ -208,13 +208,6 @@ static const char *describe(int code) {
   }
 }
 
-static String pressureText(float hpa, const String &unit) {
-  if (unit == "kPa") return String(hpa / 10, 1) + " кПа";
-  if (unit == "mmHg") return String(lround(hpa * 0.750062)) + " мм рт. ст.";
-  if (unit == "inHg") return String(hpa * 0.02953, 2) + " inHg";
-  return String(lround(hpa)) + " гПа";
-}
-
 static String windText(float v, const String &unit) {
   const char *u = unit == "km/h" ? " км/год" : unit == "mile/h" ? " миль/год" : " м/с";
   return String(v, v < 10 && unit == "m/s" ? 1 : 0) + u;
@@ -273,18 +266,18 @@ static void drawIcon(TFT_eSPI &tft, int x, int y, int code, bool day) {
   }
 }
 
-// Small reading icons, 16 px wide, vertically centred on cy.
+// Reading icons, 24 px wide, vertically centred on cy.
 static void dropIcon(TFT_eSPI &tft, int x, int cy, uint16_t c) {
-  tft.fillTriangle(x + 8, cy - 9, x + 3, cy + 1, x + 13, cy + 1, c);
-  tft.fillCircle(x + 8, cy + 3, 5, c);
+  tft.fillTriangle(x + 12, cy - 13, x + 4, cy + 2, x + 20, cy + 2, c);
+  tft.fillCircle(x + 12, cy + 4, 8, c);
 }
 
 static void windIcon(TFT_eSPI &tft, int x, int cy, uint16_t c) {
-  tft.drawWideLine(x, cy - 4, x + 11, cy - 4, 2, c, TFT_BLACK);
-  tft.drawArc(x + 11, cy - 7, 3, 2, 270, 180, c, TFT_BLACK);
-  tft.drawWideLine(x, cy + 1, x + 15, cy + 1, 2, c, TFT_BLACK);
-  tft.drawWideLine(x + 3, cy + 6, x + 10, cy + 6, 2, c, TFT_BLACK);
-  tft.drawArc(x + 10, cy + 9, 3, 2, 180, 90, c, TFT_BLACK);
+  tft.drawWideLine(x, cy - 6, x + 16, cy - 6, 3, c, TFT_BLACK);
+  tft.drawArc(x + 16, cy - 10, 4, 2, 270, 180, c, TFT_BLACK);
+  tft.drawWideLine(x, cy + 1, x + 22, cy + 1, 3, c, TFT_BLACK);
+  tft.drawWideLine(x + 4, cy + 8, x + 14, cy + 8, 3, c, TFT_BLACK);
+  tft.drawArc(x + 14, cy + 12, 4, 2, 180, 90, c, TFT_BLACK);
 }
 
 // ---- screen ---------------------------------------------------------------------------
@@ -362,21 +355,25 @@ static void render(TFT_eSPI &tft) {
   }
 
   useFont(tft, FONT_SMALL);
-  // Humidity and wind as icon + value, centred together on one line.
+  // Humidity and wind as icon + value, centred together on one line (smaller font if it does not fit).
   String hum = String(d.humidity) + "%", wind = windText(d.wind, c.wind);
-  const int icon = 16, pad = 4, gap = 22;
-  int total = icon + pad + tft.textWidth(hum) + gap + icon + pad + tft.textWidth(wind), rx = (240 - total) / 2;
+  const int icon = 24, pad = 5, gap = 20;
+  useFont(tft, FONT_LARGE);
+  int total = icon + pad + tft.textWidth(hum) + gap + icon + pad + tft.textWidth(wind);
+  if (total > 236) {
+    useFont(tft, FONT_SMALL);
+    total = icon + pad + tft.textWidth(hum) + gap + icon + pad + tft.textWidth(wind);
+  }
+  int rx = (240 - total) / 2;
   tft.setTextDatum(ML_DATUM);
   tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-  dropIcon(tft, rx, 194, 0x5D9F);
+  dropIcon(tft, rx, 208, 0x5D9F);
   rx += icon + pad;
-  tft.drawString(hum, rx, 194);
+  tft.drawString(hum, rx, 208);
   rx += tft.textWidth(hum) + gap;
-  windIcon(tft, rx, 194, 0xBDF7);
+  windIcon(tft, rx, 208, 0xBDF7);
   rx += icon + pad;
-  tft.drawString(wind, rx, 194);
-  tft.setTextDatum(MC_DATUM);
-  tft.drawString("тиск " + pressureText(d.pressureHpa, c.pressure), 120, 220);
+  tft.drawString(wind, rx, 208);
 }
 
 void draw(TFT_eSPI &tft) {
