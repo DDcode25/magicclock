@@ -4,6 +4,7 @@
 #include <esp_ota_ops.h>
 #include "alerts.h"
 #include "net.h"
+#include "outage.h"
 #include "store.h"
 #include "ui.h"
 #include "weather.h"
@@ -22,6 +23,7 @@ void setup() {
   web::begin();
   alerts::begin();
   weather::begin();
+  outagescreen::begin();
   ui::applySettings();
 }
 

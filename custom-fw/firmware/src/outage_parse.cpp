@@ -1,0 +1,62 @@
+#include "outage_parse.h"
+#include <stdio.h>
+#include <string.h>
+
+namespace outage {
+
+// One hour's value -> its two half-hour slots.
+static void hourSlots(const char *v, uint8_t &a, uint8_t &b) {
+  a = b = UNKNOWN;
+  if (!v) return;
+  if (!strcmp(v, "yes")) a = b = ON;
+  else if (!strcmp(v, "no")) a = b = OFF;
+  else if (!strcmp(v, "first")) a = OFF, b = ON;
+  else if (!strcmp(v, "second")) a = ON, b = OFF;
+  else if (!strcmp(v, "mfirst")) a = MAYBE, b = ON;
+  else if (!strcmp(v, "msecond")) a = ON, b = MAYBE;
+  else if (!strcmp(v, "maybe") || !strcmp(v, "mno")) a = b = MAYBE;
+}
+
+static void fillDay(JsonObjectConst hours, uint8_t *slots) {
+  for (int h = 0; h < 24; h++) {
+    char key[4];
+    snprintf(key, sizeof key, "%d", h + 1);
+    hourSlots(hours[key], slots[2 * h], slots[2 * h + 1]);
+  }
+}
+
+const char *lastError = "";
+
+void makeFilter(const char *group, JsonDocument &filter) {
+  char gkey[16];
+  snprintf(gkey, sizeof gkey, "GPV%s", group);
+  filter["fact"]["today"] = true;
+  filter["fact"]["update"] = true;
+  filter["fact"]["data"]["*"][gkey] = true;
+}
+
+bool fromDoc(const JsonDocument &doc, const char *group, Schedule &out) {
+  char gkey[16];
+  snprintf(gkey, sizeof gkey, "GPV%s", group);
+  JsonObjectConst fact = doc["fact"];
+  if (fact.isNull()) return lastError = "no fact", false;
+
+  out = Schedule();
+  memset(out.day, UNKNOWN, sizeof out.day);
+  out.today = (time_t)(fact["today"] | 0LL);
+  strncpy(out.update, fact["update"] | "", sizeof out.update - 1);
+  char key[16];
+  for (int d = 0; d < 2; d++) {
+    snprintf(key, sizeof key, "%lld", (long long)out.today + d * 86400LL);
+    JsonObjectConst hours = fact["data"][key][gkey];
+    if (hours.isNull()) continue;
+    fillDay(hours, out.day[d]);
+    (d ? out.hasTomorrow : out.hasToday) = true;
+  }
+  if (!out.today) lastError = "no today";
+  else if (!out.hasToday) lastError = "no group";
+  else lastError = "";
+  return out.today != 0 && out.hasToday;
+}
+
+}  // namespace outage

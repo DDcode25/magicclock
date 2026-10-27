@@ -12,6 +12,7 @@ static const AppItem APP_ITEMS[] = {
     {"weather", "Weather", "Погода"},     {"picture", "Picture", "Картинки"},      {"monitor", "Monitor", "Монітор ПК"},
     {"clock", "Clock", "Годинник"},       {"idea", "Idea", "Ідеї"},                {"settings", "Settings", "Налаштування"},
     {"alerts", "Alerts", "Повітряні тривоги"},  // Magic Box FW addition, index 9
+    {"outage", "Outage", "Світло"},             // Magic Box FW addition, index 10
 };
 static const int APP_COUNT = sizeof(APP_ITEMS) / sizeof(APP_ITEMS[0]);
 static const int APP_WEATHER = 3;
@@ -19,3 +20,4 @@ static const int APP_PICTURE = 4;
 static const int APP_CLOCK = 6;
 static const int APP_SETTINGS = 8;
 static const int APP_ALERTS = 9;
+static const int APP_OUTAGE = 10;

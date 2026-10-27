@@ -8,6 +8,7 @@
 #include "apps.h"
 #include "board.h"
 #include "net.h"
+#include "outage.h"
 #include "pictures.h"
 #include "store.h"
 #include "ui.h"
@@ -129,6 +130,10 @@ static const Field FIELDS[] = {
     {"al_i", "alerts.json", "i", INT},
     {"al_home", "alerts.json", "home", INT},
     {"al_cc", "alerts.json", "cc", STR},
+    // Magic Box FW: power outage schedule
+    {"out_src", "outage.json", "src", STR},
+    {"out_grp", "outage.json", "grp", STR},
+    {"out_i", "outage.json", "i", INT},
 };
 
 // "cin3" -> true, idx 3 for prefix "cin"
@@ -218,7 +223,7 @@ static void handleSet() {
 
   Batch batch;
   bool stockForm = server.hasArg("s_i");  // cn0..9 belongs to stock2.json in the stock form
-  bool timeChanged = false, alertsChanged = false, albumChanged = false, weatherChanged = false;
+  bool timeChanged = false, alertsChanged = false, albumChanged = false, weatherChanged = false, outageChanged = false;
   for (int i = 0; i < server.args(); i++) {
     String name = server.argName(i), v = server.arg(i);
     if (name == "plain") continue;
@@ -227,6 +232,7 @@ static void handleSet() {
       if (name == f.param) {
         setValue(batch.doc(f.file), f.key, v, f.kind);
         if (!strcmp(f.file, "album.json")) albumChanged = true;
+        if (!strcmp(f.file, "outage.json")) outageChanged = true;
         if (!strcmp(f.file, "city.json") || !strcmp(f.file, "unit.json") || !strcmp(f.file, "key.json")) weatherChanged = true;
         handled = true;
         break;
@@ -262,6 +268,7 @@ static void handleSet() {
   if (alertsChanged) alerts::reload();
   if (albumChanged) pictures::reload();
   if (weatherChanged) weather::reload();
+  if (outageChanged) outagescreen::reload();
   ok();
 }
 
@@ -351,6 +358,7 @@ static void handleUpdateData() {
   if (u.status == UPLOAD_FILE_START) {
     alerts::pause(true);  // background fetches next to an OTA write have crashed the device
     weather::pause(true);
+    outagescreen::pause(true);
     ui::message("Оновлення", "не вимикайте живлення");
     if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) Update.printError(Serial);
   } else if (u.status == UPLOAD_FILE_WRITE) {
@@ -361,6 +369,7 @@ static void handleUpdateData() {
     Update.abort();
     alerts::pause(false);
     weather::pause(false);
+    outagescreen::pause(false);
   }
 }
 
@@ -370,6 +379,7 @@ static void handleUpdateDone() {
   if (!success) {
     alerts::pause(false);
     weather::pause(false);
+    outagescreen::pause(false);
     server.send(500, "text/plain", String("FAIL: ") + Update.errorString());
     ui::applySettings();
     return;
@@ -434,6 +444,7 @@ void begin() {
   server.on("/alerts.json", HTTP_GET, [] { server.send(200, "application/json", alerts::statusJson()); });
   server.on("/gifcheck", HTTP_GET, [] { server.send(200, "application/json", pictures::checkJson(server.arg("file"), server.arg("n").toInt())); });
   server.on("/pic.json", HTTP_GET, [] { server.send(200, "application/json", pictures::statsJson()); });
+  server.on("/outage.json", HTTP_GET, [] { server.send(200, "application/json", outagescreen::statusJson()); });
   server.on("/weather.json", HTTP_GET, [] { server.send(200, "application/json", weather::statusJson()); });
   server.on("/state.json", HTTP_GET, [] { server.send(200, "application/json", ui::stateJson()); });
   server.on("/touch.json", HTTP_GET, [] { server.send(200, "application/json", ui::touchJson()); });

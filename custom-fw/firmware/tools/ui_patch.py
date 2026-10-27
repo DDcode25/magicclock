@@ -99,6 +99,103 @@ ALERTS_VIEW = """
     </section>
 """ % _home_options
 
+OUTAGE_REGIONS = [
+    ("y:Poltavaoblenergo", "Полтавська (Полтаваобленерго)"), ("y:Cherkasyoblenergo", "Черкаська"),
+    ("y:Chernihivoblenergo", "Чернігівська"), ("y:Kharkivoblenerho", "Харківська"),
+    ("y:Khmelnytskoblenerho", "Хмельницька"), ("y:Lvivoblenerho", "Львівська"),
+    ("y:Prykarpattiaoblenerho", "Івано-Франківська"), ("y:Rivneoblenergo", "Рівненська"),
+    ("y:Ternopiloblenerho", "Тернопільська"), ("y:Zakarpattiaoblenerho", "Закарпатська"),
+    ("y:Zaporizhzhiaoblenergo", "Запорізька"), ("y:Zhytomyroblenergo", "Житомирська"),
+    ("b:kyiv", "м. Київ (ДТЕК)"), ("b:kyiv-region", "Київська (ДТЕК)"),
+    ("b:dnipro", "Дніпропетровська (ДТЕК)"), ("b:odesa", "Одеська (ДТЕК)"),
+]
+_outage_regions = "".join('<option value="%s">%s</option>' % r for r in OUTAGE_REGIONS)
+_outage_groups = "".join('<option value="%d.%d">%d.%d</option>' % (q, s, q, s) for q in range(1, 7) for s in (1, 2))
+
+OUTAGE_VIEW = """
+    <section class="view hidden" id="view-outage">
+      <div class="panel hero">
+        <div>
+          <div class="eyebrow">Світло</div>
+          <h1>Графік відключень</h1>
+          <p class="lead">Графік погодинних відключень (ГПВ) для вашої черги: циферблат на 24 години — внутрішнє кільце 0–12, зовнішнє 12–24. Зелений — світло є, рожевий — відключення, жовтий — можливе. Довге натискання кнопки на пристрої — завтра.</p>
+        </div>
+        <div class="hero-side">
+          <div class="chip-row">
+            <div class="chip"><span>Черга</span><b id="outageGroupLabel">-</b></div>
+            <div class="chip"><span>Оновлення</span><b id="outageIntervalLabel">10 хв</b></div>
+          </div>
+          <div class="chip-row">
+            <button class="btn hero-open" type="button" data-open-app="Outage" data-app-key="outage" data-app-label="Світло">Відкрити на пристрої</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Дані</div>
+            <h2>Область і черга</h2>
+          </div>
+        </div>
+        <div class="stack">
+          <label class="pair"><span>Область (обленерго)</span><select class="select" id="outageSrc">%s</select></label>
+          <label class="pair"><span>Черга (підчерга)</span><select class="select" id="outageGroup">%s</select></label>
+          <label class="pair"><span>Інтервал оновлення (хв, мінімум 5)</span><input class="field" id="outageInterval" inputmode="numeric" placeholder="10"></label>
+          <div class="hint">Дані: відкриті копії сайтів обленерго —
+            <a href="https://github.com/yaroslav2901/OE_OUTAGE_DATA" target="_blank" rel="noopener noreferrer">yaroslav2901/OE_OUTAGE_DATA</a>
+            та <a href="https://github.com/Baskerville42/outage-data-ua" target="_blank" rel="noopener noreferrer">Baskerville42/outage-data-ua</a> (ДТЕК).
+            Можуть відставати від офіційного сайту і не містять аварійних відключень.</div>
+        </div>
+      </div>
+
+      <div class="panel actions">
+        <p>Збереження налаштувань графіка відключень.</p>
+        <div class="chip-row">
+          <button class="ghost" id="reloadOutage" type="button">Оновити</button>
+          <button class="btn" id="saveOutage" type="button">Зберегти</button>
+        </div>
+      </div>
+    </section>
+""" % (_outage_regions, _outage_groups)
+
+OUTAGE_JS = """
+    // ---- Magic Box FW: power outage schedule ----
+    state.outage={src:'y:Poltavaoblenergo',grp:'1.1',interval:10};
+    function syncOutageForm(){
+      byId('outageSrc').value=state.outage.src;
+      byId('outageGroup').value=state.outage.grp;
+      byId('outageInterval').value=state.outage.interval;
+      byId('outageGroupLabel').textContent=state.outage.grp;
+      byId('outageIntervalLabel').textContent=state.outage.interval+' хв';
+    }
+    function loadOutageConfig(force){
+      return once('outage',force,async()=>{
+        const o=await getJson('/.sys/outage.json');
+        state.outage.src=String(o.src??'y:Poltavaoblenergo');
+        state.outage.grp=String(o.grp??'1.1');
+        state.outage.interval=Math.max(5,toInt(o.i,10));
+        syncOutageForm();
+      });
+    }
+    async function saveOutage(){
+      state.outage.src=byId('outageSrc').value;
+      state.outage.grp=byId('outageGroup').value;
+      state.outage.interval=Math.max(5,toInt(byId('outageInterval').value,10));
+      setBusy(true);
+      try{
+        await send('/set?out_src='+encodeURIComponent(state.outage.src)+'&out_grp='+encodeURIComponent(state.outage.grp)+'&out_i='+state.outage.interval);
+        syncOutageForm();
+        toast('Налаштування відключень збережено.',1);
+      }catch(err){toast('Не вдалося зберегти: '+err.message,0)}
+      setBusy(false);
+    }
+    setTimeout(()=>{
+      byId('saveOutage').addEventListener('click',saveOutage);
+      byId('reloadOutage').addEventListener('click',()=>reloadView('outage',false,true));
+    },0);
+"""
+
 ALERTS_JS = """
     // ---- Magic Box FW: air alerts ----
     state.alerts={src:'klymenko',token:'',interval:30,home:'-1',cc:'#ffffff'};
@@ -149,19 +246,19 @@ ALERTS_JS = """
 PATCHES = [
     # tab button
     (r'(<button class="tab" data-view="monitor">Monitor</button>)',
-     r'\1\n        <button class="tab" data-view="alerts">Тривоги</button>'),
+     r'\1\n        <button class="tab" data-view="alerts">Тривоги</button>\n        <button class="tab" data-view="outage">Світло</button>'),
     # view section, before the settings view
-    (r'(\n\s*<section class="view hidden" id="view-settings">)', ALERTS_VIEW.replace('\\', r'\\') + r'\1'),
+    (r'(\n\s*<section class="view hidden" id="view-settings">)', (ALERTS_VIEW + OUTAGE_VIEW).replace('\\', r'\\') + r'\1'),
     # app list: toggle, boot app, open button
     (r"(\{key:'settings',label:'Settings',name:'Settings',index:'8'\})(\s*\])",
-     r"\1,\n      {key:'alerts',label:'Повітряні тривоги',name:'Alerts',index:'9'}\2"),
+     r"\1,\n      {key:'alerts',label:'Повітряні тривоги',name:'Alerts',index:'9'},\n      {key:'outage',label:'Світло',name:'Outage',index:'10'}\2"),
     (r"const APP_VIEWS=\['btc','cg','stock','weather','time','image','monitor'\];",
-     "const APP_VIEWS=['btc','cg','stock','weather','time','image','monitor','alerts'];"),
-    (r"(const VIEW_LABELS=\{[^}]*monitor:'Monitor',)", r"\1alerts:'Alerts',"),
+     "const APP_VIEWS=['btc','cg','stock','weather','time','image','monitor','alerts','outage'];"),
+    (r"(const VIEW_LABELS=\{[^}]*monitor:'Monitor',)", r"\1alerts:'Alerts',outage:'Світло',"),
     (r"(\n(\s*)if\(view==='monitor'\) return loadMonitorConfig\(force\);)",
-     r"\1\n\2if(view==='alerts') return loadAlertsConfig(force);"),
+     r"\1\n\2if(view==='alerts') return loadAlertsConfig(force);\n\2if(view==='outage') return loadOutageConfig(force);"),
     # JS helpers, before loadView
-    (r"(\n\s*function loadView\(view,force\)\{)", ALERTS_JS.replace('\\', r'\\') + r"\1"),
+    (r"(\n\s*function loadView\(view,force\)\{)", (ALERTS_JS + OUTAGE_JS).replace('\\', r'\\') + r"\1"),
     # firmware name in the tab title and the page header
     (r"<title>GeekMagic PRO</title>", "<title>Magic Box FW</title>"),
 ]

@@ -7,6 +7,7 @@
 #include "clock.h"
 #include "fonts.h"
 #include "net.h"
+#include "outage.h"
 #include "pictures.h"
 #include "store.h"
 #include "weather.h"
@@ -107,6 +108,7 @@ void next(int dir) {
 // Long press. Pictures: next file. Other apps get an inner mode in later stages.
 void enter() {
   if (current == APP_PICTURE) return pictures::next(tft);
+  if (current == APP_OUTAGE) return outagescreen::toggleDay(tft);
   dirty = true;
 }
 
@@ -177,7 +179,7 @@ static void drawSettings() {
 // Placeholder screen until each app is implemented: name, clock, network.
 static bool isPlaceholder() {
   return current != APP_ALERTS && current != APP_PICTURE && current != APP_SETTINGS && current != APP_CLOCK &&
-         current != APP_WEATHER;
+         current != APP_WEATHER && current != APP_OUTAGE;
 }
 
 static void drawApp() {
@@ -189,6 +191,7 @@ static void drawApp() {
   if (current == APP_SETTINGS) return drawSettings();
   if (current == APP_CLOCK) return clockapp::draw(tft);
   if (current == APP_WEATHER) return weather::draw(tft);
+  if (current == APP_OUTAGE) return outagescreen::draw(tft);
   tft.fillScreen(TFT_BLACK);
   tft.fillRect(0, 0, 240, 36, 0x18E3);
   tft.setTextDatum(MC_DATUM);
@@ -302,6 +305,7 @@ void loop() {
     else if (current == APP_ALERTS) alerts::tick(tft);
     else if (current == APP_CLOCK) clockapp::tick(tft);
     else if (current == APP_WEATHER) weather::tick(tft);
+    else if (current == APP_OUTAGE) outagescreen::tick(tft);
     static int lastBrightness = -1;
     int b = effectiveBrightness();
     if (b != lastBrightness) {
