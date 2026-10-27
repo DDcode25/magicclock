@@ -6,6 +6,7 @@
 #include "apps.h"
 #include "fonts.h"
 #include "net.h"
+#include "netreader.h"
 #include "outage_parse.h"
 #include "store.h"
 #include "widgets.h"
@@ -48,32 +49,6 @@ static String sourceUrl(const String &src) {
   if (src.startsWith("b:")) return "https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/data/" + name + ".json";
   return "https://raw.githubusercontent.com/yaroslav2901/OE_OUTAGE_DATA/main/data/" + name + ".json";
 }
-
-// Blocking reader for ArduinoJson: the TLS stream returns "nothing yet" between records, which
-// ArduinoJson took for the end of input (EmptyInput). Wait for data while the link is open.
-struct NetReader {
-  WiFiClient &c;
-  uint32_t timeoutMs;
-  int read() {
-    uint32_t t0 = millis();
-    while (!c.available()) {
-      if (!c.connected() || millis() - t0 > timeoutMs) return -1;
-      delay(2);
-    }
-    return c.read();
-  }
-  size_t readBytes(char *buf, size_t n) {
-    size_t got = 0;
-    while (got < n) {
-      int ch = read();
-      if (ch < 0) break;
-      buf[got++] = (char)ch;
-      int more = min((int)(n - got), c.available());
-      if (more > 0) got += c.read((uint8_t *)buf + got, more);
-    }
-    return got;
-  }
-};
 
 static bool fetch(const Config &c, Schedule &s, String &err) {
   WiFiClientSecure client;

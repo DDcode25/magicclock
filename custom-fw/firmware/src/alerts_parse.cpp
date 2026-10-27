@@ -6,6 +6,8 @@
 
 namespace alerts {
 
+const char *lastError = "";
+
 // Ukrainian names used by Klymenko and ubilling, in alerts.in.ua IoT order.
 static const char *const NAMES[REGIONS] = {
     "АР Крим",
@@ -116,15 +118,15 @@ static time_t parseIso(const char *s) {
   return (time_t)(sign == '+' ? t - off : t + off);
 }
 
-bool parseKlymenko(const char *json, size_t len, Snapshot &out) {
-  JsonDocument filter;
+void filterKlymenko(JsonDocument &filter) {
   filter["states"]["*"]["enabled"] = true;
   filter["states"]["*"]["enabled_at"] = true;
   filter["states"]["*"]["districts"]["*"]["enabled"] = true;
   filter["states"]["*"]["districts"]["*"]["enabled_at"] = true;
   filter["states"]["*"]["districts"]["*"]["alert_level"] = true;
-  JsonDocument doc;
-  if (deserializeJson(doc, json, len, DeserializationOption::Filter(filter))) return false;
+}
+
+bool fromKlymenko(JsonDocument &doc, Snapshot &out) {
   JsonObject states = doc["states"];
   if (states.isNull()) return false;
   clear(out);
@@ -154,11 +156,11 @@ bool parseKlymenko(const char *json, size_t len, Snapshot &out) {
   return true;
 }
 
-bool parseUbilling(const char *json, size_t len, Snapshot &out) {
-  JsonDocument filter;
+void filterUbilling(JsonDocument &filter) {
   filter["states"]["*"]["alertnow"] = true;
-  JsonDocument doc;
-  if (deserializeJson(doc, json, len, DeserializationOption::Filter(filter))) return false;
+}
+
+bool fromUbilling(JsonDocument &doc, Snapshot &out) {
   JsonObject states = doc["states"];
   if (states.isNull()) return false;
   clear(out, UNKNOWN, R_INHERIT);
@@ -169,16 +171,16 @@ bool parseUbilling(const char *json, size_t len, Snapshot &out) {
   return true;
 }
 
-bool parseNeptun(const char *json, size_t len, Snapshot &out) {
-  JsonDocument filter;
+void filterNeptun(JsonDocument &filter) {
   filter["oblasts"][0]["name"] = true;
   filter["oblasts"][0]["since"] = true;
   filter["raions"][0]["oblast"] = true;
   filter["raions"][0]["key"] = true;
   filter["raions"][0]["since"] = true;
   filter["raions"][0]["level"] = true;
-  JsonDocument doc;
-  if (deserializeJson(doc, json, len, DeserializationOption::Filter(filter))) return false;
+}
+
+bool fromNeptun(JsonDocument &doc, Snapshot &out) {
   JsonArray oblasts = doc["oblasts"], raions = doc["raions"];
   if (oblasts.isNull() || raions.isNull()) return false;
   clear(out);

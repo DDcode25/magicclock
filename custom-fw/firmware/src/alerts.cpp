@@ -6,6 +6,7 @@
 #include "fonts.h"
 #include "widgets.h"
 #include "net.h"
+#include "netreader.h"
 #include "store.h"
 #include "ukraine_map.h"
 
@@ -69,23 +70,28 @@ static bool fetch(const Config &c, Snapshot &out, String &err) {
   client.setInsecure();  // no CA bundle on the device; data is public and read-only
   HTTPClient http;
   http.setTimeout(10000);
+  http.useHTTP10(true);  // plain body: JSON is parsed straight from the stream
   // Some sources reject unknown clients; present a desktop Chrome.
   http.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36");
-  if (!http.begin(client, url)) return err = "немає з'єднання", false;
+  if (!http.begin(client, url)) return err = "немає з’єднання", false;
   int code = http.GET();
   if (code != 200) {
     err = "помилка HTTP " + String(code);
     http.end();
     return false;
   }
-  String body = http.getString();
+  bool ok;
+  if (c.src == "alertsinua") {  // tiny: a 29-byte JSON string
+    String body = http.getString();
+    ok = parseAlertsInUa(body.c_str(), body.length(), out);
+  } else {
+    NetReader reader{http.getStream(), 10000};
+    ok = c.src == "ubilling" ? parseWith(reader, filterUbilling, fromUbilling, out)
+         : c.src == "neptun" ? parseWith(reader, filterNeptun, fromNeptun, out)
+                             : parseWith(reader, filterKlymenko, fromKlymenko, out);
+  }
   http.end();
-
-  bool ok = c.src == "ubilling"     ? parseUbilling(body.c_str(), body.length(), out)
-            : c.src == "neptun"     ? parseNeptun(body.c_str(), body.length(), out)
-            : c.src == "alertsinua" ? parseAlertsInUa(body.c_str(), body.length(), out)
-                                    : parseKlymenko(body.c_str(), body.length(), out);
-  if (!ok) err = "погані дані";
+  if (!ok) err = String("погані дані: ") + lastError;
   return ok;
 }
 
