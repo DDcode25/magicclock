@@ -270,35 +270,37 @@ static String hhmm(time_t utc) {
   return b;
 }
 
-// Under the map, on one line: home city (coloured by its alert level) and the clock, in the
-// largest font that fits both (sized per city at build time). A fetch problem, if any, goes small
-// in the bottom-left corner.
+// Clock in the black area below Odesa and left of Crimea (free of map pixels for rows 145..187,
+// x < 148, checked against ukraine_map.h); home city on the bottom line in the largest font that
+// fits it, coloured by its alert colour; a fetch problem, if any, small on the right.
+static const int CLOCK_BOX_X1 = 148, CLOCK_BOX_Y0 = 145, CLOCK_Y = 166, CITY_Y = 215;
+
 static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, const char *err, int interval,
                        uint16_t clockColor) {
-  const int y = 199;
   tft.fillRect(0, MAP_Y + MAP_H, 240, 240 - MAP_Y - MAP_H, TFT_BLACK);
+  tft.fillRect(0, CLOCK_BOX_Y0, CLOCK_BOX_X1, MAP_Y + MAP_H - CLOCK_BOX_Y0, TFT_BLACK);
 
-  useCityFont(tft, home);
-  String clock = net::timeValid() ? hhmm(time(nullptr)) : String("--:--");
-  tft.setTextDatum(MR_DATUM);
+  useFont(tft, FONT_ALERT_CLOCK);
+  tft.setTextDatum(ML_DATUM);
   tft.setTextColor(clockColor, TFT_BLACK);
-  tft.drawString(clock, 237, y);
+  tft.drawString(net::timeValid() ? hhmm(time(nullptr)) : String("--:--"), 3, CLOCK_Y);
 
   if (home >= 0) {
     uint8_t sev = severity(s, home);
+    useCityFont(tft, home);
     tft.setTextDatum(ML_DATUM);
     tft.setTextColor(!upd || sev == SEV_UNKNOWN ? TFT_DARKGREY : sev == SEV_RED ? TFT_RED : sev == SEV_ORANGE ? TFT_ORANGE : TFT_GREEN, TFT_BLACK);
-    tft.drawString(MAP[home].label, 3, y);
+    tft.drawString(MAP[home].label, 3, CITY_Y);
   }
 
   bool stale = upd && time(nullptr) - upd > 3 * interval + 30;
   if (*err || stale) {
     useFont(tft, FONT_SMALL);
     String problem = *err ? String(err) : "дані з " + hhmm(upd);
-    if (tft.textWidth(problem) > 234) problem = *err ? "помилка" : "старі дані";
-    tft.setTextDatum(ML_DATUM);
+    if (tft.textWidth(problem) > 237 - CLOCK_BOX_X1) problem = *err ? "помилка" : "старі дані";
+    tft.setTextDatum(MR_DATUM);
     tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-    tft.drawString(problem, 3, 231);
+    tft.drawString(problem, 237, 176);
   }
 }
 
