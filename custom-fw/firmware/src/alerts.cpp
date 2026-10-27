@@ -161,9 +161,12 @@ static uint16_t raionColor(uint8_t l) {
   }
 }
 
-// Even-odd scanline fill of rings [firstRing, firstRing + rings), into the 8-bit map sprite.
+// Even-odd scanline fill of rings [firstRing, firstRing + rings) into the 8-bit map sprite.
+// Vertices are in 1/MAP_FIX px; a pixel is filled when its centre lies inside (standard
+// rasterisation rule), so shapes keep sub-pixel accuracy and neighbours share edges without gaps.
 static void fillRings(int firstRing, int rings, uint16_t color) {
-  int y0 = 255, y1 = 0;
+  const int F = MAP_FIX, H = MAP_FIX / 2;
+  int y0 = INT16_MAX, y1 = INT16_MIN;
   for (int k = 0; k < rings; k++) {
     const MapRing &ring = MAP_RINGS[firstRing + k];
     for (int i = 0; i < ring.count; i++) {
@@ -171,29 +174,34 @@ static void fillRings(int firstRing, int rings, uint16_t color) {
       y0 = min(y0, y), y1 = max(y1, y);
     }
   }
-  static int16_t xs[64];
-  for (int y = y0; y <= y1; y++) {
+  static int32_t xs[96];
+  for (int py = max(y0 / F, MAP_Y); py <= min(y1 / F, MAP_Y + MAP_H - 1); py++) {
+    int32_t yc = py * F + H;  // pixel centre
     int n = 0;
     for (int k = 0; k < rings; k++) {
       const MapRing &ring = MAP_RINGS[firstRing + k];
-      for (int i = 0; i < ring.count && n < 64; i++) {
-        const uint8_t *a = MAP_POINTS[ring.first + i], *b = MAP_POINTS[ring.first + (i + 1) % ring.count];
-        if ((a[1] <= y && y < b[1]) || (b[1] <= y && y < a[1]))
-          xs[n++] = a[0] + (int32_t)(y - a[1]) * (b[0] - a[0]) / (b[1] - a[1]);
+      for (int i = 0; i < ring.count && n < 96; i++) {
+        const int16_t *a = MAP_POINTS[ring.first + i], *b = MAP_POINTS[ring.first + (i + 1) % ring.count];
+        if ((a[1] <= yc && yc < b[1]) || (b[1] <= yc && yc < a[1]))
+          xs[n++] = a[0] + (int32_t)(yc - a[1]) * (b[0] - a[0]) / (b[1] - a[1]);
       }
     }
     std::sort(xs, xs + n);
-    for (int i = 0; i + 1 < n; i += 2) map8->drawFastHLine(xs[i], y - MAP_Y, xs[i + 1] - xs[i] + 1, color);
+    for (int i = 0; i + 1 < n; i += 2) {
+      int xa = (xs[i] - H + F - 1) / F, xb = (xs[i + 1] - H) / F;  // first/last pixel centre inside
+      if (xb >= xa) map8->drawFastHLine(xa, py - MAP_Y, xb - xa + 1, color);
+    }
   }
 }
 
+// Oblast borders only (raion borders are not drawn).
 static void outlineRegion(int r, uint16_t color) {
   const MapRegion &reg = MAP[r];
   for (int k = 0; k < reg.rings; k++) {
     const MapRing &ring = MAP_RINGS[reg.firstRing + k];
     for (int i = 0; i < ring.count; i++) {
-      const uint8_t *a = MAP_POINTS[ring.first + i], *b = MAP_POINTS[ring.first + (i + 1) % ring.count];
-      map8->drawLine(a[0], a[1] - MAP_Y, b[0], b[1] - MAP_Y, color);
+      const int16_t *a = MAP_POINTS[ring.first + i], *b = MAP_POINTS[ring.first + (i + 1) % ring.count];
+      map8->drawLine(a[0] / MAP_FIX, a[1] / MAP_FIX - MAP_Y, b[0] / MAP_FIX, b[1] / MAP_FIX - MAP_Y, color);
     }
   }
 }
