@@ -8,9 +8,10 @@
 // (alert map). All three hold digits and ":" only.
 // FONT_TEMP: bold 56 px digits and "-" (weather temperature); FONT_DIAL: bold 16 px digits (outage dial);
 // FONT_NUM / FONT_NUM_BIG: bold 24 / 28 px digits, "+", "-", "." (outage centre).
+// FONT_ALARM: only "ТРИВОГА", bold 61 px narrowed to 72 % so the word fills the screen width (alarm blink).
 enum UiFont {
   FONT_BUILTIN, FONT_SMALL, FONT_LARGE, FONT_CLOCK_BIG, FONT_CLOCK_SEC, FONT_ALERT_CLOCK, FONT_TEMP, FONT_DIAL,
-  FONT_NUM, FONT_NUM_BIG
+  FONT_NUM, FONT_NUM_BIG, FONT_ALARM
 };
 
 void useFont(TFT_eSPI &tft, UiFont font);

@@ -462,9 +462,14 @@ static void drawAlarmFrame(TFT_eSPI &tft, int home) {
   tft.fillScreen(bg);
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(TFT_BLACK, bg);
-  useFont(tft, FONT_LARGE);
-  tft.drawString("ТРИВОГА", 120, 105);  // full vs partial differs by colour only
-  if (home >= 0) tft.drawString(MAP[home].label, 120, 140);
+  // As large as fits: the word fills the width (narrowed font), the city uses its own largest font.
+  useFont(tft, FONT_ALARM);
+  tft.drawString("ТРИВОГА", 120, 92);  // full vs partial differs by colour only
+  if (home >= 0) {
+    useCityFont(tft, home);
+    tft.setTextDatum(MC_DATUM);
+    tft.drawString(MAP[home].label, 120, 165);
+  }
 }
 
 void draw(TFT_eSPI &tft) {

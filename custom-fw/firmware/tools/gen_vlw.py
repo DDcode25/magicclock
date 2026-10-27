@@ -23,13 +23,13 @@ DIGITS = list("0123456789:- ")
 NUMBERS = list("0123456789+-.: ")  # signed decimals, e.g. "+18.5"
 
 
-def render(ttf, size, chars):
-    """VLW bytes for `chars` at `size` px."""
+def render(ttf, size, chars, xscale=1.0):
+    """VLW bytes for `chars` at `size` px; xscale < 1 narrows the glyphs (taller text in a given width)."""
     font = ImageFont.truetype(ttf, size)
     ascent, descent = font.getmetrics()
     metrics, bitmaps = [], []
     for ch in sorted(set(chars)):
-        adv = round(font.getlength(ch))
+        adv = round(font.getlength(ch) * xscale)
         x0, y0, x1, y1 = font.getbbox(ch, anchor="ls")
         w, h = max(0, x1 - x0), max(0, y1 - y0)
         if ch == " " or w == 0 or h == 0:
@@ -38,6 +38,10 @@ def render(ttf, size, chars):
             continue
         img = Image.new("L", (w, h), 0)
         ImageDraw.Draw(img).text((-x0, -y0), ch, font=font, fill=255, anchor="ls")
+        if xscale != 1.0:
+            w = max(1, round(w * xscale))
+            img = img.resize((w, h), Image.LANCZOS)
+            x0 = round(x0 * xscale)
         metrics.append((ord(ch), h, w, adv, -y0, x0))
         bitmaps.append(img.tobytes())
 
@@ -47,10 +51,10 @@ def render(ttf, size, chars):
     return data + b"".join(bitmaps)
 
 
-def text_width(ttf, size, text):
+def text_width(ttf, size, text, xscale=1.0):
     """Width as TFT_eSPI lays it out: sum of the rounded per-glyph advances."""
     font = ImageFont.truetype(ttf, size)
-    return sum(round(font.getlength(c)) for c in text)
+    return sum(round(font.getlength(c) * xscale) for c in text)
 
 
 def c_array(name, data):
