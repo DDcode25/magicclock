@@ -14,7 +14,13 @@ namespace ui {
 static TFT_eSPI tft;
 static int current = 0;
 static bool dirty = true;
-static int touchThreshold = 60;
+// Measured on the device: idle ~101, finger 79..93 (a touch lowers the reading by only 10-20%).
+static const int TOUCH_PRESS_PCT = 92, TOUCH_RELEASE_PCT = 95;
+static int touchThreshold = 93, touchBase = 0;
+static float touchBaseF = 0;
+static uint32_t touchReadyAt = 0;  // ignore the sensor right after calibration
+static volatile int touchRaw = 0;
+static uint32_t taps = 0, doubleTaps = 0, longPresses = 0;
 
 static const uint32_t TOUCH_SAMPLE_MS = 20;
 static const uint32_t LONG_PRESS_MS = 800;
@@ -51,7 +57,10 @@ static void calibrateTouch() {
   }
   int base = sum / 16;
   if (base < 30) base = 100;  // someone was touching during boot; use the typical idle value
-  touchThreshold = base * 2 / 3;
+  touchBase = base;
+  touchBaseF = base;
+  touchThreshold = base * TOUCH_PRESS_PCT / 100;
+  touchReadyAt = millis() + 1000;
   Serial.printf("Touch: base %d, threshold %d\n", base, touchThreshold);
 }
 
@@ -102,6 +111,12 @@ bool open(const String &name) {
     }
   }
   return false;
+}
+
+String touchJson() {
+  return String("{\"raw\":") + touchRaw + ",\"base\":" + touchBase + ",\"threshold\":" + touchThreshold +
+         ",\"taps\":" + taps + ",\"double\":" + doubleTaps +
+         ",\"long\":" + longPresses + "}";
 }
 
 void message(const String &title, const String &text) {
@@ -187,9 +202,19 @@ static void handleTouch() {
     tapPending = false;
     next(1);
   }
-  if (millis() - lastSample < TOUCH_SAMPLE_MS) return;
+  if (millis() - lastSample < TOUCH_SAMPLE_MS || millis() < touchReadyAt) return;
   lastSample = millis();
-  bool down = touchRead(PIN_TOUCH) < touchThreshold;
+  // Average of the last 3 readings; press below 92 % of idle, release above 95 % (hysteresis).
+  static uint16_t hist[3] = {0, 0, 0};
+  static uint8_t hi = 0;
+  hist[hi++ % 3] = touchRead(PIN_TOUCH);
+  touchRaw = hist[2] ? (hist[0] + hist[1] + hist[2]) / 3 : hist[(hi - 1) % 3];
+  bool down = pressed ? touchRaw < touchBase * TOUCH_RELEASE_PCT / 100 : touchRaw < touchThreshold;
+  if (!pressed && !down) {  // idle: let the baseline follow slow drift
+    touchBaseF += (touchRaw - touchBaseF) / 64;
+    touchBase = (int)(touchBaseF + 0.5f);
+    touchThreshold = touchBase * TOUCH_PRESS_PCT / 100;
+  }
   if (down && !pressed) {
     pressed = true;
     longFired = false;
@@ -197,14 +222,17 @@ static void handleTouch() {
   } else if (down && pressed && !longFired && millis() - pressStart > LONG_PRESS_MS) {
     longFired = true;
     tapPending = false;
+    longPresses++;
     enter();
   } else if (!down && pressed) {
     pressed = false;
     if (longFired || millis() - pressStart <= 40) return;
     if (tapPending) {
       tapPending = false;
+      doubleTaps++;
       next(-1);
     } else {
+      taps++;
       tapPending = true;
       tapAt = millis();
     }
