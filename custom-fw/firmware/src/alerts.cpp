@@ -44,6 +44,7 @@ static TFT_eSprite *map8 = nullptr;
 static uint32_t drawnVersion = UINT32_MAX;
 
 static const int MAP_Y = 2, MAP_H = 160;  // matches BOX_Y/BOX_H in tools/gen_ukraine_map.py
+static const int SCREEN_Y = MAP_Y + 2;    // the map is shown 2 px lower than generated
 
 static void loadConfig() {
   Config c;
@@ -267,7 +268,7 @@ static void drawMap(TFT_eSPI &tft, const Snapshot &s, int home) {
   for (int r : {9, 18}) fillRings(MAP[r].firstRing, MAP[r].rings, levelColor(s.level[r]));
   for (int r = 0; r < REGIONS; r++) outlineRegion(r, TFT_BLACK);
   if (home >= 0) outlineRegion(home, TFT_WHITE);
-  map8->pushSprite(0, MAP_Y);
+  map8->pushSprite(0, SCREEN_Y);
 }
 
 
@@ -279,15 +280,15 @@ static String hhmm(time_t utc) {
   return b;
 }
 
-// Clock in the black area below Odesa and left of Crimea (free of map pixels for rows 145..187,
+// Clock in the black area below Odesa and left of Crimea (free of map pixels for screen rows 147..189,
 // x < 148, checked against ukraine_map.h); home city on the bottom line in the largest font that
 // fits it, coloured by its alert colour; a fetch problem, if any, small on the right.
-static const int CLOCK_BOX_X1 = 148, CLOCK_BOX_Y0 = 145, CLOCK_Y = 166, CITY_Y = 215;
+static const int CLOCK_BOX_X1 = 148, CLOCK_BOX_Y0 = 147, CLOCK_Y = 168, CITY_Y = 215;
 
 static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, const char *err, int interval,
                        uint16_t clockColor) {
-  tft.fillRect(0, MAP_Y + MAP_H, 240, 240 - MAP_Y - MAP_H, TFT_BLACK);
-  tft.fillRect(0, CLOCK_BOX_Y0, CLOCK_BOX_X1, MAP_Y + MAP_H - CLOCK_BOX_Y0, TFT_BLACK);
+  tft.fillRect(0, SCREEN_Y + MAP_H, 240, 240 - SCREEN_Y - MAP_H, TFT_BLACK);
+  tft.fillRect(0, CLOCK_BOX_Y0, CLOCK_BOX_X1, SCREEN_Y + MAP_H - CLOCK_BOX_Y0, TFT_BLACK);
 
   useFont(tft, FONT_ALERT_CLOCK);
   tft.setTextDatum(ML_DATUM);
