@@ -50,7 +50,9 @@ inline bool parse(const char *json, size_t len, const char *group, Schedule &out
 // ---- Poltavaoblenergo official page (poe.pl.ua/customs/dynamicgpv-info.php) -------------------
 // HTML: per day a block "... <b>27 жовтня 2026 року</b> ..." with a table; rows carry the queue
 // ("1 черга") and subqueue ("1"/"2") cells, then 48 half-hour cells class="light_1|2|3"
-// (1 = power on, 2 = off, 3 = possible). Parsed as a character stream, nothing buffered.
+// (1 = power on, 2 = off, 3 = possible). Since 27.10.2026 the row starts with <td class="gpv-q">1.1
+// and the cells are class="gpv-c gpv-s1|2|3 ..."; both layouts are accepted. Parsed as a character
+// stream, nothing buffered.
 struct PoeDay {
   int year = 0, month = 0, day = 0;  // date of the block
   bool found = false;                // the requested group had a full row
@@ -65,7 +67,7 @@ class PoeParser {
   const PoeDay &day(int i) const { return found[i]; }
 
  private:
-  enum Want { NONE, DATE, QUEUE, SUBQUEUE };
+  enum Want { NONE, DATE, QUEUE, SUBQUEUE, QNAME };
   void onTag();
   void onText();
   int wantQueue, wantSub;

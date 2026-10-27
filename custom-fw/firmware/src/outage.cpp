@@ -231,8 +231,9 @@ static String hoursText(int slots) { return slots % 2 ? String(slots / 2) + ".5"
 // Centre, one under another: queue (28 px), hours without power (possible outages counted in, as on
 // the oblenergo cards) and hours with power (24 px). Drawn over the spiral: the wide lines may touch
 // the band (accepted for a thicker band); the dark anti-aliasing edge keeps them readable.
-// "завтра" goes to the free top-left corner when showing tomorrow; a fetch error replaces the hours.
-static void drawCenter(TFT_eSPI &tft, const Config &c, const uint8_t *slots, const char *err) {
+// "завтра" goes to the free top-left corner when showing tomorrow. A failed refresh keeps the last
+// schedule on screen (the error is in /outage.json).
+static void drawCenter(TFT_eSPI &tft, const Config &c, const uint8_t *slots) {
   tft.fillCircle(CX, CY, R0 - 3, TFT_BLACK);
   tft.fillRect(0, 0, 70, 22, TFT_BLACK);
   tft.setTextDatum(TL_DATUM);
@@ -245,12 +246,6 @@ static void drawCenter(TFT_eSPI &tft, const Config &c, const uint8_t *slots, con
   useFont(tft, FONT_NUM_BIG);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.drawString(c.group, CX, 97);
-  if (*err) {
-    useFont(tft, FONT_SMALL);
-    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-    tft.drawString(String(err).substring(0, 14), CX, 128);
-    return;
-  }
   int on = 0, off = 0;
   for (int i = 0; i < outage::SLOTS; i++) on += slots[i] == outage::ON, off += slots[i] == outage::OFF || slots[i] == outage::MAYBE;
   useFont(tft, FONT_NUM);
@@ -269,10 +264,20 @@ static void render(TFT_eSPI &tft, bool clear) {
   c = cfg, s = sched, ok = valid, drawnVersion = version;
   memcpy(err, error, sizeof err);
   xSemaphoreGive(lock);
+  if (ok && net::timeValid()) {  // after midnight the old "today" is gone until the next fetch
+    time_t now = time(nullptr);
+    struct tm t;
+    localtime_r(&now, &t);
+    if (localMidnight(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday) > s.today + 43200) {
+      ok = false;
+      if (!*err) strlcpy(err, "графік застарів", sizeof err);
+    }
+  }
   if (clear) tft.fillScreen(TFT_BLACK);
   if (!ok) {
     tft.fillScreen(TFT_BLACK);
     useFont(tft, FONT_LARGE);
+    if (tft.textWidth(*err ? err : "завантаження…") > 230) useFont(tft, FONT_SMALL);
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(*err ? TFT_YELLOW : TFT_DARKGREY, TFT_BLACK);
     tft.drawString(*err ? err : "завантаження…", CX, CY);
@@ -284,7 +289,7 @@ static void render(TFT_eSPI &tft, bool clear) {
   else markA = -1;
   drawRings(tft, s.day[showDay]);
   drawNow(tft);
-  drawCenter(tft, c, s.day[showDay], err);
+  drawCenter(tft, c, s.day[showDay]);
   wifiMarkRedraw(tft);
 }
 

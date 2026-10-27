@@ -92,13 +92,29 @@ void PoeParser::feed(char c) {
   if (want != NONE && textLen < (int)sizeof text - 1) text[textLen++] = c;
 }
 
-// Tags: <b> may hold the date; queue/subqueue cells; light_N cells; </tr> ends a row.
+// Slot state from a cell's class: old layout light_1|2|3, new layout gpv-s1|2|3 (on, off, possible).
+static int cellState(const char *tag) {
+  if (strncmp(tag, "td", 2)) return -1;
+  const char *l = strstr(tag, "light_");
+  int n = l ? 6 : 0;
+  if (!l) {
+    for (l = strstr(tag, "gpv-s"); l && !(l[5] >= '1' && l[5] <= '3'); l = strstr(l + 5, "gpv-s")) {}
+    n = 5;
+  }
+  if (!l) return -1;
+  return l[n] == '1' ? ON : l[n] == '2' ? OFF : l[n] == '3' ? MAYBE : UNKNOWN;
+}
+
+// Tags: <b> may hold the date; queue/subqueue cells (old layout) or one "1.1" cell (new layout);
+// slot cells; </tr> ends a row.
 void PoeParser::onTag() {
+  int st;
   if (!strcmp(tag, "b")) want = DATE, textLen = 0;
+  else if (!strncmp(tag, "td", 2) && strstr(tag, "\"gpv-q\"")) want = QNAME, textLen = 0;
   else if (strstr(tag, "turnoff-scheduleui-table-subqueue")) want = SUBQUEUE, textLen = 0;
   else if (strstr(tag, "turnoff-scheduleui-table-queue")) want = QUEUE, textLen = 0;
-  else if (const char *l = strstr(tag, "light_")) {
-    if (cells < SLOTS) row[cells++] = l[6] == '1' ? ON : l[6] == '2' ? OFF : l[6] == '3' ? MAYBE : UNKNOWN;
+  else if ((st = cellState(tag)) >= 0) {
+    if (cells < SLOTS) row[cells++] = st;
   } else if (!strncmp(tag, "tr", 2)) {
     cells = 0;
   } else if (!strcmp(tag, "/tr")) {
@@ -126,6 +142,10 @@ void PoeParser::onText() {
   } else if (want == QUEUE) {  // "1 черга": a new queue, the first row is subqueue 1
     queue = atoi(text);
     sub = 1;
+  } else if (want == QNAME) {  // "1.1"
+    queue = atoi(text);
+    const char *dot = strchr(text, '.');
+    sub = dot ? atoi(dot + 1) : 1;
   } else if (want == SUBQUEUE) {
     sub = atoi(text);
   }
