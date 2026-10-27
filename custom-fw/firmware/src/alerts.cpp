@@ -347,6 +347,16 @@ static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, c
   }
 }
 
+// Wi-Fi gone for OFFLINE_MS: the map turns grey (a short drop during reconnect is ignored).
+static const uint32_t OFFLINE_MS = 15000;
+static bool drawnOffline = false;
+
+static bool isOffline() {
+  static uint32_t lastOnline = 0;
+  if (net::connected()) lastOnline = millis();
+  return millis() - lastOnline > OFFLINE_MS;
+}
+
 static void render(TFT_eSPI &tft, bool full) {
   Snapshot s;
   uint32_t v;
@@ -358,8 +368,13 @@ static void render(TFT_eSPI &tft, bool full) {
   s = snap, v = version, upd = updatedAt, home = cfg.home, interval = cfg.interval, clockColor = cfg.clockColor;
   memcpy(err, error, sizeof err);
   xSemaphoreGive(lock);
-  if (full || v != drawnVersion) {
-    drawnVersion = v;
+  bool offline = isOffline();
+  if (offline) {  // the last data may be outdated: no alert colours at all
+    for (int r = 0; r < REGIONS; r++) s.level[r] = UNKNOWN;
+    strlcpy(err, "без мережі", sizeof err);
+  }
+  if (full || v != drawnVersion || offline != drawnOffline) {
+    drawnVersion = v, drawnOffline = offline;
     drawMap(tft, s, home);
   }
   drawFooter(tft, s, home, upd, err, interval, clockColor, full);
@@ -459,7 +474,7 @@ void loop(TFT_eSPI &tft) {
 void tick(TFT_eSPI &tft) {
   if (blinking) return;  // loop() owns the screen while the alarm blinks
   static uint32_t lastFooter = 0;
-  bool mapRedraw = drawnVersion != version;
+  bool mapRedraw = drawnVersion != version || isOffline() != drawnOffline;
   if (mapRedraw || millis() - lastFooter > 1000) {  // cheap: the footer repaints only what changed
     lastFooter = millis();
     render(tft, false);
