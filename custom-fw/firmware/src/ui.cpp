@@ -12,6 +12,11 @@
 namespace ui {
 
 static TFT_eSPI tft;
+static TaskHandle_t uiTask = nullptr;  // set when the UI loop runs; draws only happen there
+static portMUX_TYPE msgLock = portMUX_INITIALIZER_UNLOCKED;
+static volatile bool msgPending = false, msgShown = false;
+static char msgTitle[48], msgText[64];
+
 static int current = 0;
 static bool dirty = true;
 // Measured on the device: idle ~101, finger 79..93 (a touch lowers the reading by only 10-20%).
@@ -85,12 +90,14 @@ void begin() {
 }
 
 void applySettings() {
+  msgShown = false;
   if (!settings.appEnabled[current]) current = firstEnabled(current, 1);
   setBacklight(effectiveBrightness());
   dirty = true;
 }
 
 void next(int dir) {
+  msgShown = false;
   current = firstEnabled(current + (dir >= 0 ? 1 : -1), dir >= 0 ? 1 : -1);
   dirty = true;
 }
@@ -105,6 +112,7 @@ bool open(const String &name) {
   for (int i = 0; i < APP_COUNT; i++) {
     if (name.equalsIgnoreCase(APP_ITEMS[i].name) || name.equalsIgnoreCase(APP_ITEMS[i].key)) {
       if (!settings.appEnabled[i]) return false;
+      msgShown = false;
       current = i;
       dirty = true;
       return true;
@@ -113,13 +121,17 @@ bool open(const String &name) {
   return false;
 }
 
+String stateJson() {
+  return String("{\"app\":\"") + APP_ITEMS[current].key + "\",\"message\":" + (msgShown ? 1 : 0) + "}";
+}
+
 String touchJson() {
   return String("{\"raw\":") + touchRaw + ",\"base\":" + touchBase + ",\"threshold\":" + touchThreshold +
          ",\"taps\":" + taps + ",\"double\":" + doubleTaps +
          ",\"long\":" + longPresses + "}";
 }
 
-void message(const String &title, const String &text) {
+static void drawMessage(const char *title, const char *text) {
   tft.fillScreen(TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(TFT_ORANGE, TFT_BLACK);
@@ -128,6 +140,15 @@ void message(const String &title, const String &text) {
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   useFont(tft, FONT_SMALL);
   tft.drawString(text, 120, 140);
+}
+
+void message(const String &title, const String &text) {
+  if (!uiTask) return drawMessage(title.c_str(), text.c_str());  // boot, before the UI loop
+  portENTER_CRITICAL(&msgLock);
+  strlcpy(msgTitle, title.c_str(), sizeof msgTitle);
+  strlcpy(msgText, text.c_str(), sizeof msgText);
+  msgPending = true;
+  portEXIT_CRITICAL(&msgLock);
 }
 
 // Device info, like the stock Settings screen: firmware, Wi-Fi mode, SSID, IP.
@@ -240,6 +261,18 @@ static void handleTouch() {
 }
 
 void loop() {
+  uiTask = xTaskGetCurrentTaskHandle();
+  if (msgPending) {
+    char title[sizeof msgTitle], text[sizeof msgText];
+    portENTER_CRITICAL(&msgLock);
+    memcpy(title, msgTitle, sizeof title);
+    memcpy(text, msgText, sizeof text);
+    msgPending = false;
+    portEXIT_CRITICAL(&msgLock);
+    drawMessage(title, text);
+    msgShown = true;
+  }
+  if (msgShown) return;  // keep the notice up (e.g. during OTA)
   handleTouch();
 
   // A new alert in the home region brings the alert map up (it blinks there).

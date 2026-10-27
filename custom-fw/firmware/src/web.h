@@ -10,7 +10,7 @@
 //   anything else           static file from LittleFS (/.sys/*.json, /image/...)
 namespace web {
 
-void begin();
-void loop();
+void begin();  // starts the server task (core 0)
+void loop();   // no-op, kept for symmetry
 
 }  // namespace web

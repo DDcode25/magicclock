@@ -26,6 +26,9 @@ static TFT_eSPI *screen = nullptr;
 
 // Playback diagnostics (/pic.json).
 static uint32_t frames = 0, maxDecodeMs = 0, maxLateMs = 0, lateAt = 0, slowFrames = 0;
+static uint32_t errors = 0, reopens = 0;
+static int lastError = 0, lastErrorFrame = 0;
+static uint32_t frameInFile = 0;
 
 static bool isPicture(const String &name) {
   String n = name;
@@ -39,12 +42,21 @@ static bool isGif(const String &path) {
   return n.endsWith(".gif");
 }
 
+static uint32_t listTriedAt = 0;
+static char currentName[64] = "";  // for statsJson(), which runs in the web task
+
+// The web server (other core) may list or stream /image at the same moment; an empty listing
+// is retried here and, if it stays empty, again every 5 s from loop().
 static void loadList() {
-  files.clear();
-  File d = LittleFS.open(DIR);
-  if (d && d.isDirectory())
-    for (File f = d.openNextFile(); f; f = d.openNextFile())
-      if (!f.isDirectory() && isPicture(f.name())) files.push_back(String(DIR) + "/" + f.name());
+  listTriedAt = millis();
+  for (int attempt = 0; attempt < 3 && (attempt == 0 || files.empty()); attempt++) {
+    if (attempt) delay(50);
+    files.clear();
+    File d = LittleFS.open(DIR);
+    if (d && d.isDirectory())
+      for (File f = d.openNextFile(); f; f = d.openNextFile())
+        if (!f.isDirectory() && isPicture(f.name())) files.push_back(String(DIR) + "/" + f.name());
+  }
   std::sort(files.begin(), files.end(), [](const String &a, const String &b) { return a < b; });
 
   JsonDocument album = store::load(ALBUM);
@@ -73,13 +85,24 @@ static void gifClose(void *handle) {
   delete f;
 }
 
+static uint32_t shortReads = 0;  // diagnostics
+
+// AnimatedGIF treats any short read as end of file (GIF_EARLY_EOF). LittleFS reads come back
+// short now and then while the alert fetch runs (TLS) on the other core, so keep reading.
 static int32_t gifRead(GIFFILE *pFile, uint8_t *buf, int32_t len) {
   File *f = static_cast<File *>(pFile->fHandle);
-  int32_t n = min(len, pFile->iSize - pFile->iPos);
-  if (n <= 0) return 0;
-  n = f->read(buf, n);
-  pFile->iPos = f->position();
-  return n;
+  int32_t want = min(len, pFile->iSize - pFile->iPos), got = 0;
+  for (int tries = 0; got < want && tries < 20; tries++) {
+    if (tries) {
+      shortReads++;
+      delay(1);
+      f->seek(pFile->iPos + got);
+    }
+    int32_t n = f->read(buf + got, want - got);
+    if (n > 0) got += n;
+  }
+  pFile->iPos += got;
+  return got;
 }
 
 static int32_t gifSeek(GIFFILE *pFile, int32_t pos) {
@@ -144,6 +167,8 @@ static void message(TFT_eSPI &tft, const char *text) {
 static void open(TFT_eSPI &tft, int index) {
   closeGif();
   current = index;
+  frameInFile = 0;
+  strlcpy(currentName, files[index].c_str(), sizeof currentName);
   loopsDone = 0;
   shownAt = millis();
   const String &path = files[index];
@@ -193,7 +218,7 @@ void next(TFT_eSPI &tft) {
 }
 
 void loop(TFT_eSPI &tft) {
-  if (listDirty) {
+  if (listDirty || (files.empty() && millis() - listTriedAt > 5000)) {
     show(tft);
     return;
   }
@@ -208,16 +233,25 @@ void loop(TFT_eSPI &tft) {
     tft.endWrite();
     uint32_t dt = millis() - t0;
     frames++;
+    frameInFile++;
     if (dt > maxDecodeMs) maxDecodeMs = dt;
     if (dt > 200) slowFrames++;
     nextFrameAt = millis() + max(delayMs, 20);
     if (r == 0) {  // last frame of a loop
       loopsDone++;
+      frameInFile = 0;
       if (autoplay && files.size() > 1 && loopsDone >= gifLoops) return next(tft);
       gif->reset();
     } else if (r < 0) {
+      // Decoder error: never leave the picture frozen. Reopen the file (or go on in a slideshow).
+      errors++;
+      lastError = gif->getLastError();
+      lastErrorFrame = frameInFile;
       if (autoplay && files.size() > 1) return next(tft);
-      closeGif();
+      reopens++;
+      int keep = loopsDone;
+      open(tft, current);
+      loopsDone = keep;
     }
   } else if (autoplay && files.size() > 1 && millis() - shownAt >= (uint32_t)jpgSeconds * 1000) {
     next(tft);
@@ -267,10 +301,12 @@ String checkJson(const String &path, int count) {
 }
 
 String statsJson() {
-  String s = String("{\"file\":\"") + (current >= 0 && current < (int)files.size() ? files[current] : String("")) +
-             "\",\"frames\":" + frames + ",\"maxDecodeMs\":" + maxDecodeMs + ",\"slowFrames\":" + slowFrames +
+  String s = String("{\"file\":\"") + currentName + "\",\"files\":" + files.size() +
+             ",\"gif\":" + (gif ? 1 : 0) + ",\"listDirty\":" + listDirty +
+             ",\"frames\":" + frames + ",\"maxDecodeMs\":" + maxDecodeMs + ",\"slowFrames\":" + slowFrames +
              ",\"maxLateMs\":" + maxLateMs + ",\"lateAt\":" + lateAt + ",\"now\":" + millis() +
-             ",\"heap\":" + ESP.getFreeHeap() + ",\"maxBlock\":" + ESP.getMaxAllocHeap() + "}";
+             ",\"errors\":" + errors + ",\"lastError\":" + lastError + ",\"lastErrorFrame\":" + lastErrorFrame +
+             ",\"reopens\":" + reopens + ",\"shortReads\":" + shortReads + ",\"heap\":" + ESP.getFreeHeap() + ",\"maxBlock\":" + ESP.getMaxAllocHeap() + "}";
   frames = maxDecodeMs = maxLateMs = slowFrames = 0;
   return s;
 }

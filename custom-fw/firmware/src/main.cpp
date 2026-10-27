@@ -24,7 +24,6 @@ void setup() {
 }
 
 void loop() {
-  web::loop();
   net::loop();
   ui::loop();
   delay(1);

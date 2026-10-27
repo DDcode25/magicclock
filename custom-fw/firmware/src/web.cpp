@@ -390,6 +390,8 @@ static void handleFlash() {
 
 // ---- setup --------------------------------------------------------------------------
 
+static void task(void *);
+
 void begin() {
   server.on("/", HTTP_GET, [] {
     server.sendHeader("Content-Encoding", "gzip");
@@ -425,6 +427,7 @@ void begin() {
   server.on("/alerts.json", HTTP_GET, [] { server.send(200, "application/json", alerts::statusJson()); });
   server.on("/gifcheck", HTTP_GET, [] { server.send(200, "application/json", pictures::checkJson(server.arg("file"), server.arg("n").toInt())); });
   server.on("/pic.json", HTTP_GET, [] { server.send(200, "application/json", pictures::statsJson()); });
+  server.on("/state.json", HTTP_GET, [] { server.send(200, "application/json", ui::stateJson()); });
   server.on("/touch.json", HTTP_GET, [] { server.send(200, "application/json", ui::touchJson()); });
   server.on("/alerts/test", HTTP_GET, [] {
     alerts::testAlarm(server.arg("level").toInt() == 1 ? alerts::PARTIAL : alerts::FULL);
@@ -432,8 +435,19 @@ void begin() {
   });
   server.onNotFound(handleStatic);
   server.begin();
+  xTaskCreatePinnedToCore(task, "web", 12288, nullptr, 1, nullptr, 0);
 }
 
-void loop() { server.handleClient(); }
+// The server runs in its own task on core 0, so serving files (e.g. the web UI loading every
+// GIF as a thumbnail) never stalls the screen loop on core 1. Handlers must not draw: they use
+// ui::message() (queued) and flags that the UI loop picks up.
+static void task(void *) {
+  for (;;) {
+    server.handleClient();
+    vTaskDelay(1);
+  }
+}
+
+void loop() {}
 
 }  // namespace web
