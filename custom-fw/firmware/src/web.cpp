@@ -431,6 +431,11 @@ void begin() {
     server.send(200, "text/plain", "saved");
     restartSoon("Wi-Fi збережено");
   });
+  server.on("/wifiknown.json", HTTP_GET, [] { server.send(200, "application/json", net::knownJson()); });
+  server.on("/wififorget", HTTP_GET, [] {
+    net::forgetWifi(server.arg("s"));
+    ok();
+  });
   server.on("/filelist", HTTP_GET, handleFileList);
   server.on(
       "/doUpload", HTTP_POST,

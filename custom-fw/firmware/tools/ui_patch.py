@@ -278,6 +278,21 @@ PATCHES = [
     (r"(\n(\s*)state\.time\.ntp=byId\('timeNtp'\)\.value\.trim\(\);)", r"\1\n\2state.time.sm=byId('timeSecMode').value;"),
     (r"(\n(\s*)await send\('/set\?ntp='\+encodeURIComponent\(state\.time\.ntp\)\);)",
      r"\1\n\2await send('/set?sec_mode='+encodeURIComponent(state.time.sm||'0'));"),
+    # Wi-Fi: the remembered networks (the device connects to the strongest one in range)
+    (r'(<p class="wifi-note">[^<]*</p>)',
+     r'\1\n          <div class="hint">Пристрій пам’ятає 5 останніх мереж і сам підключається до найсильнішої з них — '
+     r'зручно, якщо переносите його. Без мережі він відкриває точку доступу SmallTV-PRO і щохвилини шукає знайомі мережі.</div>'
+     r'\n          <div class="stack" id="wifiKnown"></div>'),
+    (r"(\n(\s*)async function loadWifiList\(silent,force\)\{)",
+     r"\n\2async function loadWifiKnown(){"
+     r"\n\2  const box=byId('wifiKnown');if(!box) return;"
+     r"\n\2  const d=await getJson('/wifiknown.json');const list=Array.isArray(d.list)?d.list:[];"
+     r"\n\2  box.innerHTML=list.length?list.map(s=>`<div class=\"line\"><div><strong>${esc(s)}</strong><span>${s===d.current?'підключено':'збережена'}</span></div>"
+     r"<button class=\"ghost\" type=\"button\" data-forget=\"${esc(s)}\">Забути</button></div>`).join(''):'<div class=\"hint\">Збережених мереж немає.</div>';"
+     r"\n\2  box.querySelectorAll('[data-forget]').forEach(b=>b.addEventListener('click',()=>send('/wififorget?s='+encodeURIComponent(b.dataset.forget)).then(loadWifiKnown).catch(e=>toast(e.message,0))));"
+     r"\n\2}\1"),
+    (r"(\n(\s*)const select=byId\('wifiSelect'\);\n\s*if\(force\) loaded\.wifi=0;)",
+     r"\n\2loadWifiKnown();\1"),
     # firmware name in the tab title and the page header
     (r"<title>GeekMagic PRO</title>", "<title>Magic Box FW</title>"),
 ]
