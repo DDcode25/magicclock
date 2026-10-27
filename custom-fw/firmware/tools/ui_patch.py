@@ -76,6 +76,7 @@ ALERTS_VIEW = """
           </div>
           <div class="stack">
             <label class="pair"><span>Виділяти й показувати статус для</span><select class="select" id="alertsHome">%s</select></label>
+            <label class="pair"><span>Колір годинника під мапою</span><input class="field" type="color" id="alertsClockColor" value="#ffffff"></label>
             <div class="hint">Регіон обведено білим на мапі.</div>
             <div class="hint">Під мапою замість назви області показано її обласний центр (для Київської — «Київщина»):
               екран малий, і лише коротка назва вміщується в один рядок із годинником. Колір назви — статус регіону:
@@ -100,13 +101,14 @@ ALERTS_VIEW = """
 
 ALERTS_JS = """
     // ---- Magic Box FW: air alerts ----
-    state.alerts={src:'klymenko',token:'',interval:30,home:'-1'};
+    state.alerts={src:'klymenko',token:'',interval:30,home:'-1',cc:'#ffffff'};
     const ALERT_SRC_LABELS={klymenko:'Klymenko',neptun:'NEPTUN',ubilling:'ubilling',alertsinua:'alerts.in.ua'};
     function syncAlertsForm(){
       byId('alertsSrc').value=state.alerts.src;
       byId('alertsToken').value=state.alerts.token;
       byId('alertsInterval').value=state.alerts.interval;
       byId('alertsHome').value=state.alerts.home;
+      byId('alertsClockColor').value=state.alerts.cc;
       byId('alertsSrcLabel').textContent=ALERT_SRC_LABELS[state.alerts.src]||state.alerts.src;
       byId('alertsIntervalLabel').textContent=state.alerts.interval+' с';
     }
@@ -117,6 +119,7 @@ ALERTS_JS = """
         state.alerts.token=String(a.token??'');
         state.alerts.interval=Math.max(15,toInt(a.i,30));
         state.alerts.home=String(a.home??'-1');
+        state.alerts.cc=/^#[0-9a-f]{6}$/i.test(String(a.cc??''))?String(a.cc).toLowerCase():'#ffffff';
         syncAlertsForm();
       });
     }
@@ -125,10 +128,11 @@ ALERTS_JS = """
       state.alerts.token=byId('alertsToken').value.trim();
       state.alerts.interval=Math.max(15,toInt(byId('alertsInterval').value,30));
       state.alerts.home=byId('alertsHome').value;
+      state.alerts.cc=byId('alertsClockColor').value;
       if(state.alerts.src==='alertsinua'&&!state.alerts.token){toast('Для alerts.in.ua потрібен токен.',0);return}
       setBusy(true);
       try{
-        await send('/set?al_src='+encodeURIComponent(state.alerts.src)+'&al_token='+encodeURIComponent(state.alerts.token)+'&al_i='+state.alerts.interval+'&al_home='+encodeURIComponent(state.alerts.home));
+        await send('/set?al_src='+encodeURIComponent(state.alerts.src)+'&al_token='+encodeURIComponent(state.alerts.token)+'&al_i='+state.alerts.interval+'&al_home='+encodeURIComponent(state.alerts.home)+'&al_cc='+encodeURIComponent(state.alerts.cc));
         syncAlertsForm();
         toast('Налаштування тривог збережено.',1);
       }catch(err){toast('Не вдалося зберегти тривоги: '+err.message,0)}

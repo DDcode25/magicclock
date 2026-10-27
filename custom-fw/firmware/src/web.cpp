@@ -127,6 +127,7 @@ static const Field FIELDS[] = {
     {"al_token", "alerts.json", "token", STR},
     {"al_i", "alerts.json", "i", INT},
     {"al_home", "alerts.json", "home", INT},
+    {"al_cc", "alerts.json", "cc", STR},
 };
 
 // "cin3" -> true, idx 3 for prefix "cin"

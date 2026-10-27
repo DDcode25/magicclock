@@ -3,7 +3,9 @@
 #include "alerts_parse.h"
 
 // "Air alerts" app: map of Ukraine coloured by air raid alert status.
-// Settings in /.sys/alerts.json: {"src":"klymenko|ubilling|alertsinua","token":"","i":30,"home":-1}
+// Settings in /.sys/alerts.json:
+//   {"src":"klymenko|neptun|ubilling|alertsinua","token":"","i":30,"home":-1,"cc":"#ffffff"}
+//   cc: colour of the clock under the map
 namespace alerts {
 
 void begin();   // load settings, start the background fetch task

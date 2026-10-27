@@ -18,7 +18,15 @@ struct Config {
   String token;
   int interval = 30;
   int home = -1;
+  uint16_t clockColor = TFT_WHITE;
 };
+
+// "#RRGGBB" -> RGB565
+static uint16_t parseColor(const String &hex, uint16_t def) {
+  if (hex.length() != 7 || hex[0] != '#') return def;
+  long v = strtol(hex.c_str() + 1, nullptr, 16);
+  return ((v >> 8) & 0xF800) | ((v >> 5) & 0x07E0) | ((v & 0xFF) >> 3);
+}
 
 static Config cfg;
 static Snapshot snap;
@@ -41,6 +49,7 @@ static void loadConfig() {
   c.token = store::getStr(CONFIG, "token", "");
   c.interval = max(MIN_INTERVAL_S, store::getInt(CONFIG, "i", 30));
   c.home = constrain(store::getInt(CONFIG, "home", -1), -1, REGIONS - 1);
+  c.clockColor = parseColor(store::getStr(CONFIG, "cc", "#ffffff"), TFT_WHITE);
   xSemaphoreTake(lock, portMAX_DELAY);
   cfg = c;
   xSemaphoreGive(lock);
@@ -264,14 +273,15 @@ static String hhmm(time_t utc) {
 // Under the map, on one line: home city (coloured by its alert level) and the clock, in the
 // largest font that fits both (sized per city at build time). A fetch problem, if any, goes small
 // in the bottom-left corner.
-static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, const char *err, int interval) {
+static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, const char *err, int interval,
+                       uint16_t clockColor) {
   const int y = 199;
   tft.fillRect(0, MAP_Y + MAP_H, 240, 240 - MAP_Y - MAP_H, TFT_BLACK);
 
   useCityFont(tft, home);
   String clock = net::timeValid() ? hhmm(time(nullptr)) : String("--:--");
   tft.setTextDatum(MR_DATUM);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setTextColor(clockColor, TFT_BLACK);
   tft.drawString(clock, 237, y);
 
   if (home >= 0) {
@@ -298,15 +308,16 @@ static void render(TFT_eSPI &tft, bool full) {
   time_t upd;
   char err[sizeof error];
   int home, interval;
+  uint16_t clockColor;
   xSemaphoreTake(lock, portMAX_DELAY);
-  s = snap, v = version, upd = updatedAt, home = cfg.home, interval = cfg.interval;
+  s = snap, v = version, upd = updatedAt, home = cfg.home, interval = cfg.interval, clockColor = cfg.clockColor;
   memcpy(err, error, sizeof err);
   xSemaphoreGive(lock);
   if (full || v != drawnVersion) {
     drawnVersion = v;
     drawMap(tft, s, home);
   }
-  drawFooter(tft, s, home, upd, err, interval);
+  drawFooter(tft, s, home, upd, err, interval, clockColor);
 }
 
 // ---- home alarm ---------------------------------------------------------------------
