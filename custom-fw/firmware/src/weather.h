@@ -11,7 +11,7 @@ void begin();   // start the background fetch task
 void reload();  // settings changed (/set)
 
 void draw(TFT_eSPI &tft);  // full redraw
-void tick(TFT_eSPI &tft);  // every second: clock, new data
+void tick(TFT_eSPI &tft);  // every second: redraw when new data arrived
 
 String statusJson();  // for /weather.json
 

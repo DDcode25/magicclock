@@ -283,26 +283,6 @@ static void windIcon(TFT_eSPI &tft, int x, int cy, uint16_t c) {
 // ---- screen ---------------------------------------------------------------------------
 
 static uint32_t drawnVersion = UINT32_MAX;
-static int drawnMinute = -1;
-
-static void drawHeader(TFT_eSPI &tft, const String &place) {
-  tft.fillRect(0, 0, 240, 34, TFT_BLACK);
-  useFont(tft, FONT_LARGE);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setTextDatum(ML_DATUM);
-  tft.drawString(place, 4, 17);
-  if (net::timeValid()) {
-    time_t now = time(nullptr);
-    struct tm t;
-    localtime_r(&now, &t);
-    char b[8];
-    strftime(b, sizeof b, "%H:%M", &t);
-    tft.setTextDatum(MR_DATUM);
-    tft.setTextColor(0xFDC0, TFT_BLACK);
-    tft.fillRect(170, 0, 70, 34, TFT_BLACK);
-    tft.drawString(b, 236, 17);
-  }
-}
 
 static void render(TFT_eSPI &tft) {
   Data d;
@@ -314,8 +294,6 @@ static void render(TFT_eSPI &tft) {
   xSemaphoreGive(lock);
 
   tft.fillScreen(TFT_BLACK);
-  String place = c.nickname.length() ? c.nickname : d.place.length() ? d.place : c.city;
-  drawHeader(tft, place);
   if (!d.valid) {
     useFont(tft, FONT_LARGE);
     tft.setTextDatum(MC_DATUM);
@@ -324,7 +302,7 @@ static void render(TFT_eSPI &tft) {
     return;
   }
 
-  drawIcon(tft, 4, 40, d.code, d.day);
+  drawIcon(tft, 4, 18, d.code, d.day);
 
   // Right of the icon: temperature large (digits font + a drawn degree ring), "як <feels>" under it.
   useFont(tft, FONT_TEMP);
@@ -332,13 +310,13 @@ static void render(TFT_eSPI &tft) {
   int w = tft.textWidth(t), x = 172 - (w + 16) / 2;
   tft.setTextDatum(ML_DATUM);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString(t, x, 82);
-  tft.drawCircle(x + w + 9, 64, 6, TFT_WHITE);
-  tft.drawCircle(x + w + 9, 64, 5, TFT_WHITE);
+  tft.drawString(t, x, 60);
+  tft.drawCircle(x + w + 9, 42, 6, TFT_WHITE);
+  tft.drawCircle(x + w + 9, 42, 5, TFT_WHITE);
   useFont(tft, FONT_LARGE);
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-  tft.drawString("як " + deg(d.feels), 172, 126);
+  tft.drawString("як " + deg(d.feels), 172, 104);
 
   // Under the icon: description (or a fetch problem), on two lines if wider than the icon column.
   const int colX = 52, colW = 112;
@@ -348,10 +326,10 @@ static void render(TFT_eSPI &tft) {
   tft.setTextColor(*err ? TFT_YELLOW : TFT_WHITE, TFT_BLACK);
   int sp = desc.indexOf(' ');
   if (tft.textWidth(desc) > colW && sp > 0) {
-    tft.drawString(desc.substring(0, sp), colX, 146);
-    tft.drawString(desc.substring(sp + 1), colX, 164);
+    tft.drawString(desc.substring(0, sp), colX, 128);
+    tft.drawString(desc.substring(sp + 1), colX, 146);
   } else {
-    tft.drawString(desc, colX, 150);
+    tft.drawString(desc, colX, 132);
   }
 
   useFont(tft, FONT_SMALL);
@@ -367,37 +345,19 @@ static void render(TFT_eSPI &tft) {
   int rx = (240 - total) / 2;
   tft.setTextDatum(ML_DATUM);
   tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-  dropIcon(tft, rx, 208, 0x5D9F);
+  dropIcon(tft, rx, 196, 0x5D9F);
   rx += icon + pad;
-  tft.drawString(hum, rx, 208);
+  tft.drawString(hum, rx, 196);
   rx += tft.textWidth(hum) + gap;
-  windIcon(tft, rx, 208, 0xBDF7);
+  windIcon(tft, rx, 196, 0xBDF7);
   rx += icon + pad;
-  tft.drawString(wind, rx, 208);
+  tft.drawString(wind, rx, 196);
 }
 
-void draw(TFT_eSPI &tft) {
-  render(tft);
-  drawnMinute = -1;
-}
+void draw(TFT_eSPI &tft) { render(tft); }
 
 void tick(TFT_eSPI &tft) {
-  if (drawnVersion != version) {
-    render(tft);
-    drawnMinute = -1;
-  }
-  if (!net::timeValid()) return;
-  time_t now = time(nullptr);
-  struct tm t;
-  localtime_r(&now, &t);
-  if (t.tm_min == drawnMinute) return;
-  drawnMinute = t.tm_min;
-  Config c;
-  Data d;
-  xSemaphoreTake(lock, portMAX_DELAY);
-  c = cfg, d = data;
-  xSemaphoreGive(lock);
-  drawHeader(tft, c.nickname.length() ? c.nickname : d.place.length() ? d.place : c.city);
+  if (drawnVersion != version) render(tft);
 }
 
 String statusJson() {
