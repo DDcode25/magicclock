@@ -7,5 +7,8 @@
 // on=false erases it. Grey while connected (callers blink it once a second), red when the link is
 // down (callers keep it on).
 void wifiMark(TFT_eSPI &tft, bool on);
-// Call once a second: blinks the mark while connected, keeps it on (red) without a link.
+// Call at least once a second: blinks the mark while connected (2 s on, 2 s off), keeps it on
+// (red) without a link.
 void wifiMarkTick(TFT_eSPI &tft);
+// Draw the mark in its current blink phase, e.g. after the screen under it was redrawn.
+void wifiMarkRedraw(TFT_eSPI &tft);

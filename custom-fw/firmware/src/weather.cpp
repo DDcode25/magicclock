@@ -351,11 +351,14 @@ static void render(TFT_eSPI &tft) {
 
 void draw(TFT_eSPI &tft) {
   render(tft);
-  wifiMark(tft, true);
+  wifiMarkRedraw(tft);
 }
 
 void tick(TFT_eSPI &tft) {
-  if (drawnVersion != version) render(tft);
+  if (drawnVersion != version) {
+    render(tft);
+    wifiMarkRedraw(tft);
+  }
   wifiMarkTick(tft);
 }
 

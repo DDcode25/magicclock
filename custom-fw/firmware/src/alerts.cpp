@@ -389,7 +389,7 @@ static void drawAlarmFrame(TFT_eSPI &tft, int home) {
 void draw(TFT_eSPI &tft) {
   tft.fillScreen(TFT_BLACK);
   render(tft, true);
-  wifiMark(tft, true);  // free corner: no map pixels right of x 162 in the top rows
+  wifiMarkRedraw(tft);  // free corner: no map pixels right of x 162 in the top rows
 }
 
 void loop(TFT_eSPI &tft) {
@@ -419,11 +419,13 @@ void loop(TFT_eSPI &tft) {
 void tick(TFT_eSPI &tft) {
   if (blinking) return;  // loop() owns the screen while the alarm blinks
   static uint32_t lastFooter = 0;
-  if (drawnVersion != version || millis() - lastFooter > 5000) {
+  bool mapRedraw = drawnVersion != version;
+  if (mapRedraw || millis() - lastFooter > 5000) {
     lastFooter = millis();
     render(tft, false);
   }
-  wifiMarkTick(tft);  // after render: a map redraw covers the corner
+  if (mapRedraw) wifiMarkRedraw(tft);  // the map sprite covers the corner
+  else wifiMarkTick(tft);
 }
 
 }  // namespace alerts
