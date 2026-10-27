@@ -23,12 +23,13 @@ REGIONS = [
     "Sevastopol", "Sumy Oblast", "Ternopil Oblast", "Kharkiv Oblast", "Kherson Oblast",
     "Khmelnytskyi Oblast", "Cherkasy Oblast", "Chernivtsi Oblast", "Chernihiv Oblast",
 ]
-# Short Ukrainian labels for the screen (drawn with the Cyrillic smooth fonts).
+# Screen labels: the oblast's administrative centre (shorter than the oblast name, so it fits on
+# one line with the clock). Kyiv oblast is "Київщина" because "Київ" is the city region.
 LABELS = [
-    "АР Крим", "Волинська", "Вінницька", "Дніпропетровська", "Донецька", "Житомирська", "Закарпатська",
-    "Запорізька", "Івано-Франківська", "м. Київ", "Київська", "Кіровоградська", "Луганська", "Львівська",
-    "Миколаївська", "Одеська", "Полтавська", "Рівненська", "Севастополь", "Сумська", "Тернопільська",
-    "Харківська", "Херсонська", "Хмельницька", "Черкаська", "Чернівецька", "Чернігівська",
+    "Сімферополь", "Луцьк", "Вінниця", "Дніпро", "Донецьк", "Житомир", "Ужгород", "Запоріжжя",
+    "Івано-Франківськ", "Київ", "Київщина", "Кропивницький", "Луганськ", "Львів", "Миколаїв", "Одеса",
+    "Полтава", "Рівне", "Севастополь", "Суми", "Тернопіль", "Харків", "Херсон", "Хмельницький",
+    "Черкаси", "Чернівці", "Чернігів",
 ]
 
 # Screen box for the map (the rest of the 240x240 screen is header/footer).

@@ -3,7 +3,12 @@
 Each patch replaces one exact anchor in the stock page; a missing anchor fails the build
 instead of silently shipping a broken UI.
 """
+import os
 import re
+import sys
+
+sys.path.insert(0, os.path.dirname(__file__))
+from gen_ukraine_map import LABELS as CITIES  # noqa: E402  screen labels: oblast centres
 
 REGIONS_UK = [
     "АР Крим", "Волинська область", "Вінницька область", "Дніпропетровська область",
@@ -16,7 +21,8 @@ REGIONS_UK = [
 ]
 
 _home_options = '<option value="-1">— немає —</option>' + "".join(
-    '<option value="%d">%s</option>' % (i, n) for i, n in sorted(enumerate(REGIONS_UK), key=lambda x: x[1])
+    '<option value="%d">%s</option>' % (i, n if n.endswith(CITIES[i]) else "%s — %s" % (n, CITIES[i]))
+    for i, n in sorted(enumerate(REGIONS_UK), key=lambda x: x[1])
 )
 
 ALERTS_VIEW = """
@@ -70,7 +76,11 @@ ALERTS_VIEW = """
           </div>
           <div class="stack">
             <label class="pair"><span>Виділяти й показувати статус для</span><select class="select" id="alertsHome">%s</select></label>
-            <div class="hint">Регіон обведено білим; його статус і час початку тривоги показано під мапою.</div>
+            <div class="hint">Регіон обведено білим на мапі.</div>
+            <div class="hint">Під мапою замість назви області показано її обласний центр (для Київської — «Київщина»):
+              екран малий, і лише коротка назва вміщується в один рядок із годинником. Колір назви — статус регіону:
+              зелений — тривоги немає, помаранчевий — тривога в частині районів, червоний — в усій області.
+              Розмір шрифту підібрано для кожного міста окремо — найбільший, за якого місто й годинник уміщуються в рядок.</div>
             <div class="hint">Коли в регіоні починається тривога, пристрій відкриває мапу й 10 секунд блимає кольором тривоги.</div>
           </div>
         </div>

@@ -231,39 +231,34 @@ static String hhmm(time_t utc) {
   return b;
 }
 
-// Under the map: home region name, large and coloured by its alert level, and a large clock in
-// the bottom-right corner. A fetch problem, if any, goes small in the bottom-left corner.
+// Under the map, on one line: home city (coloured by its alert level) and the clock, in the
+// largest font that fits both (sized per city at build time). A fetch problem, if any, goes small
+// in the bottom-left corner.
 static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, const char *err, int interval) {
+  const int y = 199;
   tft.fillRect(0, MAP_Y + MAP_H, 240, 240 - MAP_Y - MAP_H, TFT_BLACK);
 
+  useCityFont(tft, home);
   String clock = net::timeValid() ? hhmm(time(nullptr)) : String("--:--");
-  useFont(tft, FONT_CLOCK);
   tft.setTextDatum(MR_DATUM);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString(clock, 239, 220);
-  int clockLeft = 239 - tft.textWidth(clock);
+  tft.drawString(clock, 237, y);
 
   if (home >= 0) {
     uint8_t l = s.level[home];
-    uint16_t color = !upd || l == UNKNOWN ? TFT_DARKGREY : l == FULL ? TFT_RED : l == PARTIAL ? TFT_ORANGE : TFT_GREEN;
-    const char *label = MAP[home].label;
-    for (UiFont f : {FONT_TITLE, FONT_LARGE, FONT_SMALL}) {  // largest font that fits the width
-      useFont(tft, f);
-      if (tft.textWidth(label) <= 234 || f == FONT_SMALL) break;
-    }
     tft.setTextDatum(ML_DATUM);
-    tft.setTextColor(color, TFT_BLACK);
-    tft.drawString(label, 3, 180);
+    tft.setTextColor(!upd || l == UNKNOWN ? TFT_DARKGREY : l == FULL ? TFT_RED : l == PARTIAL ? TFT_ORANGE : TFT_GREEN, TFT_BLACK);
+    tft.drawString(MAP[home].label, 3, y);
   }
 
   bool stale = upd && time(nullptr) - upd > 3 * interval + 30;
   if (*err || stale) {
     useFont(tft, FONT_SMALL);
     String problem = *err ? String(err) : "дані з " + hhmm(upd);
-    if (tft.textWidth(problem) > clockLeft - 8) problem = *err ? "помилка" : "старі дані";
+    if (tft.textWidth(problem) > 234) problem = *err ? "помилка" : "старі дані";
     tft.setTextDatum(ML_DATUM);
     tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-    tft.drawString(problem, 3, 222);
+    tft.drawString(problem, 3, 231);
   }
 }
 
