@@ -32,7 +32,7 @@ LABELS = [
 ]
 
 # Screen box for the map (the rest of the 240x240 screen is header/footer).
-BOX_X, BOX_Y, BOX_W, BOX_H = 2, 22, 236, 160
+BOX_X, BOX_Y, BOX_W, BOX_H = 2, 2, 236, 160
 TOLERANCE_PX = 0.7
 
 

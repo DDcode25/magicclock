@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Generate an anti-aliased TFT_eSPI smooth font (VLW) as a C array, with Ukrainian Cyrillic.
 
-Usage: gen_vlw.py <font.ttf> <pixel size> <symbol name> <out.h>
-Glyphs: ASCII, Ukrainian/Russian Cyrillic and a few punctuation marks. Rendered with Pillow/FreeType.
+Usage: gen_vlw.py <font.ttf> <pixel size> <symbol name> <out.h> [digits]
+Glyphs: ASCII, Ukrainian/Russian Cyrillic and a few punctuation marks, or with "digits" only what a
+clock needs (smaller). Rendered with Pillow/FreeType.
 VLW layout (big-endian int32): header [count, version 11, size, 0, ascent, descent],
 then per glyph [unicode, height, width, xAdvance, dY (top above baseline), dX, 0], then 8-bit bitmaps.
 """
@@ -18,12 +19,16 @@ CHARS = (
 )
 
 
-def main(ttf, size, name, dst):
+DIGITS = list("0123456789:- ")
+
+
+def main(ttf, size, name, dst, charset="full"):
     size = int(size)
+    chars = DIGITS if charset == "digits" else CHARS
     font = ImageFont.truetype(ttf, size)
     ascent, descent = font.getmetrics()
     metrics, bitmaps = [], []
-    for ch in sorted(set(CHARS)):
+    for ch in sorted(set(chars)):
         adv = round(font.getlength(ch))
         x0, y0, x1, y1 = font.getbbox(ch, anchor="ls")
         w, h = max(0, x1 - x0), max(0, y1 - y0)
@@ -53,4 +58,4 @@ def main(ttf, size, name, dst):
 
 
 if __name__ == "__main__":
-    main(*sys.argv[1:5])
+    main(*sys.argv[1:6])

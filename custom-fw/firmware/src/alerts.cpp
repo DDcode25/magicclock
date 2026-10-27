@@ -32,7 +32,7 @@ static volatile bool paused = false;
 static TFT_eSprite *map8 = nullptr;
 static uint32_t drawnVersion = UINT32_MAX;
 
-static const int MAP_Y = 22, MAP_H = 160;  // matches BOX_Y/BOX_H in tools/gen_ukraine_map.py
+static const int MAP_Y = 2, MAP_H = 160;  // matches BOX_Y/BOX_H in tools/gen_ukraine_map.py
 
 static void loadConfig() {
   Config c;
@@ -231,44 +231,39 @@ static String hhmm(time_t utc) {
   return b;
 }
 
-// Under the map: home region name and status on the left, current time (large, white) on the
-// right; a fetch problem, if any, under the time.
+// Under the map: home region name, large and coloured by its alert level, and a large clock in
+// the bottom-right corner. A fetch problem, if any, goes small in the bottom-left corner.
 static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, const char *err, int interval) {
-  const int y1 = 199, y2 = 225;
   tft.fillRect(0, MAP_Y + MAP_H, 240, 240 - MAP_Y - MAP_H, TFT_BLACK);
 
   String clock = net::timeValid() ? hhmm(time(nullptr)) : String("--:--");
-  useFont(tft, FONT_LARGE);
+  useFont(tft, FONT_CLOCK);
   tft.setTextDatum(MR_DATUM);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString(clock, 236, y1);
-  int clockW = tft.textWidth(clock);
+  tft.drawString(clock, 239, 220);
+  int clockLeft = 239 - tft.textWidth(clock);
 
-  const char *label = home >= 0 ? MAP[home].label : nullptr;
-  bool bigLabel = label && tft.textWidth(label) <= 232 - clockW - 10;
-  if (bigLabel) {
-    tft.setTextDatum(ML_DATUM);
-    tft.drawString(label, 4, y1);
-  }
-
-  useFont(tft, FONT_SMALL);
-  bool stale = upd && time(nullptr) - upd > 3 * interval + 30;
-  if (*err || stale) {
-    tft.setTextDatum(MR_DATUM);
-    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-    tft.drawString(*err ? String(err) : "дані з " + hhmm(upd), 236, y2);
-  }
-  tft.setTextDatum(ML_DATUM);
-  if (label && !bigLabel) {
-    tft.setTextColor(TFT_WHITE, TFT_BLACK);
-    tft.drawString(label, 4, y1);
-  }
   if (home >= 0) {
     uint8_t l = s.level[home];
-    String state = !upd ? "завантаження…" : l == FULL ? "ТРИВОГА" : l == PARTIAL ? "Тривога" : l == UNKNOWN ? "немає даних" : "без тривоги";
-    if (upd && (l == FULL || l == PARTIAL) && s.since[home]) state += " з " + hhmm(s.since[home]);
-    tft.setTextColor(l == FULL ? TFT_RED : l == PARTIAL ? TFT_ORANGE : l == UNKNOWN || !upd ? TFT_DARKGREY : TFT_GREEN, TFT_BLACK);
-    tft.drawString(state, 4, y2);
+    uint16_t color = !upd || l == UNKNOWN ? TFT_DARKGREY : l == FULL ? TFT_RED : l == PARTIAL ? TFT_ORANGE : TFT_GREEN;
+    const char *label = MAP[home].label;
+    for (UiFont f : {FONT_TITLE, FONT_LARGE, FONT_SMALL}) {  // largest font that fits the width
+      useFont(tft, f);
+      if (tft.textWidth(label) <= 234 || f == FONT_SMALL) break;
+    }
+    tft.setTextDatum(ML_DATUM);
+    tft.setTextColor(color, TFT_BLACK);
+    tft.drawString(label, 3, 180);
+  }
+
+  bool stale = upd && time(nullptr) - upd > 3 * interval + 30;
+  if (*err || stale) {
+    useFont(tft, FONT_SMALL);
+    String problem = *err ? String(err) : "дані з " + hhmm(upd);
+    if (tft.textWidth(problem) > clockLeft - 8) problem = *err ? "помилка" : "старі дані";
+    tft.setTextDatum(ML_DATUM);
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+    tft.drawString(problem, 3, 222);
   }
 }
 
