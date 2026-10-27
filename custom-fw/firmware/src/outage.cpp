@@ -339,4 +339,35 @@ String statusJson() {
          (s.hasTomorrow ? days[1] : String("")) + "\",\"fetched\":" + (long)updatedAt + ",\"error\":\"" + err + "\"}";
 }
 
+bool nextChange(time_t now, bool &powerOn, time_t &at) {
+  Schedule s;
+  xSemaphoreTake(lock, portMAX_DELAY);
+  bool ok = valid;
+  s = sched;
+  xSemaphoreGive(lock);
+  if (!ok || !s.today) return false;
+  struct tm base;
+  localtime_r(&s.today, &base);
+  auto start = [&](int i) {  // slot i of today + tomorrow, DST-safe
+    struct tm t = base;
+    t.tm_mday += i / outage::SLOTS, t.tm_hour = 0, t.tm_min = (i % outage::SLOTS) * 30, t.tm_sec = 0, t.tm_isdst = -1;
+    return mktime(&t);
+  };
+  auto slot = [&](int i) { return i < outage::SLOTS ? s.day[0][i] : s.hasTomorrow ? s.day[1][i - outage::SLOTS] : (uint8_t)outage::UNKNOWN; };
+  if (now < start(0) || now >= start(outage::SLOTS)) return false;  // schedule is not for today
+  int cur = 0;
+  while (cur + 1 < outage::SLOTS && start(cur + 1) <= now) cur++;
+  bool off = slot(cur) == outage::OFF;
+  for (int j = cur + 1; j < 2 * outage::SLOTS; j++) {
+    uint8_t v = slot(j);
+    if (v == outage::UNKNOWN) return false;
+    if ((v == outage::OFF) != off) {
+      powerOn = off;
+      at = start(j);
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace outagescreen

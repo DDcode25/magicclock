@@ -94,6 +94,7 @@ static const Field FIELDS[] = {
     {"sc", "timecolor.json", "sc", STR},
     {"hour", "hour12.json", "h", STR},
     {"day", "day.json", "day", STR},
+    {"sec_mode", "clock.json", "sm", INT},
     {"tz_offset", "tz.json", "offset", INT},
     {"ntp", "ntp.json", "ntp", STR},
     {"gif_loop", "album.json", "gif_loop", INT},

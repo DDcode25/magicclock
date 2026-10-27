@@ -21,4 +21,9 @@ void toggleDay(TFT_eSPI &tft);  // long press: today <-> tomorrow (when publishe
 
 String statusJson();  // for /outage.json
 
+// For the clock: when the power state next changes after `now` (OFF = no power; possible-outage
+// half hours count as power). powerOn = the state after the change. false without a schedule for
+// now or without a change in the published days.
+bool nextChange(time_t now, bool &powerOn, time_t &at);
+
 }  // namespace outagescreen

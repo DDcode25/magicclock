@@ -261,6 +261,18 @@ PATCHES = [
      r"\1\n\2if(view==='alerts') return loadAlertsConfig(force);\n\2if(view==='outage') return loadOutageConfig(force);"),
     # JS helpers, before loadView
     (r"(\n\s*function loadView\(view,force\)\{)", (ALERTS_JS + OUTAGE_JS).replace('\\', r'\\') + r"\1"),
+    # clock: seconds or the power countdown under the time
+    (r'(\n(\s*)<label class="pair"><span>Date Format</span>)',
+     r'\n\2<label class="pair"><span>Під часом</span><select class="select" id="timeSecMode">'
+     r'<option value="0">Секунди</option><option value="1">Відлік до вимкнення / ввімкнення світла</option></select></label>'
+     r'\n\2<div class="hint">Відлік береться з графіка вкладки «Світло» (застосунок «Світло» має бути увімкнений). '
+     r'Рожевий — до вимкнення, зелений — до ввімкнення. Без графіка показуються секунди.</div>\1'),
+    (r"(\n(\s*)state\.time\.tzOffset=String\(tz\.offset\?\?'0'\);)",
+     r"\1\n\2state.time.sm=String((await getJson('/.sys/clock.json')).sm??'0');"),
+    (r"(\n(\s*)byId\('timeNtp'\)\.value=state\.time\.ntp;)", r"\1\n\2byId('timeSecMode').value=state.time.sm||'0';"),
+    (r"(\n(\s*)state\.time\.ntp=byId\('timeNtp'\)\.value\.trim\(\);)", r"\1\n\2state.time.sm=byId('timeSecMode').value;"),
+    (r"(\n(\s*)await send\('/set\?ntp='\+encodeURIComponent\(state\.time\.ntp\)\);)",
+     r"\1\n\2await send('/set?sec_mode='+encodeURIComponent(state.time.sm||'0'));"),
     # firmware name in the tab title and the page header
     (r"<title>GeekMagic PRO</title>", "<title>Magic Box FW</title>"),
 ]
