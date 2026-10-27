@@ -5,7 +5,8 @@
 // "Air alerts" app: map of Ukraine coloured by air raid alert status.
 // Settings in /.sys/alerts.json:
 //   {"src":"klymenko|neptun|ubilling|alertsinua","token":"","i":30,"home":-1,"cc":"#ffffff"}
-//   cc: colour of the clock under the map; auto: 1 = show the map for a minute when alerts change
+//   cc: colour of the clock under the map; auto: show the map for a minute when alerts
+//   change: 0 off, 1 anywhere, 2 in the home region only
 namespace alerts {
 
 void begin();   // load settings, start the background fetch task
@@ -18,8 +19,8 @@ String statusJson();  // {"levels":"NPA...","updated":<utc>,"error":"","src":"..
 // starts the alarm blink. Not triggered by the first data after boot.
 bool homeAlertStarted();
 void testAlarm(uint8_t level);
-// True once when any region's or raion's alert status changed since the last data, if the "auto"
-// setting is on. Not triggered by the first data after boot.
+// True once when a region's or raion's alert status changed since the last data (any region, or the
+// home region only, per the "auto" setting). Not triggered by the first data after boot.
 bool alertsChanged();  // blink as if the home region got `level` (FULL/PARTIAL)
 
 void draw(TFT_eSPI &tft);  // full redraw of the app screen

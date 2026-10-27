@@ -83,7 +83,8 @@ ALERTS_VIEW = """
               зелений — тривоги немає, помаранчевий — тривога в частині районів, червоний — в усій області.
               Розмір шрифту підібрано для кожного міста окремо — найбільший, за якого місто й годинник уміщуються в рядок.</div>
             <div class="hint">Коли в регіоні починається тривога, пристрій відкриває мапу й 10 секунд блимає кольором тривоги.</div>
-            <label class="line"><div><strong>Автоперемикання</strong><span>Коли змінюються тривоги на мапі (будь-де), пристрій на 1 хвилину показує мапу, потім повертається до попереднього екрана.</span></div><span class="switch"><input id="alertsAuto" type="checkbox"></span></label>
+            <label class="pair"><span>Автоперемикання на мапу</span><select class="select" id="alertsAuto"><option value="0">Вимкнено</option><option value="1">Зміни по всій Україні</option><option value="2">Лише зміни в моєму регіоні</option></select></label>
+            <div class="hint">Коли змінюються тривоги (будь-де або лише в моєму регіоні), пристрій на 1 хвилину показує мапу, потім повертається до попереднього екрана.</div>
           </div>
         </div>
       </div>
@@ -209,7 +210,7 @@ ALERTS_JS = """
       byId('alertsInterval').value=state.alerts.interval;
       byId('alertsHome').value=state.alerts.home;
       byId('alertsClockColor').value=state.alerts.cc;
-      byId('alertsAuto').checked=!!state.alerts.auto;
+      byId('alertsAuto').value=state.alerts.auto||'0';
       byId('alertsSrcLabel').textContent=ALERT_SRC_LABELS[state.alerts.src]||state.alerts.src;
       byId('alertsIntervalLabel').textContent=state.alerts.interval+' с';
     }
@@ -221,7 +222,7 @@ ALERTS_JS = """
         state.alerts.interval=Math.max(15,toInt(a.i,30));
         state.alerts.home=String(a.home??'-1');
         state.alerts.cc=/^#[0-9a-f]{6}$/i.test(String(a.cc??''))?String(a.cc).toLowerCase():'#ffffff';
-        state.alerts.auto=String(a.auto??'0')==='1';
+        state.alerts.auto=String(a.auto??'0');
         syncAlertsForm();
       });
     }
@@ -231,11 +232,11 @@ ALERTS_JS = """
       state.alerts.interval=Math.max(15,toInt(byId('alertsInterval').value,30));
       state.alerts.home=byId('alertsHome').value;
       state.alerts.cc=byId('alertsClockColor').value;
-      state.alerts.auto=byId('alertsAuto').checked;
+      state.alerts.auto=byId('alertsAuto').value;
       if(state.alerts.src==='alertsinua'&&!state.alerts.token){toast('Для alerts.in.ua потрібен токен.',0);return}
       setBusy(true);
       try{
-        await send('/set?al_src='+encodeURIComponent(state.alerts.src)+'&al_token='+encodeURIComponent(state.alerts.token)+'&al_i='+state.alerts.interval+'&al_home='+encodeURIComponent(state.alerts.home)+'&al_cc='+encodeURIComponent(state.alerts.cc)+'&al_auto='+(state.alerts.auto?1:0));
+        await send('/set?al_src='+encodeURIComponent(state.alerts.src)+'&al_token='+encodeURIComponent(state.alerts.token)+'&al_i='+state.alerts.interval+'&al_home='+encodeURIComponent(state.alerts.home)+'&al_cc='+encodeURIComponent(state.alerts.cc)+'&al_auto='+encodeURIComponent(state.alerts.auto||'0'));
         syncAlertsForm();
         toast('Налаштування тривог збережено.',1);
       }catch(err){toast('Не вдалося зберегти тривоги: '+err.message,0)}
