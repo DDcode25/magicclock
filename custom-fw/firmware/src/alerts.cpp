@@ -28,6 +28,7 @@ static char error[48] = "";  // last fetch error, guarded by lock
 static SemaphoreHandle_t lock;  // guards cfg, snap, version, updatedAt, error (Strings: no spinlock)
 static volatile bool fetchNow = true;
 static volatile bool paused = false;
+static volatile uint32_t lastFetchAt = 0, lastFetchMs = 0;  // diagnostics
 
 static TFT_eSprite *map8 = nullptr;
 static uint32_t drawnVersion = UINT32_MAX;
@@ -90,11 +91,13 @@ static void task(void *) {
     if (!fetchNow && millis() - last < (uint32_t)c.interval * 1000) continue;
     fetchNow = false;
     last = millis();
+    lastFetchAt = last;
 
     Snapshot s;
     String err;
     bool ok = fetch(c, s, err);
-    Serial.printf("alerts: %s %s\n", c.src.c_str(), ok ? "ok" : err.c_str());
+    Serial.printf("alerts: %s %s in %lu ms\n", c.src.c_str(), ok ? "ok" : err.c_str(), millis() - last);
+    lastFetchMs = millis() - last;
     xSemaphoreTake(lock, portMAX_DELAY);
     if (ok) {
       snap = s;
@@ -138,7 +141,7 @@ String statusJson() {
   levels[REGIONS] = 0;
   for (int i = 0; i < RAIONS; i++) raions[i] = "NYRI"[s.raion[i]];
   raions[RAIONS] = 0;
-  return String("{\"levels\":\"") + levels + "\",\"raions\":\"" + raions + "\",\"updated\":" + (long)upd + ",\"error\":\"" + err + "\",\"src\":\"" +
+  return String("{\"fetchAt\":") + lastFetchAt + ",\"fetchMs\":" + lastFetchMs + ",\"levels\":\"" + levels + "\",\"raions\":\"" + raions + "\",\"updated\":" + (long)upd + ",\"error\":\"" + err + "\",\"src\":\"" +
          c.src + "\",\"home\":" + c.home + "}";
 }
 

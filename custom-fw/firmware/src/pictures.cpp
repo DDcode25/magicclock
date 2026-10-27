@@ -24,6 +24,9 @@ static int gifX = 0, gifY = 0, loopsDone = 0;
 static uint32_t nextFrameAt = 0, shownAt = 0;
 static TFT_eSPI *screen = nullptr;
 
+// Playback diagnostics (/pic.json).
+static uint32_t frames = 0, maxDecodeMs = 0, maxLateMs = 0, lateAt = 0, slowFrames = 0;
+
 static bool isPicture(const String &name) {
   String n = name;
   n.toLowerCase();
@@ -87,9 +90,11 @@ static int32_t gifSeek(GIFFILE *pFile, int32_t pos) {
 }
 
 // One line of a frame. Palette is big-endian RGB565, i.e. already in panel byte order.
+// Opaque frames set the address window once (at the frame's first line) and then stream pixels:
+// a window command per line made a lost command byte smear the rest of the frame.
 static void gifDraw(GIFDRAW *d) {
   static uint16_t line[240];
-  int y = gifY + d->iY + d->y, x0 = gifX + d->iX;
+  int top = gifY + d->iY, y = top + d->y, x0 = gifX + d->iX;
   int w = min(d->iWidth, 240 - x0);
   if (y < 0 || y >= 240 || w < 1) return;
   uint8_t *s = d->pPixels;
@@ -100,7 +105,8 @@ static void gifDraw(GIFDRAW *d) {
   }
   if (!d->ucHasTransparency) {
     for (int x = 0; x < w; x++) line[x] = d->pPalette[s[x]];
-    screen->pushImage(x0, y, w, 1, line);
+    if (d->y == 0) screen->setAddrWindow(x0, top, w, min(d->iHeight, 240 - top));
+    screen->pushPixels(line, w);
     return;
   }
   // Transparent pixels keep what is on screen: push opaque runs only.
@@ -195,9 +201,15 @@ void loop(TFT_eSPI &tft) {
   if (gif) {
     if (millis() < nextFrameAt) return;
     int delayMs = 0;
+    uint32_t t0 = millis(), late = nextFrameAt ? t0 - nextFrameAt : 0;
+    if (late > maxLateMs) maxLateMs = late, lateAt = t0;
     tft.startWrite();
     int r = gif->playFrame(false, &delayMs);
     tft.endWrite();
+    uint32_t dt = millis() - t0;
+    frames++;
+    if (dt > maxDecodeMs) maxDecodeMs = dt;
+    if (dt > 200) slowFrames++;
     nextFrameAt = millis() + max(delayMs, 20);
     if (r == 0) {  // last frame of a loop
       loopsDone++;
@@ -213,5 +225,54 @@ void loop(TFT_eSPI &tft) {
 }
 
 void hide() { closeGif(); }
+
+// Diagnostics: decode a GIF off-screen and CRC what gifDraw would push, per frame, to compare with
+// a PC decode of the same file (tells corrupted reads from display problems).
+static uint32_t crc;
+static uint32_t crc32(uint32_t c, const void *data, size_t n) {
+  const uint8_t *p = (const uint8_t *)data;
+  c = ~c;
+  while (n--) {
+    c ^= *p++;
+    for (int k = 0; k < 8; k++) c = c & 1 ? (c >> 1) ^ 0xEDB88320 : c >> 1;
+  }
+  return ~c;
+}
+static void crcDraw(GIFDRAW *d) {
+  uint16_t line[240];
+  int y = d->iY + d->y, x0 = d->iX, w = min(d->iWidth, 240 - x0);
+  if (y < 0 || y >= 240 || w < 1) return;
+  for (int x = 0; x < w; x++) line[x] = d->pPalette[d->pPixels[x]];
+  int hdr[2] = {y, x0};
+  crc = crc32(crc, hdr, sizeof hdr);
+  crc = crc32(crc, line, w * 2);
+}
+
+String checkJson(const String &path, int count) {
+  AnimatedGIF *g = new (std::nothrow) AnimatedGIF;
+  if (!g) return "{\"error\":\"no memory\"}";
+  g->begin(GIF_PALETTE_RGB565_LE);
+  String out = "{\"crc\":[";
+  if (g->open(path.c_str(), gifOpen, gifClose, gifRead, gifSeek, crcDraw)) {
+    for (int f = 0; f < count; f++) {
+      crc = 0;
+      int d, r = g->playFrame(false, &d);
+      out += String(f ? "," : "") + crc;
+      if (r <= 0) break;
+    }
+    g->close();
+  }
+  delete g;
+  return out + "]}";
+}
+
+String statsJson() {
+  String s = String("{\"file\":\"") + (current >= 0 && current < (int)files.size() ? files[current] : String("")) +
+             "\",\"frames\":" + frames + ",\"maxDecodeMs\":" + maxDecodeMs + ",\"slowFrames\":" + slowFrames +
+             ",\"maxLateMs\":" + maxLateMs + ",\"lateAt\":" + lateAt + ",\"now\":" + millis() +
+             ",\"heap\":" + ESP.getFreeHeap() + ",\"maxBlock\":" + ESP.getMaxAllocHeap() + "}";
+  frames = maxDecodeMs = maxLateMs = slowFrames = 0;
+  return s;
+}
 
 }  // namespace pictures

@@ -12,5 +12,7 @@ void show(TFT_eSPI &tft);  // app opened: draw the current picture
 void loop(TFT_eSPI &tft);  // GIF frames and slideshow timing
 void hide();               // app left: free the GIF decoder (~20 KB)
 void next(TFT_eSPI &tft);  // long press: next file
+String statsJson();        // playback timing and heap, for /pic.json
+String checkJson(const String &path, int frames);  // decode without drawing: per-frame CRC (diagnostics)
 
 }  // namespace pictures

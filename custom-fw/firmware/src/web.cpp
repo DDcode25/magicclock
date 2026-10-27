@@ -423,6 +423,8 @@ void begin() {
   server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateData);
   server.on("/flash", HTTP_GET, handleFlash);
   server.on("/alerts.json", HTTP_GET, [] { server.send(200, "application/json", alerts::statusJson()); });
+  server.on("/gifcheck", HTTP_GET, [] { server.send(200, "application/json", pictures::checkJson(server.arg("file"), server.arg("n").toInt())); });
+  server.on("/pic.json", HTTP_GET, [] { server.send(200, "application/json", pictures::statsJson()); });
   server.on("/touch.json", HTTP_GET, [] { server.send(200, "application/json", ui::touchJson()); });
   server.on("/alerts/test", HTTP_GET, [] {
     alerts::testAlarm(server.arg("level").toInt() == 1 ? alerts::PARTIAL : alerts::FULL);
