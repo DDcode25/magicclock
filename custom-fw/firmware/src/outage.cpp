@@ -125,7 +125,7 @@ void pause(bool on) { paused = on; }
 // 0:00 and 24:00 one more (the step at the top). Mocked on a PC first.
 
 static const int CX = 120, CY = 120;
-static const int R0 = 58, W = 17, GAP = 2;  // inner radius at 0:00, band width, gap between turns (outer r 113)
+static const int R0 = 55, W = 19, GAP = 1;  // inner radius at 0:00, band width, gap between turns (outer r 114)
 static const float STEP = (W + GAP) / 24.0f;
 static const uint16_t C_ON = 0x75E7, C_OFF = 0xE3D1, C_MAYBE = 0xE667, C_NONE = 0x2945, C_INK = 0x10A2;
 static int showDay = 0;  // 0 today, 1 tomorrow
@@ -186,7 +186,7 @@ static void drawNow(TFT_eSPI &tft) {
 static String hoursText(int slots) { return slots % 2 ? String(slots / 2) + ".5" : String(slots / 2); }
 
 // Centre, one under another: queue (28 px), hours without power (possible outages counted in, as on
-// the oblenergo cards) and hours with power (24 px); a 55 px circle fits "+18.5" on its line.
+// the oblenergo cards) and hours with power (24 px); the 52 px circle fits "+18.5" (80 px) on its line.
 // "завтра" goes to the free top-left corner when showing tomorrow; a fetch error replaces the hours.
 static void drawCenter(TFT_eSPI &tft, const Config &c, const uint8_t *slots, const char *err) {
   tft.fillCircle(CX, CY, R0 - 3, TFT_BLACK);
@@ -200,7 +200,7 @@ static void drawCenter(TFT_eSPI &tft, const Config &c, const uint8_t *slots, con
   tft.setTextDatum(MC_DATUM);
   useFont(tft, FONT_NUM_BIG);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString(c.group, CX, 95);
+  tft.drawString(c.group, CX, 97);
   if (*err) {
     useFont(tft, FONT_SMALL);
     tft.setTextColor(TFT_YELLOW, TFT_BLACK);
@@ -213,7 +213,7 @@ static void drawCenter(TFT_eSPI &tft, const Config &c, const uint8_t *slots, con
   tft.setTextColor(C_OFF, TFT_BLACK);
   tft.drawString("-" + hoursText(off), CX, 121);
   tft.setTextColor(C_ON, TFT_BLACK);
-  tft.drawString("+" + hoursText(on), CX, 145);
+  tft.drawString("+" + hoursText(on), CX, 143);
 }
 
 static void render(TFT_eSPI &tft, bool clear) {
