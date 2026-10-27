@@ -349,7 +349,8 @@ static const char UPDATE_PAGE[] PROGMEM =
 static void handleUpdateData() {
   HTTPUpload &u = server.upload();
   if (u.status == UPLOAD_FILE_START) {
-    alerts::pause(true);
+    alerts::pause(true);  // background fetches next to an OTA write have crashed the device
+    weather::pause(true);
     ui::message("Оновлення", "не вимикайте живлення");
     if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) Update.printError(Serial);
   } else if (u.status == UPLOAD_FILE_WRITE) {
@@ -359,6 +360,7 @@ static void handleUpdateData() {
   } else if (u.status == UPLOAD_FILE_ABORTED) {
     Update.abort();
     alerts::pause(false);
+    weather::pause(false);
   }
 }
 
@@ -367,6 +369,7 @@ static void handleUpdateDone() {
   server.sendHeader("Connection", "close");
   if (!success) {
     alerts::pause(false);
+    weather::pause(false);
     server.send(500, "text/plain", String("FAIL: ") + Update.errorString());
     ui::applySettings();
     return;

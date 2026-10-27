@@ -6,6 +6,7 @@
 #include "fonts.h"
 #include "net.h"
 #include "store.h"
+#include "widgets.h"
 
 namespace weather {
 
@@ -34,6 +35,7 @@ static Data data;
 static uint32_t version = 0;
 static char error[48] = "";
 static volatile bool fetchNow = true;
+static volatile bool paused = false;
 
 // Geocoder cache: only re-resolve when the city setting changes.
 static String geoCity, geoName;
@@ -134,7 +136,7 @@ static void task(void *) {
   bool lastOk = false;
   for (;;) {
     vTaskDelay(pdMS_TO_TICKS(1000));
-    if (!settings.appEnabled[APP_WEATHER] || !net::connected()) continue;
+    if (paused || !settings.appEnabled[APP_WEATHER] || !net::connected()) continue;
     Config c;
     xSemaphoreTake(lock, portMAX_DELAY);
     c = cfg;
@@ -174,6 +176,8 @@ void reload() {
   loadConfig();
   fetchNow = true;
 }
+
+void pause(bool on) { paused = on; }
 
 // ---- text -----------------------------------------------------------------------------
 
@@ -273,17 +277,6 @@ static void windIcon(TFT_eSPI &tft, int x, int cy, uint16_t c) {
   tft.drawWideLine(x + 5, cy + 7, x + 16, cy + 7, 3, c, TFT_BLACK);
 }
 
-// Tiny Wi-Fi mark in the top-right corner (13x10 px): dot and three arcs. Blinks each second while
-// connected; steady red when the link is down.
-static void wifiMark(TFT_eSPI &tft, bool on) {
-  const int cx = 229, cy = 13;
-  tft.fillRect(cx - 9, cy - 10, 19, 12, TFT_BLACK);
-  if (!on) return;
-  uint16_t c = net::connected() ? 0x9CF3 : TFT_RED;
-  tft.fillCircle(cx, cy - 1, 1, c);
-  for (int r = 4; r <= 10; r += 3) tft.drawArc(cx, cy, r, r - 1, 135, 225, c, TFT_BLACK, false);
-}
-
 // ---- screen ---------------------------------------------------------------------------
 
 static uint32_t drawnVersion = UINT32_MAX;
@@ -363,9 +356,7 @@ void draw(TFT_eSPI &tft) {
 
 void tick(TFT_eSPI &tft) {
   if (drawnVersion != version) render(tft);
-  static bool blink = false;
-  blink = !net::connected() || !blink;  // no link: keep it on (red)
-  wifiMark(tft, blink);
+  wifiMarkTick(tft);
 }
 
 String statusJson() {

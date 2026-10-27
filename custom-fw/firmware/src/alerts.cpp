@@ -4,6 +4,7 @@
 #include <WiFiClientSecure.h>
 #include "apps.h"
 #include "fonts.h"
+#include "widgets.h"
 #include "net.h"
 #include "store.h"
 #include "ukraine_map.h"
@@ -388,6 +389,7 @@ static void drawAlarmFrame(TFT_eSPI &tft, int home) {
 void draw(TFT_eSPI &tft) {
   tft.fillScreen(TFT_BLACK);
   render(tft, true);
+  wifiMark(tft, true);  // free corner: no map pixels right of x 162 in the top rows
 }
 
 void loop(TFT_eSPI &tft) {
@@ -421,6 +423,7 @@ void tick(TFT_eSPI &tft) {
     lastFooter = millis();
     render(tft, false);
   }
+  wifiMarkTick(tft);  // after render: a map redraw covers the corner
 }
 
 }  // namespace alerts

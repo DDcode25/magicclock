@@ -9,6 +9,7 @@ namespace weather {
 
 void begin();   // start the background fetch task
 void reload();  // settings changed (/set)
+void pause(bool on);  // stop fetching during OTA
 
 void draw(TFT_eSPI &tft);  // full redraw
 void tick(TFT_eSPI &tft);  // every second: redraw when new data arrived
