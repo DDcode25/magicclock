@@ -319,27 +319,36 @@ static bool blinking = false;
 bool homeAlertStarted() {
   static uint32_t seenVersion = 0;
   static int seenHome = -2;
-  static uint8_t prev = SEV_UNKNOWN;
+  static uint8_t prevSev = SEV_UNKNOWN, prevRaion[MAP_RAIONS];
   uint32_t v;
   int home;
-  uint8_t level;  // severity of the home region
+  uint8_t sev, raion[MAP_RAIONS];
   xSemaphoreTake(lock, portMAX_DELAY);
   v = version, home = cfg.home;
-  level = severity(snap, home);
+  sev = severity(snap, home);
+  memcpy(raion, snap.raion, sizeof raion);
   xSemaphoreGive(lock);
   if (v == seenVersion && home == seenHome) return false;
   bool first = seenVersion == 0 || home != seenHome;  // boot or home changed: just remember
   seenVersion = v, seenHome = home;
-  uint8_t before = prev;
-  prev = level;
-  if (first || v == 0) return false;
-  // New alert, or orange turned red.
-  bool started = (level == SEV_ORANGE || level == SEV_RED) &&
-                 (before == SEV_NONE || before == SEV_UNKNOWN || (before == SEV_ORANGE && level == SEV_RED));
+  // Any new alert message for the home region: a raion newly alerted, a raion yellow -> red, or
+  // (sources without raion data) the region's alert appearing or growing.
+  bool started = false;
+  if (!first && v != 0 && home >= 0) {
+    for (int i = 0; i < MAP_RAIONS; i++) {
+      if (RAION[i].oblast != home || raion[i] == R_INHERIT || prevRaion[i] == R_INHERIT) continue;
+      if ((prevRaion[i] == R_NONE && raion[i] != R_NONE) || (prevRaion[i] == R_YELLOW && raion[i] == R_RED)) started = true;
+    }
+    if ((sev == SEV_ORANGE || sev == SEV_RED) &&
+        (prevSev == SEV_NONE || prevSev == SEV_UNKNOWN || (prevSev == SEV_ORANGE && sev == SEV_RED)))
+      started = true;
+  }
+  prevSev = sev;
+  memcpy(prevRaion, raion, sizeof prevRaion);
   if (started) {
     blinking = true;
     blinkStart = millis();
-    blinkLevel = level == SEV_RED ? FULL : PARTIAL;  // FULL = red frame, PARTIAL = orange frame
+    blinkLevel = sev == SEV_RED ? FULL : PARTIAL;  // FULL = red frame, PARTIAL = orange frame
   }
   return started;
 }
