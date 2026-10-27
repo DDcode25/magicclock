@@ -45,6 +45,8 @@ static uint32_t drawnVersion = UINT32_MAX;
 
 static const int MAP_Y = 2, MAP_H = 160;  // matches BOX_Y/BOX_H in tools/gen_ukraine_map.py
 static const int SCREEN_Y = MAP_Y + 2;    // the map is shown 2 px lower than generated
+// Clock box: black area below Odesa and left of Crimea, see drawFooter.
+static const int CLOCK_BOX_X1 = 148, CLOCK_BOX_Y0 = 147, CLOCK_Y = 168, CITY_Y = 215;
 
 static void loadConfig() {
   Config c;
@@ -268,7 +270,10 @@ static void drawMap(TFT_eSPI &tft, const Snapshot &s, int home) {
   for (int r : {9, 18}) fillRings(MAP[r].firstRing, MAP[r].rings, levelColor(s.level[r]));
   for (int r = 0; r < REGIONS; r++) outlineRegion(r, TFT_BLACK);
   if (home >= 0) outlineRegion(home, TFT_WHITE);
-  map8->pushSprite(0, SCREEN_Y);
+  // Around the clock box (map-free rows, see drawFooter): pushing it would erase the clock's top.
+  int top = CLOCK_BOX_Y0 - SCREEN_Y;
+  map8->pushSprite(0, SCREEN_Y, 0, 0, 240, top);
+  map8->pushSprite(CLOCK_BOX_X1, CLOCK_BOX_Y0, CLOCK_BOX_X1, top, 240 - CLOCK_BOX_X1, MAP_H - top);
 }
 
 
@@ -283,34 +288,62 @@ static String hhmm(time_t utc) {
 // Clock in the black area below Odesa and left of Crimea (free of map pixels for screen rows 147..189,
 // x < 148, checked against ukraine_map.h); home city on the bottom line in the largest font that
 // fits it, coloured by its alert colour; a fetch problem, if any, small on the right.
-static const int CLOCK_BOX_X1 = 148, CLOCK_BOX_Y0 = 147, CLOCK_Y = 168, CITY_Y = 215;
 
+// Each part is repainted only when its text or colour changed (a repaint clears its box first, which
+// shows as a flicker); `full` after the screen was cleared.
 static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, const char *err, int interval,
-                       uint16_t clockColor) {
-  tft.fillRect(0, SCREEN_Y + MAP_H, 240, 240 - SCREEN_Y - MAP_H, TFT_BLACK);
-  tft.fillRect(0, CLOCK_BOX_Y0, CLOCK_BOX_X1, SCREEN_Y + MAP_H - CLOCK_BOX_Y0, TFT_BLACK);
+                       uint16_t clockColor, bool full) {
+  static String shownClock, shownCity, shownProblem;
+  static uint16_t shownClockColor, shownCityColor;
+  if (full) {
+    tft.fillRect(0, SCREEN_Y + MAP_H, 240, 240 - SCREEN_Y - MAP_H, TFT_BLACK);
+    tft.fillRect(0, CLOCK_BOX_Y0, CLOCK_BOX_X1, SCREEN_Y + MAP_H - CLOCK_BOX_Y0, TFT_BLACK);
+    shownClock = shownCity = shownProblem = "";
+  }
 
-  useFont(tft, FONT_ALERT_CLOCK);
-  tft.setTextDatum(ML_DATUM);
-  tft.setTextColor(clockColor, TFT_BLACK);
-  tft.drawString(net::timeValid() ? hhmm(time(nullptr)) : String("--:--"), 3, CLOCK_Y);
+  String clock = net::timeValid() ? hhmm(time(nullptr)) : String("--:--");
+  if (clock != shownClock || clockColor != shownClockColor) {
+    if (!full) tft.fillRect(0, CLOCK_BOX_Y0, CLOCK_BOX_X1, 189 - CLOCK_BOX_Y0, TFT_BLACK);
+    useFont(tft, FONT_ALERT_CLOCK);
+    tft.setTextDatum(ML_DATUM);
+    tft.setTextColor(clockColor, TFT_BLACK);
+    tft.drawString(clock, 3, CLOCK_Y);
+    shownClock = clock, shownClockColor = clockColor;
+  }
 
+  String city = home >= 0 ? String(MAP[home].label) : String("");
+  uint16_t cityColor = TFT_DARKGREY;
   if (home >= 0) {
     uint8_t sev = severity(s, home);
-    useCityFont(tft, home);
-    tft.setTextDatum(ML_DATUM);
-    tft.setTextColor(!upd || sev == SEV_UNKNOWN ? TFT_DARKGREY : sev == SEV_RED ? TFT_RED : sev == SEV_ORANGE ? TFT_ORANGE : TFT_GREEN, TFT_BLACK);
-    tft.drawString(MAP[home].label, 3, CITY_Y);
+    if (upd && sev != SEV_UNKNOWN) cityColor = sev == SEV_RED ? TFT_RED : sev == SEV_ORANGE ? TFT_ORANGE : TFT_GREEN;
+  }
+  if (city != shownCity || cityColor != shownCityColor) {
+    if (!full) tft.fillRect(0, 190, 240, 50, TFT_BLACK);
+    if (home >= 0) {
+      useCityFont(tft, home);
+      tft.setTextDatum(ML_DATUM);
+      tft.setTextColor(cityColor, TFT_BLACK);
+      tft.drawString(city, 3, CITY_Y);
+    }
+    shownCity = city, shownCityColor = cityColor;
   }
 
   bool stale = upd && time(nullptr) - upd > 3 * interval + 30;
+  String problem;
   if (*err || stale) {
     useFont(tft, FONT_SMALL);
-    String problem = *err ? String(err) : "дані з " + hhmm(upd);
+    problem = *err ? String(err) : "дані з " + hhmm(upd);
     if (tft.textWidth(problem) > 237 - CLOCK_BOX_X1) problem = *err ? "помилка" : "старі дані";
-    tft.setTextDatum(MR_DATUM);
-    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-    tft.drawString(problem, 237, 176);
+  }
+  if (problem != shownProblem) {
+    if (!full) tft.fillRect(CLOCK_BOX_X1, SCREEN_Y + MAP_H, 240 - CLOCK_BOX_X1, 190 - SCREEN_Y - MAP_H, TFT_BLACK);
+    if (problem.length()) {
+      useFont(tft, FONT_SMALL);
+      tft.setTextDatum(MR_DATUM);
+      tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+      tft.drawString(problem, 237, 176);
+    }
+    shownProblem = problem;
   }
 }
 
@@ -329,7 +362,7 @@ static void render(TFT_eSPI &tft, bool full) {
     drawnVersion = v;
     drawMap(tft, s, home);
   }
-  drawFooter(tft, s, home, upd, err, interval, clockColor);
+  drawFooter(tft, s, home, upd, err, interval, clockColor, full);
 }
 
 // ---- home alarm ---------------------------------------------------------------------
@@ -427,7 +460,7 @@ void tick(TFT_eSPI &tft) {
   if (blinking) return;  // loop() owns the screen while the alarm blinks
   static uint32_t lastFooter = 0;
   bool mapRedraw = drawnVersion != version;
-  if (mapRedraw || millis() - lastFooter > 5000) {
+  if (mapRedraw || millis() - lastFooter > 1000) {  // cheap: the footer repaints only what changed
     lastFooter = millis();
     render(tft, false);
   }
