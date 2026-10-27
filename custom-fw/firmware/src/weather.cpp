@@ -208,11 +208,6 @@ static const char *describe(int code) {
   }
 }
 
-static String windText(float v, const String &unit) {
-  const char *u = unit == "km/h" ? " км/год" : unit == "mile/h" ? " миль/год" : " м/с";
-  return String(v, v < 10 && unit == "m/s" ? 1 : 0) + u;
-}
-
 static String deg(float t) { return String(lround(t)) + "°"; }
 
 // ---- icon -----------------------------------------------------------------------------
@@ -273,11 +268,9 @@ static void dropIcon(TFT_eSPI &tft, int x, int cy, uint16_t c) {
 }
 
 static void windIcon(TFT_eSPI &tft, int x, int cy, uint16_t c) {
-  tft.drawWideLine(x, cy - 6, x + 16, cy - 6, 3, c, TFT_BLACK);
-  tft.drawArc(x + 16, cy - 10, 4, 2, 270, 180, c, TFT_BLACK);
-  tft.drawWideLine(x, cy + 1, x + 22, cy + 1, 3, c, TFT_BLACK);
-  tft.drawWideLine(x + 4, cy + 8, x + 14, cy + 8, 3, c, TFT_BLACK);
-  tft.drawArc(x + 14, cy + 12, 4, 2, 180, 90, c, TFT_BLACK);
+  tft.drawWideLine(x, cy - 7, x + 18, cy - 7, 3, c, TFT_BLACK);
+  tft.drawWideLine(x, cy, x + 24, cy, 3, c, TFT_BLACK);
+  tft.drawWideLine(x + 5, cy + 7, x + 16, cy + 7, 3, c, TFT_BLACK);
 }
 
 // ---- screen ---------------------------------------------------------------------------
@@ -302,56 +295,54 @@ static void render(TFT_eSPI &tft) {
     return;
   }
 
-  drawIcon(tft, 4, 18, d.code, d.day);
+  // Layout (mocked on a PC first): 12 px margins, two 108 px columns centred on x 66 and 174.
+  // Top: icon | temperature + "як <feels>"; middle: description across; thin divider;
+  // bottom: humidity | wind, each centred in its column (value 24 px, unit 15 px).
+  const int L = 66, R = 174, LIGHT = 0xBDF7, VALUE = 0xEF5D;
+  drawIcon(tft, L - 50, 18, d.code, d.day);
 
-  // Right of the icon: temperature large (digits font + a drawn degree ring), "як <feels>" under it.
   useFont(tft, FONT_TEMP);
   String t = String(lround(d.temp));
-  int w = tft.textWidth(t), x = 172 - (w + 16) / 2;
+  int w = tft.textWidth(t), x = R - (w + 16) / 2;
   tft.setTextDatum(ML_DATUM);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString(t, x, 60);
-  tft.drawCircle(x + w + 9, 42, 6, TFT_WHITE);
-  tft.drawCircle(x + w + 9, 42, 5, TFT_WHITE);
+  tft.drawString(t, x, 58);
+  tft.drawCircle(x + w + 9, 36, 6, TFT_WHITE);
+  tft.drawCircle(x + w + 9, 36, 5, TFT_WHITE);
   useFont(tft, FONT_LARGE);
   tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-  tft.drawString("як " + deg(d.feels), 172, 104);
+  tft.setTextColor(LIGHT, TFT_BLACK);
+  tft.drawString("як " + deg(d.feels), R, 100);
 
-  // Under the icon: description (or a fetch problem), on two lines if wider than the icon column.
-  const int colX = 52, colW = 112;
   String desc = *err ? String(err) : String(describe(d.code));
-  useFont(tft, FONT_LARGE);
-  if (tft.textWidth(desc) > colW) useFont(tft, FONT_SMALL);
+  if (tft.textWidth(desc) > 228) useFont(tft, FONT_SMALL);
   tft.setTextColor(*err ? TFT_YELLOW : TFT_WHITE, TFT_BLACK);
-  int sp = desc.indexOf(' ');
-  if (tft.textWidth(desc) > colW && sp > 0) {
-    tft.drawString(desc.substring(0, sp), colX, 128);
-    tft.drawString(desc.substring(sp + 1), colX, 146);
-  } else {
-    tft.drawString(desc, colX, 132);
-  }
+  tft.drawString(desc, 120, 140);
 
-  useFont(tft, FONT_SMALL);
-  // Humidity and wind as icon + value, centred together on one line (smaller font if it does not fit).
-  String hum = String(d.humidity) + "%", wind = windText(d.wind, c.wind);
-  const int icon = 24, pad = 5, gap = 20;
-  useFont(tft, FONT_LARGE);
-  int total = icon + pad + tft.textWidth(hum) + gap + icon + pad + tft.textWidth(wind);
-  if (total > 236) {
+  tft.drawFastHLine(24, 166, 192, 0x2945);
+
+  struct Cell {
+    int cx;
+    String value, unit;
+  };
+  String windUnit = c.wind == "km/h" ? "км/год" : c.wind == "mile/h" ? "миль/год" : "м/с";
+  Cell cells[2] = {{L, String(d.humidity), "%"}, {R, String(d.wind, d.wind < 10 && c.wind == "m/s" ? 1 : 0), windUnit}};
+  for (int i = 0; i < 2; i++) {
+    useFont(tft, FONT_LARGE);
+    int vw = tft.textWidth(cells[i].value);
     useFont(tft, FONT_SMALL);
-    total = icon + pad + tft.textWidth(hum) + gap + icon + pad + tft.textWidth(wind);
+    int uw = tft.textWidth(cells[i].unit);
+    int x0 = cells[i].cx - (24 + 6 + vw + 3 + uw) / 2;
+    if (i == 0) dropIcon(tft, x0, 198, 0x5D9F);
+    else windIcon(tft, x0, 198, LIGHT);
+    tft.setTextDatum(ML_DATUM);
+    useFont(tft, FONT_LARGE);
+    tft.setTextColor(VALUE, TFT_BLACK);
+    tft.drawString(cells[i].value, x0 + 30, 198);
+    useFont(tft, FONT_SMALL);
+    tft.setTextColor(LIGHT, TFT_BLACK);
+    tft.drawString(cells[i].unit, x0 + 30 + vw + 3, 202);
   }
-  int rx = (240 - total) / 2;
-  tft.setTextDatum(ML_DATUM);
-  tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-  dropIcon(tft, rx, 196, 0x5D9F);
-  rx += icon + pad;
-  tft.drawString(hum, rx, 196);
-  rx += tft.textWidth(hum) + gap;
-  windIcon(tft, rx, 196, 0xBDF7);
-  rx += icon + pad;
-  tft.drawString(wind, rx, 196);
 }
 
 void draw(TFT_eSPI &tft) { render(tft); }
