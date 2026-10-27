@@ -21,6 +21,7 @@ struct Config {
   int interval = 30;
   int home = -1;
   uint16_t clockColor = TFT_WHITE;
+  bool autoShow = false;  // show the map for a minute whenever the alerts change
 };
 
 // "#RRGGBB" -> RGB565
@@ -55,6 +56,7 @@ static void loadConfig() {
   c.interval = max(MIN_INTERVAL_S, store::getInt(CONFIG, "i", 30));
   c.home = constrain(store::getInt(CONFIG, "home", -1), -1, REGIONS - 1);
   c.clockColor = parseColor(store::getStr(CONFIG, "cc", "#ffffff"), TFT_WHITE);
+  c.autoShow = store::getInt(CONFIG, "auto", 0) == 1;
   xSemaphoreTake(lock, portMAX_DELAY);
   cfg = c;
   xSemaphoreGive(lock);
@@ -422,6 +424,25 @@ bool homeAlertStarted() {
     blinkLevel = sev == SEV_RED ? FULL : PARTIAL;  // FULL = red frame, PARTIAL = orange frame
   }
   return started;
+}
+
+bool alertsChanged() {
+  static uint32_t seenVersion = 0;
+  static bool seen = false;
+  static uint8_t prevLevel[REGIONS], prevRaion[MAP_RAIONS];
+  xSemaphoreTake(lock, portMAX_DELAY);
+  uint32_t v = version;
+  bool on = cfg.autoShow;
+  bool changed = false;
+  if (v != seenVersion && v != 0) {
+    changed = seen && (memcmp(prevLevel, snap.level, sizeof prevLevel) || memcmp(prevRaion, snap.raion, sizeof prevRaion));
+    memcpy(prevLevel, snap.level, sizeof prevLevel);
+    memcpy(prevRaion, snap.raion, sizeof prevRaion);
+    seen = true;
+    seenVersion = v;
+  }
+  xSemaphoreGive(lock);
+  return on && changed;
 }
 
 void testAlarm(uint8_t level) {

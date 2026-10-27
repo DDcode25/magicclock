@@ -285,9 +285,25 @@ void loop() {
   if (msgShown) return;  // keep the notice up (e.g. during OTA)
   handleTouch();
 
-  // A new alert in the home region brings the alert map up (it blinks there).
-  if (alerts::homeAlertStarted() && settings.appEnabled[APP_ALERTS] && current != APP_ALERTS) {
-    current = APP_ALERTS;
+  // A new alert in the home region brings the alert map up (it blinks there) and keeps it. With the
+  // "auto" setting any change in the alerts shows the map for a minute, then the previous app is back
+  // (unless the user switched apps meanwhile).
+  static int autoReturnApp = -1;
+  static uint32_t autoUntil = 0;
+  bool homeAlert = alerts::homeAlertStarted(), changed = alerts::alertsChanged();
+  if (autoReturnApp >= 0 && current != APP_ALERTS) autoReturnApp = -1;  // switched by touch / web
+  if (settings.appEnabled[APP_ALERTS]) {
+    if (homeAlert) {
+      autoReturnApp = -1;
+      if (current != APP_ALERTS) current = APP_ALERTS, dirty = true;
+    } else if (changed && (current != APP_ALERTS || autoReturnApp >= 0)) {
+      if (current != APP_ALERTS) autoReturnApp = current, current = APP_ALERTS, dirty = true;
+      autoUntil = millis() + 60000;
+    }
+  }
+  if (autoReturnApp >= 0 && (int32_t)(millis() - autoUntil) >= 0) {
+    current = settings.appEnabled[autoReturnApp] ? autoReturnApp : current;
+    autoReturnApp = -1;
     dirty = true;
   }
 
