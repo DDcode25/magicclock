@@ -15,5 +15,6 @@ static const AppItem APP_ITEMS[] = {
 };
 static const int APP_COUNT = sizeof(APP_ITEMS) / sizeof(APP_ITEMS[0]);
 static const int APP_PICTURE = 4;
+static const int APP_CLOCK = 6;
 static const int APP_SETTINGS = 8;
 static const int APP_ALERTS = 9;

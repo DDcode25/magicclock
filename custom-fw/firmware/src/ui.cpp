@@ -4,6 +4,7 @@
 #include "alerts.h"
 #include "apps.h"
 #include "board.h"
+#include "clock.h"
 #include "fonts.h"
 #include "net.h"
 #include "pictures.h"
@@ -173,7 +174,9 @@ static void drawSettings() {
 }
 
 // Placeholder screen until each app is implemented: name, clock, network.
-static bool isPlaceholder() { return current != APP_ALERTS && current != APP_PICTURE && current != APP_SETTINGS; }
+static bool isPlaceholder() {
+  return current != APP_ALERTS && current != APP_PICTURE && current != APP_SETTINGS && current != APP_CLOCK;
+}
 
 static void drawApp() {
   static int shown = -1;
@@ -182,6 +185,7 @@ static void drawApp() {
   if (current == APP_ALERTS) return alerts::draw(tft);
   if (current == APP_PICTURE) return pictures::show(tft);
   if (current == APP_SETTINGS) return drawSettings();
+  if (current == APP_CLOCK) return clockapp::draw(tft);
   tft.fillScreen(TFT_BLACK);
   tft.fillRect(0, 0, 240, 36, 0x18E3);
   tft.setTextDatum(MC_DATUM);
@@ -293,6 +297,7 @@ void loop() {
     lastSecond = millis();
     if (isPlaceholder()) drawStatus();
     else if (current == APP_ALERTS) alerts::tick(tft);
+    else if (current == APP_CLOCK) clockapp::tick(tft);
     static int lastBrightness = -1;
     int b = effectiveBrightness();
     if (b != lastBrightness) {
