@@ -354,7 +354,7 @@ static void render(TFT_eSPI &tft) {
   // One reading per line: two per line do not fit 240 px with long units (e.g. "миль/год").
   useFont(tft, FONT_SMALL);
   tft.setTextColor(*err ? TFT_YELLOW : TFT_LIGHTGREY, TFT_BLACK);
-  tft.drawString(*err ? String(err) : "відчувається як " + deg(d.feels), 120, 180);
+  tft.drawString(*err ? String(err) : deg(d.temp) + " як " + deg(d.feels), 120, 180);  // "7° як 4°": feels like
   // Humidity and wind as icon + value, centred together on one line.
   String hum = String(d.humidity) + "%", wind = windText(d.wind, c.wind);
   const int icon = 16, pad = 4, gap = 22;
