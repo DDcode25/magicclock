@@ -107,10 +107,10 @@ static void loadConfig() {
   c.kline = store::getStr("/.sys/k.json", "k", "1d");
   c.theme = constrain(store::getInt("/.sys/c_theme.json", "c_theme", 0), 0, 3);
   c.line = store::getInt("/.sys/c_chart.json", "c_chart", 0) == 1;
-  c.upFg = color("up_fg", TFT_BLACK), c.upBg = color("up_bg", TFT_GREEN);
+  c.upFg = color("up_fg", TFT_BLACK), c.upBg = color("up_bg", 0x2DED);  // #2EBD6B, softer than pure green
   c.downFg = color("down_fg", TFT_WHITE), c.downBg = color("down_bg", TFT_RED);
   c.coinFg = color("coin_fg", TFT_WHITE), c.coinBg = color("coin_bg", TFT_BLACK);
-  c.pctUpFg = color("pct_up_fg", TFT_BLACK), c.pctUpBg = color("pct_up_bg", TFT_GREEN);
+  c.pctUpFg = color("pct_up_fg", TFT_BLACK), c.pctUpBg = color("pct_up_bg", 0x2DED);
   c.pctDownFg = color("pct_down_fg", TFT_WHITE), c.pctDownBg = color("pct_down_bg", TFT_RED);
   String d = store::getStr("/.sys/sep.json", "decimal_sep", "."), t = store::getStr("/.sys/sep.json", "thousand_sep", ",");
   c.dec = d.length() ? d[0] : '.';

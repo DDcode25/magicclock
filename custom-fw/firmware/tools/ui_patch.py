@@ -298,6 +298,11 @@ PATCHES = [
      r'<a href="http://uasmartbox.local" target="_blank" rel="noopener">uasmartbox.local</a>'),
     (r'<a href="https://github\.com/GeekMagicClock/smalltv-pro"[^>]*>[^<]*</a>',
      r'<a href="http://uasmartbox.local" target="_blank" rel="noopener">uasmartbox.local</a>'),
+    # softer default "up" green (pure #00ff00 is glaring on the panel)
+    (r"shared:\{up_fg:'#000000',up_bg:'#00ff00',(.*?)pct_up_bg:'#00ff00'",
+     r"shared:{up_fg:'#000000',up_bg:'#2ebd6b',\1pct_up_bg:'#2ebd6b'"),
+    (r"state\.shared\.up_bg=String\(colors\.up_bg\?\?'#00ff00'\)", "state.shared.up_bg=String(colors.up_bg??'#2ebd6b')"),
+    (r"state\.shared\.pct_up_bg=String\(colors\.pct_up_bg\?\?'#00ff00'\)", "state.shared.pct_up_bg=String(colors.pct_up_bg??'#2ebd6b')"),
     # firmware name in the tab title and the page header
     (r"<title>GeekMagic PRO</title>", "<title>UA Smart Box</title>"),
 ]
