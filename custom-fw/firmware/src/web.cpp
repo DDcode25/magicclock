@@ -359,8 +359,8 @@ static void handleStatic() {
 // ---- OTA, flash ---------------------------------------------------------------------
 
 static const char UPDATE_PAGE[] PROGMEM =
-    "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width,initial-scale=1'>"
-    "<title>Firmware Update</title></head><body style='font-family:sans-serif'><h3>SmallTV Pro firmware update</h3>"
+    "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'>"
+    "<title>UASmartBox</title></head><body style='font-family:sans-serif'><h3>UASmartBox — оновлення прошивки</h3>"
     "<form method='POST' action='/update' enctype='multipart/form-data'>"
     "<input type='file' name='firmware' accept='.bin'> <input type='submit' value='Update'></form></body></html>";
 

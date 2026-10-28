@@ -1,4 +1,4 @@
-// SmallTV Pro open firmware. Stock-compatible settings, web UI/API and OTA; see ../SPEC.md.
+// UASmartBox firmware (Magic Box FW) for the GeekMagic SmallTV Pro. Stock-compatible settings, web UI/API and OTA; see ../SPEC.md.
 
 #include <Arduino.h>
 #include <esp_ota_ops.h>

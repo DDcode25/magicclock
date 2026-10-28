@@ -281,7 +281,7 @@ PATCHES = [
     # Wi-Fi: the remembered networks (the device connects to the strongest one in range)
     (r'(<p class="wifi-note">[^<]*</p>)',
      r'\1\n          <div class="hint">Пристрій пам’ятає 5 останніх мереж і сам підключається до найсильнішої з них — '
-     r'зручно, якщо переносите його. Без мережі він відкриває точку доступу SmallTV-PRO і щохвилини шукає знайомі мережі.</div>'
+     r'зручно, якщо переносите його. Без мережі він відкриває точку доступу UASmartBox і щохвилини шукає знайомі мережі.</div>'
      r'\n          <div class="stack" id="wifiKnown"></div>'),
     (r"(\n(\s*)async function loadWifiList\(silent,force\)\{)",
      r"\n\2async function loadWifiKnown(){"

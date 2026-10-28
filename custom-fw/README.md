@@ -29,7 +29,7 @@
 | Налаштування | Версия, режим Wi-Fi, сеть, IP |
 
 **Wi-Fi.** Устройство помнит 5 последних сетей и подключается к самой сильной из доступных. Если сети нет,
-открывает точку доступа `SmallTV-PRO` по адресу 192.168.4.1.
+открывает точку доступа `UASmartBox` по адресу 192.168.4.1.
 
 **Сенсор:**
 - одно касание — следующий экран;
@@ -43,8 +43,8 @@
 | | |
 |---|---|
 | Адрес (у разработчика) | `http://192.168.210.37` |
-| Имя mDNS | `http://smalltv-pro.local` |
-| Точка доступа без сети | Wi-Fi `SmallTV-PRO`, без пароля → `http://192.168.4.1` |
+| Имя mDNS | `http://uasmartbox.local` |
+| Точка доступа без сети | Wi-Fi `UASmartBox`, без пароля → `http://192.168.4.1` |
 
 ---
 
@@ -58,7 +58,7 @@
 |---|---|
 | `/` | Веб-интерфейс: заводской, переведён, со вкладками «Тривоги» и «Світло» |
 | `/update` | Обновление прошивки (OTA): страница загрузки `.bin`, POST — сама прошивка |
-| `/v.json` | Модель и версия: `{"m":"GeekMagic SmallTV-PRO","v":"Magic Box FW x.y.z"}` |
+| `/v.json` | Модель и версия: `{"m":"UASmartBox","v":"Magic Box FW x.y.z"}` |
 | `/sys.json` | **Диагностика:** время работы, память, причина перезагрузки, «крошки» задач, журнал 10 загрузок со стеком паники |
 | `/state.json` | Какое приложение на экране |
 | `/touch.json` | Сенсор: текущее значение, уровень покоя, порог, счётчики касаний |
@@ -138,8 +138,8 @@
 
 ```sh
 cd custom-fw/firmware
-pio run                                   # сборка: .pio/build/smalltv-pro/firmware.bin
-curl -F "update=@.pio/build/smalltv-pro/firmware.bin" http://192.168.210.37/update
+pio run                                   # сборка: .pio/build/uasmartbox/firmware.bin
+curl -F "update=@.pio/build/uasmartbox/firmware.bin" http://192.168.210.37/update
 ```
 
 Ответ `Update Success! Rebooting...` значит, что прошивка записана. Через 20–30 секунд проверьте версию на `/v.json`.
@@ -185,7 +185,7 @@ g++ -std=c++17 -Isrc -I.pio/libdeps/smalltv-pro/ArduinoJson/src test/poe_parse_t
 
 ```sh
 ~/.platformio/packages/toolchain-xtensa-esp32/bin/xtensa-esp32-elf-addr2line -pfiaC \
-  -e custom-fw/firmware/.pio/build/smalltv-pro/firmware.elf <адреса из bt>
+  -e custom-fw/firmware/.pio/build/uasmartbox/firmware.elf <адреса из bt>
 ```
 
 ---
@@ -197,7 +197,7 @@ g++ -std=c++17 -Isrc -I.pio/libdeps/smalltv-pro/ArduinoJson/src test/poe_parse_t
 | `custom-fw/firmware/` | Исходники прошивки (PlatformIO, Arduino-ESP32 2.0.17) |
 | `custom-fw/probe/` | Диагностическая прошивка: дамп флеша, тест экрана и сенсора |
 | `custom-fw/backup/` | Бэкап флеша устройства. **Не в git:** там пароль Wi-Fi |
-| `custom-fw/partitions_smalltv_pro.csv` | Заводская таблица разделов (не менять) |
+| `custom-fw/partitions_uasmartbox.csv` | Заводская таблица разделов (не менять) |
 | `firmware/` | Заводские прошивки GeekMagic |
 
 ---
