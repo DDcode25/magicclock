@@ -240,7 +240,7 @@ static void task(void *) {
     for (int j = 0; j < perPage(c.theme) && first + j < c.count; j++) {
       const Pair &p = pairs[first + j];
       due[j] = needsCandles(c) && !p.bad &&
-               (!p.klineAt || p.klineOf != c.kline || millis() - p.klineAt >= (uint32_t)c.refreshS * 1000);
+               (!p.klineAt || p.klineOf != c.kline || millis() - p.klineAt >= max(60, c.refreshS) * 1000UL);
     }
     xSemaphoreGive(lock);
     if (!c.count) continue;
@@ -319,7 +319,7 @@ static String label(const Config &c, int i) {
 }
 
 // ---- drawing --------------------------------------------------------------------------
-// The screen is composed in 30-row bands in a 16-bit sprite (14 KB, only while the app is shown) and
+// The screen is composed in 30-row bands in a 16-bit sprite (14 KB, only during a render) and
 // pushed band by band: no flicker on updates. Layout code works in screen coordinates; OY is the top
 // of the band being drawn. Without the sprite (no RAM) it draws straight to the screen.
 
@@ -530,6 +530,14 @@ static uint32_t drawnVersion = UINT32_MAX;
 static int drawnMinute = -1;
 static uint32_t pageAt = 0;
 
+static void freeBand() {
+  if (!band) return;
+  band->unloadFont();
+  band->deleteSprite();
+  delete band;
+  band = nullptr;
+}
+
 static void render(TFT_eSPI &tft) {
   static View v;  // ~2 KB: off the UI task stack
   xSemaphoreTake(lock, portMAX_DELAY);
@@ -566,6 +574,7 @@ static void render(TFT_eSPI &tft) {
     layout(tft, v);
   }
   OY = 0;
+  freeBand();  // allocated per render: a long-lived 14 KB block would split the heap
   if (v.c.theme <= 1) wifiMarkRedraw(tft);
   diag::crumb(diag::UI, "btc idle");  // stacked pairs use the corner
 }
@@ -608,12 +617,7 @@ void next(TFT_eSPI &tft) {
 
 void hide() {
   shown = false;
-  if (band) {
-    band->unloadFont();
-    band->deleteSprite();
-    delete band;
-    band = nullptr;
-  }
+  freeBand();
 }
 
 String statusJson() {

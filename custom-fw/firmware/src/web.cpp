@@ -475,7 +475,7 @@ void begin() {
   });
   server.onNotFound(handleStatic);
   server.begin();
-  xTaskCreatePinnedToCore(task, "web", 12288, nullptr, 1, nullptr, 0);
+  xTaskCreatePinnedToCore(task, "web", 8192, nullptr, 1, nullptr, 0);
 }
 
 // The server runs in its own task on core 0, so serving files (e.g. the web UI loading every

@@ -139,7 +139,7 @@ void begin() {
   lock = xSemaphoreCreateMutex();
   loadConfig();
   memset(&snap, 0, sizeof snap);
-  xTaskCreatePinnedToCore(task, "alerts", 12288, nullptr, 1, nullptr, 0);
+  xTaskCreatePinnedToCore(task, "alerts", 10240, nullptr, 1, nullptr, 0);
 }
 
 void pause(bool on) { paused = on; }

@@ -22,6 +22,9 @@ void applyTime();      // (re)configure NTP and timezone from settings
 // two at once run short of RAM next to the map sprite and the GIF decoder.
 void fetchLock();
 void fetchUnlock();
+// Takes the TLS reserve (see net.cpp); call first thing at boot, before the tasks start.
+void reserveTls();
+size_t tlsReserved();  // bytes held for the next fetch (0: none)
 bool timeValid();
 
 String scanJson();     // {"aps":[{"ss":..,"r":quality%,"e":0|1}]} for /wifi.json

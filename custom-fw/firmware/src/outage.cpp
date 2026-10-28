@@ -169,7 +169,7 @@ static void task(void *) {
 void begin() {
   lock = xSemaphoreCreateMutex();
   loadConfig();
-  xTaskCreatePinnedToCore(task, "outage", 10240, nullptr, 1, nullptr, 0);
+  xTaskCreatePinnedToCore(task, "outage", 8192, nullptr, 1, nullptr, 0);
 }
 
 void reload() {

@@ -4,6 +4,7 @@
 #include <esp_private/panic_internal.h>
 #include <esp_system.h>
 #include <freertos/xtensa_context.h>
+#include "net.h"
 #include "store.h"
 
 namespace diag {
@@ -97,6 +98,7 @@ String json() {
   doc["minHeap"] = ESP.getMinFreeHeap();
   doc["maxBlock"] = ESP.getMaxAllocHeap();
   doc["reset"] = reasonText(esp_reset_reason());
+  doc["tlsReserve"] = net::tlsReserved();
   doc["ui"] = (const char *)last[UI];
   doc["web"] = (const char *)last[WEB];
   doc["fetch"] = (const char *)last[FETCH];
@@ -105,6 +107,17 @@ String json() {
     o["what"] = (const char *)kept[i % 8].what;
     o["bytes"] = kept[i % 8].bytes;
     o["at"] = kept[i % 8].at;
+  }
+  // Background tasks: state (0 running, 1 ready, 2 blocked, 3 suspended, 4 deleted) and free stack words.
+  for (const char *name : {"alerts", "weather", "bitcoin", "outage", "web"}) {
+    TaskHandle_t t = xTaskGetHandle(name);
+    JsonObject o = doc["tasks"][name].to<JsonObject>();
+    if (!t) {
+      o["state"] = -1;
+      continue;
+    }
+    o["state"] = (int)eTaskGetState(t);
+    o["stack"] = uxTaskGetStackHighWaterMark(t);
   }
   doc["boots"] = store::load(LOG)["boots"];
   String out;

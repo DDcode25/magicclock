@@ -174,16 +174,40 @@ void applyTime() {
 bool timeValid() { return time(nullptr) > 1700000000; }
 
 static SemaphoreHandle_t fetchMutex = xSemaphoreCreateMutex();
+// TLS reserve. A handshake needs ~40 KB in few large blocks (two 16.7 KB record buffers, bignums);
+// minutes after boot small long-lived allocations have split the heap so that no such block is left
+// (MBEDTLS_ERR_SSL_ALLOC_FAILED / MPI_ALLOC_FAILED). One block is taken at boot, while the heap is
+// whole, and given back only for the duration of a fetch: the TLS buffers then land in it.
+static const size_t TLS_RESERVE = 44 * 1024;
+static void *reserve = nullptr;
+
+// After the first fetch the largest free block is often a bit smaller than TLS_RESERVE: then the
+// reserve holds the largest block there is (down to 32 KB), so that block at least stays whole.
+static size_t reserved = 0;
+
+void reserveTls() {
+  if (reserve) return;
+  size_t want = min(TLS_RESERVE, heap_caps_get_largest_free_block(MALLOC_CAP_8BIT) & ~(size_t)15);
+  if (want < 32 * 1024) return;
+  reserve = heap_caps_malloc(want, MALLOC_CAP_8BIT);
+  reserved = reserve ? want : 0;
+}
+
 static uint32_t heapAtLock = 0;
 void fetchLock() {
   xSemaphoreTake(fetchMutex, portMAX_DELAY);
+  free(reserve);
+  reserve = nullptr;
   heapAtLock = ESP.getFreeHeap();
 }
 void fetchUnlock() {
   diag::fetchDone(heapAtLock);  // a fetch that keeps >8 KB is logged (TLS buffers are ~17 KB)
   diag::crumb(diag::FETCH, "idle");
+  reserveTls();  // may fail on a fragmented heap; retried after the next fetch
   xSemaphoreGive(fetchMutex);
 }
+
+size_t tlsReserved() { return reserve ? reserved : 0; }
 
 String scanJson() {
   xSemaphoreTake(radio, portMAX_DELAY);

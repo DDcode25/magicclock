@@ -17,6 +17,7 @@ void setup() {
   Serial.println("\nUA Smart Box " FW_VERSION);
   esp_ota_mark_app_valid_cancel_rollback();
 
+  net::reserveTls();  // while the heap is still in one piece
   if (!store::begin()) Serial.println("LittleFS: mount failed (not formatting)");
   diag::begin();
   settings.load();
