@@ -4,6 +4,7 @@
 #include <ESPmDNS.h>
 #include <time.h>
 #include "board.h"
+#include "diag.h"
 #include "store.h"
 
 namespace net {
@@ -174,7 +175,10 @@ bool timeValid() { return time(nullptr) > 1700000000; }
 
 static SemaphoreHandle_t fetchMutex = xSemaphoreCreateMutex();
 void fetchLock() { xSemaphoreTake(fetchMutex, portMAX_DELAY); }
-void fetchUnlock() { xSemaphoreGive(fetchMutex); }
+void fetchUnlock() {
+  diag::crumb(diag::FETCH, "idle");
+  xSemaphoreGive(fetchMutex);
+}
 
 String scanJson() {
   xSemaphoreTake(radio, portMAX_DELAY);

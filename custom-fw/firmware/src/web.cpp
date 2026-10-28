@@ -13,6 +13,7 @@
 #include "store.h"
 #include "ui.h"
 #include "bitcoin.h"
+#include "diag.h"
 #include "weather.h"
 #include "web_index.h"
 
@@ -191,6 +192,7 @@ static void restartSoon(const char *why) {
 }
 
 static void handleSet() {
+  diag::crumb(diag::WEB, "web /set");
   // Actions first.
   if (server.hasArg("page")) {
     ui::next(server.arg("page").toInt());
@@ -462,6 +464,7 @@ void begin() {
   server.on("/gifcheck", HTTP_GET, [] { server.send(200, "application/json", pictures::checkJson(server.arg("file"), server.arg("n").toInt())); });
   server.on("/pic.json", HTTP_GET, [] { server.send(200, "application/json", pictures::statsJson()); });
   server.on("/outage.json", HTTP_GET, [] { server.send(200, "application/json", outagescreen::statusJson()); });
+  server.on("/sys.json", HTTP_GET, [] { server.send(200, "application/json", diag::json()); });
   server.on("/btc.json", HTTP_GET, [] { server.send(200, "application/json", bitcoin::statusJson()); });
   server.on("/weather.json", HTTP_GET, [] { server.send(200, "application/json", weather::statusJson()); });
   server.on("/state.json", HTTP_GET, [] { server.send(200, "application/json", ui::stateJson()); });
@@ -480,7 +483,9 @@ void begin() {
 // ui::message() (queued) and flags that the UI loop picks up.
 static void task(void *) {
   for (;;) {
+    diag::crumb(diag::WEB, "web busy");
     server.handleClient();
+    diag::crumb(diag::WEB, "web idle");
     vTaskDelay(1);
   }
 }

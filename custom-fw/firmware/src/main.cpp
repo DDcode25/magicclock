@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <esp_ota_ops.h>
 #include "alerts.h"
+#include "diag.h"
 #include "net.h"
 #include "outage.h"
 #include "store.h"
@@ -17,6 +18,7 @@ void setup() {
   esp_ota_mark_app_valid_cancel_rollback();
 
   if (!store::begin()) Serial.println("LittleFS: mount failed (not formatting)");
+  diag::begin();
   settings.load();
   ui::begin();
   ui::message("Magic Box FW", "підключення до Wi-Fi…");

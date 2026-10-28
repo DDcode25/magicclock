@@ -1,14 +1,15 @@
 #include "bitcoin.h"
 #include <ArduinoJson.h>
 #include <HTTPClient.h>
-#include <WiFiClientSecure.h>
 #include <math.h>
 #include <time.h>
 #include "apps.h"
+#include "diag.h"
 #include "fonts.h"
 #include "net.h"
 #include "netreader.h"
 #include "store.h"
+#include "tlsclient.h"
 #include "widgets.h"
 
 namespace bitcoin {
@@ -110,8 +111,7 @@ static void loadConfig() {
 
 // GET url; 200 parses the body into doc (through filter when given). Returns the HTTP code, or -1.
 static int getJson(const String &url, JsonDocument &doc, const JsonDocument *filter, String &err) {
-  WiFiClientSecure client;
-  client.setInsecure();  // public market data; no CA bundle on the device
+  TlsClient client;
   HTTPClient http;
   http.setTimeout(10000);
   http.useHTTP10(true);  // plain body: parsed straight from the stream
@@ -228,6 +228,7 @@ static void task(void *) {
     String err;
     bool ok = true;
     net::fetchLock();
+    diag::crumb(diag::FETCH, "btc fetch");
     if (tickers) {
       fetchNow = false;
       last = millis();
@@ -296,11 +297,11 @@ static String label(const Config &c, int i) {
 }
 
 // ---- drawing --------------------------------------------------------------------------
-// The screen is composed in 60-row bands in a 16-bit sprite (29 KB, only while the app is shown) and
+// The screen is composed in 30-row bands in a 16-bit sprite (14 KB, only while the app is shown) and
 // pushed band by band: no flicker on updates. Layout code works in screen coordinates; OY is the top
 // of the band being drawn. Without the sprite (no RAM) it draws straight to the screen.
 
-static const int BAND_H = 60;
+static const int BAND_H = 30;  // 240 x 30 x 2 bytes: small next to a TLS fetch (~45 KB)
 static TFT_eSprite *band = nullptr;
 static int OY = 0;
 static bool onSprite = false;
@@ -502,6 +503,7 @@ static void render(TFT_eSPI &tft) {
       band = nullptr;
     }
   }
+  diag::crumb(diag::UI, "btc render");
   if (band) {
     band->setTextWrap(false, false);
     onSprite = true;
@@ -517,7 +519,8 @@ static void render(TFT_eSPI &tft) {
     layout(tft, v);
   }
   OY = 0;
-  if (v.c.theme <= 1) wifiMarkRedraw(tft);  // stacked pairs use the corner
+  if (v.c.theme <= 1) wifiMarkRedraw(tft);
+  diag::crumb(diag::UI, "btc idle");  // stacked pairs use the corner
 }
 
 void draw(TFT_eSPI &tft) {

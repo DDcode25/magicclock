@@ -3,6 +3,7 @@
 #include <WiFiClient.h>
 #include <time.h>
 #include "apps.h"
+#include "diag.h"
 #include "fonts.h"
 #include "net.h"
 #include "store.h"
@@ -149,6 +150,7 @@ static void task(void *) {
     Data d;
     String err;
     net::fetchLock();
+    diag::crumb(diag::FETCH, "weather fetch");
     bool ok = fetch(c, d, err);
     net::fetchUnlock();
     lastOk = ok;

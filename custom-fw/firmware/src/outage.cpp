@@ -1,14 +1,15 @@
 #include "outage.h"
 #include <HTTPClient.h>
-#include <WiFiClientSecure.h>
 #include <math.h>
 #include <time.h>
 #include "apps.h"
+#include "diag.h"
 #include "fonts.h"
 #include "net.h"
 #include "netreader.h"
 #include "outage_parse.h"
 #include "store.h"
+#include "tlsclient.h"
 #include "widgets.h"
 
 namespace outagescreen {
@@ -104,8 +105,7 @@ static String sourceUrl(const String &src) {
 }
 
 static bool fetch(const Config &c, Schedule &s, String &err) {
-  WiFiClientSecure client;
-  client.setInsecure();  // public, read-only data; no CA bundle on the device
+  TlsClient client;
   HTTPClient http;
   http.setTimeout(15000);
   http.useHTTP10(true);  // plain body: parsed straight from the stream (files up to 300 KB)
@@ -147,6 +147,7 @@ static void task(void *) {
     Schedule s;
     String err;
     net::fetchLock();
+    diag::crumb(diag::FETCH, "outage fetch");
     bool ok = fetch(c, s, err);
     net::fetchUnlock();
     lastOk = ok;

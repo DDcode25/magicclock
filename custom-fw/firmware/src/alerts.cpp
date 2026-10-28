@@ -1,13 +1,14 @@
 #include "alerts.h"
 #include <algorithm>
 #include <HTTPClient.h>
-#include <WiFiClientSecure.h>
 #include "apps.h"
+#include "diag.h"
 #include "fonts.h"
 #include "widgets.h"
 #include "net.h"
 #include "netreader.h"
 #include "store.h"
+#include "tlsclient.h"
 #include "ukraine_map.h"
 
 namespace alerts {
@@ -71,8 +72,7 @@ static bool fetch(const Config &c, Snapshot &out, String &err) {
     url = "https://api.alerts.in.ua/v1/iot/active_air_raid_alerts_by_oblast.json?token=" + c.token;
   } else url = "https://vadimklimenko.com/map/statuses.json";
 
-  WiFiClientSecure client;
-  client.setInsecure();  // no CA bundle on the device; data is public and read-only
+  TlsClient client;
   HTTPClient http;
   http.setTimeout(10000);
   http.useHTTP10(true);  // plain body: JSON is parsed straight from the stream
@@ -117,6 +117,7 @@ static void task(void *) {
     Snapshot s;
     String err;
     net::fetchLock();
+    diag::crumb(diag::FETCH, "alerts fetch");
     bool ok = fetch(c, s, err);
     net::fetchUnlock();
     Serial.printf("alerts: %s %s in %lu ms\n", c.src.c_str(), ok ? "ok" : err.c_str(), millis() - last);
