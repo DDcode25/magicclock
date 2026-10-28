@@ -293,6 +293,11 @@ PATCHES = [
      r"\n\2}\1"),
     (r"(\n(\s*)const select=byId\('wifiSelect'\);\n\s*if\(force\) loaded\.wifi=0;)",
      r"\n\2loadWifiKnown();\1"),
+    # the vendor's GitHub links -> the device's own address
+    (r'<a href="https://github\.com/GeekMagicClock/smalltv-pro/tree/main/user%20manual"[^>]*>[^<]*</a>',
+     r'<a href="http://uasmartbox.local" target="_blank" rel="noopener">uasmartbox.local</a>'),
+    (r'<a href="https://github\.com/GeekMagicClock/smalltv-pro"[^>]*>[^<]*</a>',
+     r'<a href="http://uasmartbox.local" target="_blank" rel="noopener">uasmartbox.local</a>'),
     # firmware name in the tab title and the page header
     (r"<title>GeekMagic PRO</title>", "<title>UA Smart Box</title>"),
 ]
