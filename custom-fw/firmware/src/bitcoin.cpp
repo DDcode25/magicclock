@@ -31,7 +31,6 @@ struct Config {
   uint16_t hourColor = TFT_WHITE, minuteColor = 0xFDC0;  // the clock app's (timecolor.json)
 };
 
-static const uint16_t C_INTERVAL = 0x3CDB;  // blue block with the candle interval (stock look)
 static const uint16_t C_PLATE = 0x2A2E;     // dark blue plate under the clock
 
 struct Candle {
@@ -476,9 +475,8 @@ static void layout(TFT_eSPI &g, const View &v) {
     } else {
       priceBox(g, v, 0, 34, 50, {FONT_PRICE_S});
     }
-    g.fillRect(182, 34 - OY, 58, 50, C_INTERVAL);
     useFont(g, FONT_LARGE);
-    text(g, c.kline, 211, 60, MC_DATUM, TFT_WHITE, C_INTERVAL);
+    text(g, c.kline, 211, 60, MC_DATUM, TFT_WHITE, TFT_BLACK);  // interval, no block behind it
     if (c.clock) {  // hours and minutes in the clock app's colours, on a small plate over the chart
       String t = clockText();
       useFont(g, FONT_LARGE);
