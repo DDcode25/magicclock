@@ -406,7 +406,8 @@ static int pctBox(TFT_eSPI &g, const View &v, int j, int x, int y, int h, UiFont
   return w;
 }
 
-// Candles or a line over the last 30 candles in x0..x0+w, y0..y0+h.
+// Candles or a line over the last 30 candles in x0..x0+w, y0..y0+h, in the percent colours (the
+// price colours may be text on black).
 static void chart(TFT_eSPI &g, const View &v, int j, int x0, int y0, int w, int h, bool line) {
   const Pair &p = v.p[j];
   if (p.candles < 2) return;
@@ -416,7 +417,7 @@ static void chart(TFT_eSPI &g, const View &v, int j, int x0, int y0, int w, int 
   auto Y = [&](float val) { return y0 + (int)lroundf((hi - val) / (hi - lo) * (h - 1)) - OY; };
   float step = (float)w / CANDLES;
   if (line) {
-    uint16_t col = p.k[p.candles - 1].c >= p.k[0].o ? v.c.upBg : v.c.downBg;
+    uint16_t col = p.k[p.candles - 1].c >= p.k[0].o ? v.c.pctUpBg : v.c.pctDownBg;
     for (int i = 1; i < p.candles; i++) {
       int xa = x0 + (int)((i - 1) * step + step / 2), xb = x0 + (int)(i * step + step / 2);
       g.drawLine(xa, Y(p.k[i - 1].c), xb, Y(p.k[i].c), col);
@@ -427,7 +428,7 @@ static void chart(TFT_eSPI &g, const View &v, int j, int x0, int y0, int w, int 
   int bw = max(1, (int)step - 2);
   for (int i = 0; i < p.candles; i++) {
     const Candle &k = p.k[i];
-    uint16_t col = k.c >= k.o ? v.c.upBg : v.c.downBg;
+    uint16_t col = k.c >= k.o ? v.c.pctUpBg : v.c.pctDownBg;
     int x = x0 + (int)(i * step), xc = x + bw / 2;
     g.drawFastVLine(xc, Y(k.h), Y(k.l) - Y(k.h) + 1, col);
     int ya = Y(max(k.o, k.c)), yb = Y(min(k.o, k.c));
