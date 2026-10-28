@@ -51,13 +51,51 @@ static int effectiveBrightness() {
   return night ? settings.nightBrightness : settings.brightness;
 }
 
+// System messages (boot, restart, update): large bold text, word-wrapped to the screen width and
+// centred as one block. Each part starts on a new line in its own colour.
+struct Part {
+  const char *text;
+  uint16_t color;
+};
+
+static void drawBlock(std::initializer_list<Part> parts) {
+  static const int LINE_H = 36, MAX_LINES = 6;
+  String lines[MAX_LINES];
+  uint16_t colors[MAX_LINES];
+  int n = 0;
+  useFont(tft, FONT_HUGE);
+  for (const Part &p : parts) {
+    String rest = p.text, line;
+    while (rest.length() && n < MAX_LINES) {
+      int sp = rest.indexOf(' ');
+      String word = sp < 0 ? rest : rest.substring(0, sp);
+      rest = sp < 0 ? String() : rest.substring(sp + 1);
+      String tryLine = line.length() ? line + " " + word : word;
+      if (line.length() && tft.textWidth(tryLine) > 232) {
+        lines[n] = line, colors[n++] = p.color;
+        line = word;
+      } else {
+        line = tryLine;
+      }
+    }
+    if (line.length() && n < MAX_LINES) lines[n] = line, colors[n++] = p.color;
+  }
+  tft.setTextDatum(MC_DATUM);
+  int y = 120 - (n - 1) * LINE_H / 2;
+  for (int i = 0; i < n; i++, y += LINE_H) {
+    useFont(tft, FONT_HUGE);  // a single word wider than the screen: next smaller font
+    if (tft.textWidth(lines[i]) > 236) useFont(tft, FONT_LARGE);
+    if (tft.textWidth(lines[i]) > 236) useFont(tft, FONT_SMALL);
+    tft.setTextColor(colors[i], TFT_BLACK);
+    tft.drawString(lines[i], 120, y);
+  }
+}
+
 static void calibrateTouch() {
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_ORANGE, TFT_BLACK);
   tft.setTextDatum(MC_DATUM);
-  useFont(tft, FONT_LARGE);
-  tft.drawString("Не торкайтеся", 120, 105);
-  tft.drawString("кнопки зверху!", 120, 135);
+  drawBlock({{"Не торкайтеся кнопки зверху!", TFT_ORANGE}});
   delay(300);
   uint32_t sum = 0;
   for (int i = 0; i < 16; i++) {
@@ -139,13 +177,7 @@ String touchJson() {
 
 static void drawMessage(const char *title, const char *text) {
   tft.fillScreen(TFT_BLACK);
-  tft.setTextDatum(MC_DATUM);
-  tft.setTextColor(TFT_ORANGE, TFT_BLACK);
-  useFont(tft, FONT_LARGE);
-  tft.drawString(title, 120, 100);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  useFont(tft, FONT_SMALL);
-  tft.drawString(text, 120, 140);
+  drawBlock({{title, TFT_ORANGE}, {text, TFT_WHITE}});
 }
 
 void message(const String &title, const String &text) {

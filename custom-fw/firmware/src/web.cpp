@@ -186,7 +186,7 @@ static bool clearDir(const char *dir) {
 }
 
 static void restartSoon(const char *why) {
-  ui::message(why, "перезавантаження…");
+  ui::message(why, "перезапуск…");
   delay(800);
   ESP.restart();
 }
@@ -207,7 +207,7 @@ static void handleSet() {
   }
   if (server.hasArg("reboot")) {
     ok();
-    restartSoon("Перезавантаження");
+    restartSoon("Перезапуск");
   }
   if (server.hasArg("reset")) {
     // Factory reset of settings; Wi-Fi (config.json) is kept so the device stays reachable.

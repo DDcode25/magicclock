@@ -9,10 +9,11 @@
 // FONT_TEMP: bold 56 px digits and "-" (weather temperature); FONT_DIAL: bold 16 px digits (outage dial);
 // FONT_NUM / FONT_NUM_BIG: bold 24 / 28 px digits, "+", "-", "." (outage centre).
 // FONT_PRICE_XL/L/M/S: bold 52 / 40 / 28 / 22 px digits, ".", ",", "'", "+", "-", "%" (Bitcoin app).
+// FONT_HUGE: bold 30 px, full Ukrainian charset (boot and system messages).
 // FONT_ALARM: only "ТРИВОГА", bold 61 px narrowed to 72 % so the word fills the screen width (alarm blink).
 enum UiFont {
   FONT_BUILTIN, FONT_SMALL, FONT_LARGE, FONT_CLOCK_BIG, FONT_CLOCK_SEC, FONT_ALERT_CLOCK, FONT_TEMP, FONT_DIAL,
-  FONT_NUM, FONT_NUM_BIG, FONT_ALARM, FONT_PRICE_XL, FONT_PRICE_L, FONT_PRICE_M, FONT_PRICE_S
+  FONT_NUM, FONT_NUM_BIG, FONT_ALARM, FONT_PRICE_XL, FONT_PRICE_L, FONT_PRICE_M, FONT_PRICE_S, FONT_HUGE
 };
 
 // Works on the screen and on sprites (each keeps its own loaded font).

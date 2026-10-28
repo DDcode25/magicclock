@@ -458,12 +458,17 @@ static void layout(TFT_eSPI &g, const View &v) {
     const Pair &p = v.p[0];
     String name = v.c.name[v.first].length() ? v.c.name[v.first] : v.c.sym[v.first];
     String pct = p.hasPrice && !p.bad ? percent(change(v, 0), c) : String();
-    useFont(g, FONT_PRICE_M);  // the change, large and bold like the prices
+    // The change, bold like the prices: 28 px when the name still fits in 24 px beside it, else 22 px.
+    useFont(g, FONT_LARGE);
+    int nameW = g.textWidth(name);
+    UiFont pctFont = FONT_PRICE_M;
+    useFont(g, pctFont);
+    if (pct.length() && 6 + nameW + 6 + g.textWidth(pct) > 214) useFont(g, pctFont = FONT_PRICE_S);
     int pctW = pct.length() ? g.textWidth(pct) : 0;
-    fit(g, name, 208 - pctW - 12, {FONT_LARGE, FONT_SMALL});
+    fit(g, name, 214 - 6 - 6 - pctW, {FONT_LARGE, FONT_SMALL});
     text(g, name, 6, 17, ML_DATUM, c.coinFg, TFT_BLACK);
     if (pctW) {
-      useFont(g, FONT_PRICE_M);
+      useFont(g, pctFont);
       text(g, pct, 214, 18, MR_DATUM, change(v, 0) >= 0 ? c.pctUpBg : c.pctDownBg, TFT_BLACK);
     }
     chart(g, v, 0, 4, 100, 232, 136, c.line);
