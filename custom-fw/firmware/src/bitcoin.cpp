@@ -454,38 +454,40 @@ static void layout(TFT_eSPI &g, const View &v) {
     text(g, "у вкладці «Біткоїн»", 120, 135, MC_DATUM, TFT_DARKGREY, TFT_BLACK);
     return;
   }
-  if (c.theme == 0) {  // as the stock screen: pair + change, price band with the interval, clock, candles
+  if (c.theme == 0) {  // as the stock screen: pair + change, price band, clock + interval, candles
     const Pair &p = v.p[0];
-    useFont(g, FONT_LARGE);
     String name = v.c.name[v.first].length() ? v.c.name[v.first] : v.c.sym[v.first];
+    String pct = p.hasPrice && !p.bad ? percent(change(v, 0), c) : String();
+    useFont(g, FONT_PRICE_M);  // the change, large and bold like the prices
+    int pctW = pct.length() ? g.textWidth(pct) : 0;
+    fit(g, name, 208 - pctW - 12, {FONT_LARGE, FONT_SMALL});
     text(g, name, 6, 17, ML_DATUM, c.coinFg, TFT_BLACK);
-    if (p.hasPrice && !p.bad) {
-      float pc = change(v, 0);
-      useFont(g, FONT_SMALL);
-      text(g, percent(pc, c), 214, 17, MR_DATUM, pc >= 0 ? c.pctUpBg : c.pctDownBg, TFT_BLACK);
+    if (pctW) {
+      useFont(g, FONT_PRICE_M);
+      text(g, pct, 214, 18, MR_DATUM, change(v, 0) >= 0 ? c.pctUpBg : c.pctDownBg, TFT_BLACK);
     }
-    chart(g, v, 0, 4, 96, 232, 140, c.line);
-    if (p.hasPrice && !p.bad) {  // price band, edge to edge
+    chart(g, v, 0, 4, 100, 232, 136, c.line);
+    if (p.hasPrice && !p.bad) {  // price band, edge to edge, the price as large as fits
       bool up = change(v, 0) >= 0;
       uint16_t bg = up ? c.upBg : c.downBg;
-      g.fillRect(0, 34 - OY, 182, 50, bg);
+      g.fillRect(0, 34 - OY, 240, 56, bg);
       String ps = price(p.price, c);
-      fit(g, ps, 172, {FONT_PRICE_L, FONT_PRICE_M, FONT_PRICE_S});
-      text(g, ps, 91, 60, MC_DATUM, up ? c.upFg : c.downFg, bg);
+      fit(g, ps, 232, {FONT_PRICE_XL, FONT_PRICE_L, FONT_PRICE_M});
+      text(g, ps, 120, 63, MC_DATUM, up ? c.upFg : c.downFg, bg);
     } else {
-      priceBox(g, v, 0, 34, 50, {FONT_PRICE_S});
+      priceBox(g, v, 0, 34, 56, {FONT_PRICE_S});
     }
-    useFont(g, FONT_LARGE);
-    text(g, c.kline, 211, 60, MC_DATUM, TFT_WHITE, TFT_BLACK);  // interval, no block behind it
     if (c.clock) {  // hours and minutes in the clock app's colours, on a small plate over the chart
       String t = clockText();
       useFont(g, FONT_LARGE);
       int w = g.textWidth(t) + 14;
-      g.fillRoundRect(120 - w / 2, 88 - OY, w, 28, 5, C_PLATE);
+      g.fillRoundRect(120 - w / 2, 94 - OY, w, 28, 5, C_PLATE);
       int x = 120 - g.textWidth(t) / 2;
-      text(g, t.substring(0, 3), x, 102, ML_DATUM, c.hourColor, C_PLATE);
-      text(g, t.substring(3), x + g.textWidth(t.substring(0, 3)), 102, ML_DATUM, c.minuteColor, C_PLATE);
+      text(g, t.substring(0, 3), x, 108, ML_DATUM, c.hourColor, C_PLATE);
+      text(g, t.substring(3), x + g.textWidth(t.substring(0, 3)), 108, ML_DATUM, c.minuteColor, C_PLATE);
     }
+    useFont(g, FONT_LARGE);
+    text(g, c.kline, 236, 108, MR_DATUM, TFT_WHITE, TFT_BLACK);  // candle interval, no block behind it
     if (p.candles) {
       useFont(g, FONT_SMALL);
       text(g, span(p.candles, c.kline), 4, 230, ML_DATUM, TFT_WHITE, TFT_BLACK);
