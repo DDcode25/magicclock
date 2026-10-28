@@ -12,6 +12,7 @@
 #include "pictures.h"
 #include "store.h"
 #include "ui.h"
+#include "bitcoin.h"
 #include "weather.h"
 #include "web_index.h"
 
@@ -225,7 +226,8 @@ static void handleSet() {
 
   Batch batch;
   bool stockForm = server.hasArg("s_i");  // cn0..9 belongs to stock2.json in the stock form
-  bool timeChanged = false, alertsChanged = false, albumChanged = false, weatherChanged = false, outageChanged = false;
+  bool timeChanged = false, alertsChanged = false, albumChanged = false, weatherChanged = false, outageChanged = false,
+       btcChanged = false;
   for (int i = 0; i < server.args(); i++) {
     String name = server.argName(i), v = server.arg(i);
     if (name == "plain") continue;
@@ -235,6 +237,8 @@ static void handleSet() {
         setValue(batch.doc(f.file), f.key, v, f.kind);
         if (!strcmp(f.file, "album.json")) albumChanged = true;
         if (!strcmp(f.file, "outage.json")) outageChanged = true;
+        for (const char *b : {"coin2.json", "cr.json", "k.json", "c_chart.json", "c_theme.json", "ccolor.json", "sep.json"})
+          if (!strcmp(f.file, b)) btcChanged = true;
         if (!strcmp(f.file, "city.json") || !strcmp(f.file, "unit.json") || !strcmp(f.file, "key.json")) weatherChanged = true;
         handled = true;
         break;
@@ -253,10 +257,12 @@ static void handleSet() {
       batch.doc("app.json")["apps"][name.substring(4)] = v.toInt();
     } else if (indexed(name, "cin", 12)) {
       batch.doc("coin2.json")[name] = v;
+      btcChanged = true;
     } else if (indexed(name, "gin", 12)) {
       batch.doc("cgk.json")[name] = v;
     } else if (indexed(name, "cn", 12)) {
       batch.doc(stockForm ? "stock2.json" : "coin2.json")[name] = v;
+      if (!stockForm) btcChanged = true;
     } else if (indexed(name, "c", 10)) {
       batch.doc("stock2.json")[name] = v;
     } else {
@@ -271,6 +277,7 @@ static void handleSet() {
   if (albumChanged) pictures::reload();
   if (weatherChanged) weather::reload();
   if (outageChanged) outagescreen::reload();
+  if (btcChanged) bitcoin::reload();
   ok();
 }
 
@@ -361,6 +368,7 @@ static void handleUpdateData() {
     alerts::pause(true);  // background fetches next to an OTA write have crashed the device
     weather::pause(true);
     outagescreen::pause(true);
+    bitcoin::pause(true);
     ui::message("Оновлення", "не вимикайте живлення");
     if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) Update.printError(Serial);
   } else if (u.status == UPLOAD_FILE_WRITE) {
@@ -372,6 +380,7 @@ static void handleUpdateData() {
     alerts::pause(false);
     weather::pause(false);
     outagescreen::pause(false);
+    bitcoin::pause(false);
   }
 }
 
@@ -382,6 +391,7 @@ static void handleUpdateDone() {
     alerts::pause(false);
     weather::pause(false);
     outagescreen::pause(false);
+    bitcoin::pause(false);
     server.send(500, "text/plain", String("FAIL: ") + Update.errorString());
     ui::applySettings();
     return;
@@ -452,6 +462,7 @@ void begin() {
   server.on("/gifcheck", HTTP_GET, [] { server.send(200, "application/json", pictures::checkJson(server.arg("file"), server.arg("n").toInt())); });
   server.on("/pic.json", HTTP_GET, [] { server.send(200, "application/json", pictures::statsJson()); });
   server.on("/outage.json", HTTP_GET, [] { server.send(200, "application/json", outagescreen::statusJson()); });
+  server.on("/btc.json", HTTP_GET, [] { server.send(200, "application/json", bitcoin::statusJson()); });
   server.on("/weather.json", HTTP_GET, [] { server.send(200, "application/json", weather::statusJson()); });
   server.on("/state.json", HTTP_GET, [] { server.send(200, "application/json", ui::stateJson()); });
   server.on("/touch.json", HTTP_GET, [] { server.send(200, "application/json", ui::touchJson()); });

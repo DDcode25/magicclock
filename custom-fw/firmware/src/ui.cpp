@@ -4,6 +4,7 @@
 #include "alerts.h"
 #include "apps.h"
 #include "board.h"
+#include "bitcoin.h"
 #include "clock.h"
 #include "fonts.h"
 #include "net.h"
@@ -108,6 +109,7 @@ void next(int dir) {
 // Long press. Pictures: next file. Other apps get an inner mode in later stages.
 void enter() {
   if (current == APP_PICTURE) return pictures::next(tft);
+  if (current == APP_BITCOIN) return bitcoin::next(tft);
   if (current == APP_OUTAGE) return outagescreen::toggleDay(tft);
   dirty = true;
 }
@@ -178,14 +180,16 @@ static void drawSettings() {
 
 // Placeholder screen until each app is implemented: name, clock, network.
 static bool isPlaceholder() {
-  return current != APP_ALERTS && current != APP_PICTURE && current != APP_SETTINGS && current != APP_CLOCK &&
+  return current != APP_BITCOIN && current != APP_ALERTS && current != APP_PICTURE && current != APP_SETTINGS && current != APP_CLOCK &&
          current != APP_WEATHER && current != APP_OUTAGE;
 }
 
 static void drawApp() {
   static int shown = -1;
   if (shown == APP_PICTURE && current != APP_PICTURE) pictures::hide();
+  if (shown == APP_BITCOIN && current != APP_BITCOIN) bitcoin::hide();
   shown = current;
+  if (current == APP_BITCOIN) return bitcoin::draw(tft);
   if (current == APP_ALERTS) return alerts::draw(tft);
   if (current == APP_PICTURE) return pictures::show(tft);
   if (current == APP_SETTINGS) return drawSettings();
@@ -321,6 +325,7 @@ void loop() {
     else if (current == APP_ALERTS) alerts::tick(tft);
     else if (current == APP_CLOCK) clockapp::tick(tft);
     else if (current == APP_WEATHER) weather::tick(tft);
+    else if (current == APP_BITCOIN) bitcoin::tick(tft);
     else if (current == APP_OUTAGE) outagescreen::tick(tft);
     static int lastBrightness = -1;
     int b = effectiveBrightness();

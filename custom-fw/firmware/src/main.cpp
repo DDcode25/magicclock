@@ -7,6 +7,7 @@
 #include "outage.h"
 #include "store.h"
 #include "ui.h"
+#include "bitcoin.h"
 #include "weather.h"
 #include "web.h"
 
@@ -23,6 +24,7 @@ void setup() {
   web::begin();
   alerts::begin();
   weather::begin();
+  bitcoin::begin();
   outagescreen::begin();
   ui::applySettings();
 }
