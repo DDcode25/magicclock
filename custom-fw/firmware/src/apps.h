@@ -11,8 +11,8 @@ static const AppItem APP_ITEMS[] = {
     {"bitcoin", "BitCoin", "Біткоїн"},    {"coingecko", "CoinGecko", "CoinGecko"}, {"stock", "Stock", "Акції"},
     {"weather", "Weather", "Погода"},     {"picture", "Picture", "Картинки"},      {"monitor", "Monitor", "Монітор ПК"},
     {"clock", "Clock", "Годинник"},       {"idea", "Idea", "Ідеї"},                {"settings", "Settings", "Налаштування"},
-    {"alerts", "Alerts", "Повітряні тривоги"},  // Magic Box FW addition, index 9
-    {"outage", "Outage", "Світло"},             // Magic Box FW addition, index 10
+    {"alerts", "Alerts", "Повітряні тривоги"},  // UA Smart Box addition, index 9
+    {"outage", "Outage", "Світло"},             // UA Smart Box addition, index 10
 };
 static const int APP_COUNT = sizeof(APP_ITEMS) / sizeof(APP_ITEMS[0]);
 static const int APP_BITCOIN = 0;

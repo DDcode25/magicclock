@@ -127,14 +127,14 @@ static const Field FIELDS[] = {
     {"pct_down_bg", "ccolor.json", "pct_down_bg", STR},
     {"dec_sep", "sep.json", "decimal_sep", STR},
     {"thous_sep", "sep.json", "thousand_sep", STR},
-    // Magic Box FW: air alerts app
+    // UA Smart Box: air alerts app
     {"al_src", "alerts.json", "src", STR},
     {"al_token", "alerts.json", "token", STR},
     {"al_i", "alerts.json", "i", INT},
     {"al_home", "alerts.json", "home", INT},
     {"al_cc", "alerts.json", "cc", STR},
     {"al_auto", "alerts.json", "auto", INT},
-    // Magic Box FW: power outage schedule
+    // UA Smart Box: power outage schedule
     {"out_src", "outage.json", "src", STR},
     {"out_grp", "outage.json", "grp", STR},
     {"out_i", "outage.json", "i", INT},
@@ -430,7 +430,7 @@ void begin() {
   });
   server.on("/set", HTTP_GET, handleSet);
   server.on("/v.json", HTTP_GET, [] {
-    server.send(200, "application/json", String("{\"m\":\"") + MODEL_NAME + "\",\"v\":\"Magic Box FW " FW_VERSION "\"}");
+    server.send(200, "application/json", String("{\"m\":\"") + MODEL_NAME + "\",\"v\":\"UA Smart Box " FW_VERSION "\"}");
   });
   server.on("/space.json", HTTP_GET, [] {
     server.send(200, "application/json",

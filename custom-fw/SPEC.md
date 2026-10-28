@@ -1,4 +1,4 @@
-# Техническое задание: прошивка Magic Box FW для GeekMagic SmallTV Pro
+# Техническое задание: прошивка UA Smart Box для GeekMagic SmallTV Pro
 
 Документ описывает, что должна делать прошивка и что уже сделано. Обновляется вместе с кодом.
 
@@ -56,7 +56,7 @@ PlatformIO, `custom-fw/firmware/`:
 | `weather`, `clock`, `pictures` | Приложения «Погода», «Годинник», «Картинки» |
 | `widgets` | Общие элементы экрана (значок Wi-Fi) |
 | `ukraine_map.h` | Контуры областей и районов (Меркатор, 1/8 px), таблица районов (ключ NEPTUN, название, старое название, область); генерируется `tools/gen_ukraine_map.py`, данные определены в одной единице трансляции (`UKRAINE_MAP_DEFINE` в `alerts_parse.cpp`) |
-| `tools/embed_web.py`, `tools/ui_patch.py` | Сборка веб-интерфейса: заводской `web/stock_index.html` + патчи Magic Box FW → gzip в прошивку |
+| `tools/embed_web.py`, `tools/ui_patch.py` | Сборка веб-интерфейса: заводской `web/stock_index.html` + патчи UA Smart Box → gzip в прошивку |
 
 `custom-fw/probe/` — диагностическая прошивка: дамп флеша, тест дисплея и сенсора, `/boot_other`.
 
@@ -68,7 +68,7 @@ PlatformIO, `custom-fw/firmware/`:
 |---|---|
 | `GET /` | Веб-интерфейс (заводской + вкладка Alerts) |
 | `GET /set?...` | Сохранение настроек в `/.sys/*.json` и действия (таблица ниже) |
-| `GET /v.json` | `{"m":"UASmartBox","v":"Magic Box FW x.y.z"}` |
+| `GET /v.json` | `{"m":"UASmartBox","v":"UA Smart Box x.y.z"}` |
 | `GET /space.json` | `{"total":..,"free":..}` LittleFS |
 | `GET /wifi.json` | Скан сетей `{"aps":[{"ss","r"(%),"e"(0/1)}]}` |
 | `GET /wifisave?s=&p=` | Сохранить Wi-Fi в `config.json`, ответ `saved`, перезагрузка |
@@ -106,7 +106,7 @@ PlatformIO, `custom-fw/firmware/`:
 | `gif_loop,i_i,autoplay,album_path,album_autoplay` | `album.json` |
 | `ip,m_i` / `delay` | `monitor.json` / `delay.json` |
 | `up_fg..pct_down_bg` / `dec_sep,thous_sep` | `ccolor.json` / `sep.json` |
-| `al_src,al_token,al_i,al_home` | `alerts.json` (Magic Box FW) |
+| `al_src,al_token,al_i,al_home` | `alerts.json` (UA Smart Box) |
 
 ## 6. Приложения
 
@@ -126,8 +126,8 @@ PlatformIO, `custom-fw/firmware/`:
 | 6 | Годинник | **готово** |
 | 7 | Idea (анимации) | заглушка |
 | 8 | Настройки (экран информации) | **готово** |
-| 9 | **Карта тревог** (Magic Box FW) | **готово** |
-| 10 | **Світло — графік відключень** (Magic Box FW) | **готово** |
+| 9 | **Карта тревог** (UA Smart Box) | **готово** |
+| 10 | **Світло — графік відключень** (UA Smart Box) | **готово** |
 
 Заглушка показывает название приложения, текущее время и сетевой статус.
 
@@ -247,7 +247,7 @@ PlatformIO, `custom-fw/firmware/`:
 
 ### Настройки
 
-Экран информации, как у заводской прошивки: «Magic Box FW», версия, режим Wi-Fi (клиент / точка доступа), сеть, IP.
+Экран информации, как у заводской прошивки: «UA Smart Box», версия, режим Wi-Fi (клиент / точка доступа), сеть, IP.
 
 ### 6.1. Карта тревог: экран
 
@@ -349,8 +349,8 @@ PlatformIO, `custom-fw/firmware/`:
 
 ## 8. Название и язык
 
-- Название прошивки: **Magic Box FW** (`/v.json`, заголовок и шапка веб-интерфейса, копирайт в подвале
-  «Copyright © Magic Box FW. All rights reserved.»).
+- Название прошивки: **UA Smart Box** (`/v.json`, заголовок и шапка веб-интерфейса, копирайт в подвале
+  «Copyright © UA Smart Box. All rights reserved.»).
 - Запросы к источникам тревог идут с User-Agent настольного Chrome (часть сервисов отклоняет неизвестных клиентов).
 - Название устройства **UASmartBox**: модель в `/v.json`, точка доступа `UASmartBox`, имя в сети `uasmartbox` (`uasmartbox.local`). Железо — GeekMagic SmallTV Pro.
 

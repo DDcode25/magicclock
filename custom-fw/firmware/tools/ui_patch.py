@@ -1,4 +1,4 @@
-"""Magic Box FW additions to the stock web UI (web/stock_index.html).
+"""UA Smart Box additions to the stock web UI (web/stock_index.html).
 
 Each patch replaces one exact anchor in the stock page; a missing anchor fails the build
 instead of silently shipping a broken UI.
@@ -164,7 +164,7 @@ OUTAGE_VIEW = """
 """ % (_outage_regions, _outage_groups)
 
 OUTAGE_JS = """
-    // ---- Magic Box FW: power outage schedule ----
+    // ---- UA Smart Box: power outage schedule ----
     state.outage={src:'poe',grp:'1.1',interval:10};
     function syncOutageForm(){
       byId('outageSrc').value=state.outage.src;
@@ -201,7 +201,7 @@ OUTAGE_JS = """
 """
 
 ALERTS_JS = """
-    // ---- Magic Box FW: air alerts ----
+    // ---- UA Smart Box: air alerts ----
     state.alerts={src:'klymenko',token:'',interval:30,home:'-1',cc:'#ffffff'};
     const ALERT_SRC_LABELS={klymenko:'Klymenko',neptun:'NEPTUN',ubilling:'ubilling',alertsinua:'alerts.in.ua'};
     function syncAlertsForm(){
@@ -294,7 +294,7 @@ PATCHES = [
     (r"(\n(\s*)const select=byId\('wifiSelect'\);\n\s*if\(force\) loaded\.wifi=0;)",
      r"\n\2loadWifiKnown();\1"),
     # firmware name in the tab title and the page header
-    (r"<title>GeekMagic PRO</title>", "<title>Magic Box FW</title>"),
+    (r"<title>GeekMagic PRO</title>", "<title>UA Smart Box</title>"),
 ]
 
 

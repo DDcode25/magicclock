@@ -1,4 +1,4 @@
-# Magic Box FW
+# UA Smart Box
 
 Своя прошивка для **GeekMagic SmallTV Pro** (ESP32, экран 240×240). Повторяет заводские приложения, настройки
 и веб-интерфейс и добавляет:
@@ -58,7 +58,7 @@
 |---|---|
 | `/` | Веб-интерфейс: заводской, переведён, со вкладками «Тривоги» и «Світло» |
 | `/update` | Обновление прошивки (OTA): страница загрузки `.bin`, POST — сама прошивка |
-| `/v.json` | Модель и версия: `{"m":"UASmartBox","v":"Magic Box FW x.y.z"}` |
+| `/v.json` | Модель и версия: `{"m":"UASmartBox","v":"UA Smart Box x.y.z"}` |
 | `/sys.json` | **Диагностика:** время работы, память, причина перезагрузки, «крошки» задач, журнал 10 загрузок со стеком паники |
 | `/state.json` | Какое приложение на экране |
 | `/touch.json` | Сенсор: текущее значение, уровень покоя, порог, счётчики касаний |
@@ -202,4 +202,4 @@ g++ -std=c++17 -Isrc -I.pio/libdeps/smalltv-pro/ArduinoJson/src test/poe_parse_t
 
 ---
 
-*Copyright © Magic Box FW. All rights reserved.*
+*Copyright © UA Smart Box. All rights reserved.*

@@ -1,4 +1,4 @@
-// UASmartBox firmware (Magic Box FW) for the GeekMagic SmallTV Pro. Stock-compatible settings, web UI/API and OTA; see ../SPEC.md.
+// UA Smart Box firmware for the GeekMagic SmallTV Pro. Stock-compatible settings, web UI/API and OTA; see ../SPEC.md.
 
 #include <Arduino.h>
 #include <esp_ota_ops.h>
@@ -14,14 +14,14 @@
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("\nMagic Box FW " FW_VERSION);
+  Serial.println("\nUA Smart Box " FW_VERSION);
   esp_ota_mark_app_valid_cancel_rollback();
 
   if (!store::begin()) Serial.println("LittleFS: mount failed (not formatting)");
   diag::begin();
   settings.load();
   ui::begin();
-  ui::message("Magic Box FW", "підключення до Wi-Fi…");
+  ui::message("UA Smart Box", "підключення до Wi-Fi…");
   net::begin();
   web::begin();
   alerts::begin();

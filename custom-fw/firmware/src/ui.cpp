@@ -163,7 +163,7 @@ static void drawSettings() {
   tft.setTextDatum(MC_DATUM);
   useFont(tft, FONT_LARGE);
   tft.setTextColor(TFT_ORANGE, TFT_BLACK);
-  tft.drawString("Magic Box FW", 120, 40);
+  tft.drawString("UA Smart Box", 120, 40);
   useFont(tft, FONT_SMALL);
   const char *labels[] = {"Версія", "Wi-Fi", "Мережа", "IP"};
   String values[] = {FW_VERSION, net::connected() ? "клієнт" : net::apActive() ? "точка доступу" : "немає",
