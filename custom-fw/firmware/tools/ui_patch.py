@@ -303,6 +303,10 @@ PATCHES = [
      r"shared:{up_fg:'#000000',up_bg:'#2ebd6b',\1pct_up_bg:'#2ebd6b'"),
     (r"state\.shared\.up_bg=String\(colors\.up_bg\?\?'#00ff00'\)", "state.shared.up_bg=String(colors.up_bg??'#2ebd6b')"),
     (r"state\.shared\.pct_up_bg=String\(colors\.pct_up_bg\?\?'#00ff00'\)", "state.shared.pct_up_bg=String(colors.pct_up_bg??'#2ebd6b')"),
+    # "Save Bitcoin" also saves the shared palette and separators shown on the same tab (stock saved
+    # them only with "Save Market Style", so a changed thousands separator was silently lost)
+    (r"(\n(\s*)p\.set\('rot_i',state\.btc\.rot\);)",
+     r"\1\n\2readSharedForm();\n\2Object.entries(state.shared).forEach(([k,v])=>p.set(k,v));"),
     # firmware name in the tab title and the page header
     (r"<title>GeekMagic PRO</title>", "<title>UA Smart Box</title>"),
 ]
