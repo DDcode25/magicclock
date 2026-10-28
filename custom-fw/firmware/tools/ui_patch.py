@@ -312,9 +312,45 @@ PATCHES = [
 ]
 
 
+# App order everywhere (tabs, app list, boot-app list), as on the device (APP_ORDER in src/apps.h).
+APP_ORDER = ["weather", "clock", "alerts", "outage", "bitcoin", "stock", "coingecko", "picture", "monitor", "idea", "settings"]
+VIEW_ORDER = ["weather", "time", "alerts", "outage", "btc", "stock", "cg", "image", "monitor"]
+
+
+def reorder(html):
+    # web tabs
+    m = re.search(r'(<div class="app-tabs">\n)((?:\s*<button class="tab[^"]*" data-view="[a-z]+">[^<]*</button>\n)+)', html)
+    if not m:
+        raise RuntimeError("ui_patch: app tabs not found")
+    buttons = re.findall(r'\s*<button class="tab[^"]*" data-view="([a-z]+)">([^<]*)</button>\n', m.group(2))
+    label = dict(buttons)
+    if sorted(label) != sorted(VIEW_ORDER):
+        raise RuntimeError("ui_patch: unexpected app tabs " + ",".join(label))
+    tabs = "".join('        <button class="tab%s" data-view="%s">%s</button>\n' % (" active" if i == 0 else "", v, label[v])
+                   for i, v in enumerate(VIEW_ORDER))
+    html = html[:m.start(2)] + tabs + html[m.end(2):]
+    # first view by default (was Bitcoin)
+    for old, new in [("view:'btc',", "view:'weather',"), ("return 'btc';", "return 'weather';"),
+                     ("restored:'btc';", "restored:'weather';"), ("if(!isValidView(view)) view='btc';", "if(!isValidView(view)) view='weather';"),
+                     ("restoredView:'btc');", "restoredView:'weather');")]:
+        if html.count(old) != 1:
+            raise RuntimeError("ui_patch: default view anchor: " + old)
+        html = html.replace(old, new)
+    html = html.replace('<section class="view" id="view-btc">', '<section class="view hidden" id="view-btc">', 1)
+    html = html.replace('<section class="view hidden" id="view-weather">', '<section class="view" id="view-weather">', 1)
+    # app list and boot-app options: sorted, numbered by position
+    anchor = "const APP_OPTS=[['-1','None']].concat(APP_ITEMS.map(item=>[item.index,`${Number(item.index)+1}. ${item.label}`]));"
+    if html.count(anchor) != 1:
+        raise RuntimeError("ui_patch: APP_OPTS anchor")
+    html = html.replace(anchor, "const APP_ORDER=%s;\n    APP_ITEMS.sort((a,b)=>APP_ORDER.indexOf(a.key)-APP_ORDER.indexOf(b.key));\n"
+                        "    const APP_OPTS=[['-1','None']].concat(APP_ITEMS.map((item,i)=>[item.index,`${i+1}. ${item.label}`]));"
+                        % ("[" + ",".join("'%s'" % k for k in APP_ORDER) + "]"))
+    return html
+
+
 def apply(html):
     for pattern, repl in PATCHES:
         html, n = re.subn(pattern, repl, html, count=1)
         if n != 1:
             raise RuntimeError("ui_patch: anchor not found: " + pattern[:60])
-    return html
+    return reorder(html)

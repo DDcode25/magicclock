@@ -15,6 +15,10 @@ static const AppItem APP_ITEMS[] = {
     {"outage", "Outage", "Світло"},             // UA Smart Box addition, index 10
 };
 static const int APP_COUNT = sizeof(APP_ITEMS) / sizeof(APP_ITEMS[0]);
+// Order of the screens (tap = next): indices into APP_ITEMS. Same order in the web UI (tools/ui_patch.py).
+static const int APP_ORDER[APP_COUNT] = {3 /*weather*/, 6 /*clock*/, 9 /*alerts*/, 10 /*outage*/, 0 /*bitcoin*/,
+                                         2 /*stock*/, 1 /*coingecko*/, 4 /*picture*/, 5 /*monitor*/, 7 /*idea*/,
+                                         8 /*settings*/};
 static const int APP_BITCOIN = 0;
 static const int APP_WEATHER = 3;
 static const int APP_PICTURE = 4;

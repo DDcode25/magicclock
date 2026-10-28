@@ -111,12 +111,21 @@ static void calibrateTouch() {
   Serial.printf("Touch: base %d, threshold %d\n", base, touchThreshold);
 }
 
+// Position of app index k in APP_ORDER.
+static int orderPos(int k) {
+  for (int i = 0; i < APP_COUNT; i++)
+    if (APP_ORDER[i] == k) return i;
+  return 0;
+}
+
+// First enabled app at or after app `from` going `dir` (+1 / -1) through APP_ORDER, wrapping.
 static int firstEnabled(int from, int dir) {
+  int p = orderPos(from);
   for (int i = 0; i < APP_COUNT; i++) {
-    int k = ((from + dir * i) % APP_COUNT + APP_COUNT) % APP_COUNT;
+    int k = APP_ORDER[((p + dir * i) % APP_COUNT + APP_COUNT) % APP_COUNT];
     if (settings.appEnabled[k]) return k;
   }
-  return 0;
+  return APP_ORDER[0];
 }
 
 void begin() {
@@ -127,7 +136,7 @@ void begin() {
   tft.fillScreen(TFT_BLACK);
   setBacklight(settings.brightness);
   calibrateTouch();
-  current = firstEnabled(settings.bootApp >= 0 ? settings.bootApp : 0, 1);
+  current = firstEnabled(settings.bootApp >= 0 ? settings.bootApp : APP_ORDER[0], 1);
   dirty = true;
 }
 
@@ -140,7 +149,8 @@ void applySettings() {
 
 void next(int dir) {
   msgShown = false;
-  current = firstEnabled(current + (dir >= 0 ? 1 : -1), dir >= 0 ? 1 : -1);
+  int step = dir >= 0 ? 1 : -1;
+  current = firstEnabled(APP_ORDER[(orderPos(current) + step + APP_COUNT) % APP_COUNT], step);
   dirty = true;
 }
 
