@@ -81,7 +81,7 @@ static bool fetch(const Config &c, Snapshot &out, String &err) {
   if (!http.begin(client, url)) return err = "немає з’єднання", false;
   int code = http.GET();
   if (code != 200) {
-    err = "помилка HTTP " + String(code);
+    err = client.httpError(code);
     http.end();
     return false;
   }
@@ -207,7 +207,12 @@ static uint16_t raionColor(uint8_t l) {
   }
 }
 
-// Even-odd scanline fill of rings [firstRing, firstRing + rings) into the 8-bit map sprite.
+// The map is drawn in bands of BAND_ROWS map rows through a small 8-bit sprite (9.6 KB, only while
+// drawing): one 38 KB sprite needs a contiguous block that a fragmented heap (TLS fetches) often lacks.
+static const int BAND_ROWS = 40;
+static int bandTop = 0;  // first map row of the band being drawn
+
+// Even-odd scanline fill of rings [firstRing, firstRing + rings) into the band sprite.
 // Vertices are in 1/MAP_FIX px; a pixel is filled when its centre lies inside (standard
 // rasterisation rule), so shapes keep sub-pixel accuracy and neighbours share edges without gaps.
 static void fillRings(int firstRing, int rings, uint16_t color) {
@@ -221,7 +226,8 @@ static void fillRings(int firstRing, int rings, uint16_t color) {
     }
   }
   static int32_t xs[96];
-  for (int py = max(y0 / F, MAP_Y); py <= min(y1 / F, MAP_Y + MAP_H - 1); py++) {
+  int top = MAP_Y + bandTop, bottom = min(MAP_Y + MAP_H, top + BAND_ROWS) - 1;
+  for (int py = max(y0 / F, top); py <= min(y1 / F, bottom); py++) {
     int32_t yc = py * F + H;  // pixel centre
     int n = 0;
     for (int k = 0; k < rings; k++) {
@@ -235,7 +241,7 @@ static void fillRings(int firstRing, int rings, uint16_t color) {
     std::sort(xs, xs + n);
     for (int i = 0; i + 1 < n; i += 2) {
       int xa = (xs[i] - H + F - 1) / F, xb = (xs[i + 1] - H) / F;  // first/last pixel centre inside
-      if (xb >= xa) map8->drawFastHLine(xa, py - MAP_Y, xb - xa + 1, color);
+      if (xb >= xa) map8->drawFastHLine(xa, py - top, xb - xa + 1, color);
     }
   }
 }
@@ -247,38 +253,45 @@ static void outlineRegion(int r, uint16_t color) {
     const MapRing &ring = MAP_RINGS[reg.firstRing + k];
     for (int i = 0; i < ring.count; i++) {
       const int16_t *a = MAP_POINTS[ring.first + i], *b = MAP_POINTS[ring.first + (i + 1) % ring.count];
-      map8->drawLine(a[0] / MAP_FIX, a[1] / MAP_FIX - MAP_Y, b[0] / MAP_FIX, b[1] / MAP_FIX - MAP_Y, color);
+      int ya = a[1] / MAP_FIX - MAP_Y - bandTop, yb = b[1] / MAP_FIX - MAP_Y - bandTop;
+      if ((ya < 0 && yb < 0) || (ya >= BAND_ROWS && yb >= BAND_ROWS)) continue;  // outside the band
+      map8->drawLine(a[0] / MAP_FIX, ya, b[0] / MAP_FIX, yb, color);
     }
   }
 }
 
 static void drawMap(TFT_eSPI &tft, const Snapshot &s, int home) {
-  if (!map8) {
-    map8 = new TFT_eSprite(&tft);
-    map8->setColorDepth(8);
-    if (!map8->createSprite(240, MAP_H)) {
-      delete map8;
-      map8 = nullptr;
-      return;
-    }
+  map8 = new TFT_eSprite(&tft);
+  map8->setColorDepth(8);
+  if (!map8->createSprite(240, BAND_ROWS)) {
+    delete map8;
+    map8 = nullptr;
+    return;
   }
-  map8->fillSprite(TFT_BLACK);
-  // Oblasts first (the only layer for sources without raion data), then raions on top,
-  // then Kyiv city and Sevastopol, which sit inside other regions. Only oblast borders are drawn.
-  for (int r = 0; r < REGIONS; r++)
-    if (r != 9 && r != 18) fillRings(MAP[r].firstRing, MAP[r].rings, levelColor(s.level[r]));
-  for (int i = 0; i < MAP_RAIONS; i++)
-    if (s.raion[i] != R_INHERIT && s.level[RAION[i].oblast] != UNKNOWN)
-      fillRings(RAION[i].firstRing, RAION[i].rings, raionColor(s.raion[i]));
-  for (int r : {9, 18}) fillRings(MAP[r].firstRing, MAP[r].rings, levelColor(s.level[r]));
-  for (int r = 0; r < REGIONS; r++) outlineRegion(r, TFT_BLACK);
-  if (home >= 0) outlineRegion(home, TFT_WHITE);
-  // Around the clock box (map-free rows, see drawFooter): pushing it would erase the clock's top.
-  int top = CLOCK_BOX_Y0 - SCREEN_Y;
-  map8->pushSprite(0, SCREEN_Y, 0, 0, 240, top);
-  map8->pushSprite(CLOCK_BOX_X1, CLOCK_BOX_Y0, CLOCK_BOX_X1, top, 240 - CLOCK_BOX_X1, MAP_H - top);
+  int clockRow = CLOCK_BOX_Y0 - SCREEN_Y;  // map rows from here on are pushed right of the clock box
+  for (bandTop = 0; bandTop < MAP_H; bandTop += BAND_ROWS) {
+    int rows = min(BAND_ROWS, MAP_H - bandTop);
+    map8->fillSprite(TFT_BLACK);
+    // Oblasts first (the only layer for sources without raion data), then raions on top,
+    // then Kyiv city and Sevastopol, which sit inside other regions. Only oblast borders are drawn.
+    for (int r = 0; r < REGIONS; r++)
+      if (r != 9 && r != 18) fillRings(MAP[r].firstRing, MAP[r].rings, levelColor(s.level[r]));
+    for (int i = 0; i < MAP_RAIONS; i++)
+      if (s.raion[i] != R_INHERIT && s.level[RAION[i].oblast] != UNKNOWN)
+        fillRings(RAION[i].firstRing, RAION[i].rings, raionColor(s.raion[i]));
+    for (int r : {9, 18}) fillRings(MAP[r].firstRing, MAP[r].rings, levelColor(s.level[r]));
+    for (int r = 0; r < REGIONS; r++) outlineRegion(r, TFT_BLACK);
+    if (home >= 0) outlineRegion(home, TFT_WHITE);
+    // Around the clock box (map-free rows, see drawFooter): pushing it would erase the clock's top.
+    int full = constrain(clockRow - bandTop, 0, rows);
+    if (full) map8->pushSprite(0, SCREEN_Y + bandTop, 0, 0, 240, full);
+    if (rows > full) map8->pushSprite(CLOCK_BOX_X1, SCREEN_Y + bandTop + full, CLOCK_BOX_X1, full, 240 - CLOCK_BOX_X1, rows - full);
+  }
+  bandTop = 0;
+  map8->deleteSprite();
+  delete map8;
+  map8 = nullptr;
 }
-
 
 static String hhmm(time_t utc) {
   struct tm t;
@@ -472,6 +485,8 @@ static void drawAlarmFrame(TFT_eSPI &tft, int home) {
     tft.drawString(MAP[home].label, 120, 165);
   }
 }
+
+void hide() { drawnVersion = UINT32_MAX; }
 
 void draw(TFT_eSPI &tft) {
   tft.fillScreen(TFT_BLACK);

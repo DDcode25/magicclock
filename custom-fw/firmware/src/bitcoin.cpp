@@ -28,7 +28,11 @@ struct Config {
   int refreshS = 30, rotateS = 10;
   uint16_t upFg, upBg, downFg, downBg, coinFg, coinBg, pctUpFg, pctUpBg, pctDownFg, pctDownBg;
   char dec = '.', thou = ',';
+  uint16_t hourColor = TFT_WHITE, minuteColor = 0xFDC0;  // the clock app's (timecolor.json)
 };
+
+static const uint16_t C_INTERVAL = 0x3CDB;  // blue block with the candle interval (stock look)
+static const uint16_t C_PLATE = 0x2A2E;     // dark blue plate under the clock
 
 struct Candle {
   float o, h, l, c;
@@ -95,6 +99,8 @@ static void loadConfig() {
   c.dec = d.length() ? d[0] : '.';
   c.thou = t.length() ? t[0] : 0;
   if (c.thou == c.dec) c.thou = 0;
+  c.hourColor = parseColor(store::getStr("/.sys/timecolor.json", "hc", "#FFFFFF"), TFT_WHITE);
+  c.minuteColor = parseColor(store::getStr("/.sys/timecolor.json", "mc", "#FEBA01"), 0xFDC0);
 
   xSemaphoreTake(lock, portMAX_DELAY);
   bool changed = c.count != cfg.count || c.kline != cfg.kline;
@@ -122,7 +128,7 @@ static int getJson(const String &url, JsonDocument &doc, const JsonDocument *fil
     DeserializationError e = filter ? deserializeJson(doc, r, DeserializationOption::Filter(*filter)) : deserializeJson(doc, r);
     if (e) err = "погані дані", code = -1;
   } else {
-    err = "помилка HTTP " + String(code);
+    err = client.httpError(code);
   }
   http.end();
   return code;
@@ -431,24 +437,42 @@ static void layout(TFT_eSPI &g, const View &v) {
     text(g, "у вкладці «Біткоїн»", 120, 135, MC_DATUM, TFT_DARKGREY, TFT_BLACK);
     return;
   }
-  if (c.theme == 0) {  // name + clock, price, change, candles with high/low on the right
-    nameBox(g, v, 0, 4, 4, 30, false);
-    if (c.clock) {
-      useFont(g, FONT_LARGE);
-      text(g, clockText(), 214, 19, MR_DATUM, TFT_WHITE, TFT_BLACK);
-    }
-    priceBox(g, v, 0, 40, 50, {FONT_PRICE_L, FONT_PRICE_M, FONT_PRICE_S});
-    pctBox(g, v, 0, 4, 96, 30, FONT_PRICE_M, false);
-    useFont(g, FONT_SMALL);
-    text(g, c.kline, 236, 111, MR_DATUM, TFT_DARKGREY, TFT_BLACK);
-    chart(g, v, 0, 4, 134, 176, 102, c.line);
+  if (c.theme == 0) {  // as the stock screen: pair + change, price band with the interval, clock, candles
     const Pair &p = v.p[0];
-    if (p.candles >= 2) {
-      float hi = -1e30f, lo = 1e30f;
-      for (int i = 0; i < p.candles; i++) hi = max(hi, c.line ? p.k[i].c : p.k[i].h), lo = min(lo, c.line ? p.k[i].c : p.k[i].l);
+    useFont(g, FONT_LARGE);
+    String name = v.c.name[v.first].length() ? v.c.name[v.first] : v.c.sym[v.first];
+    text(g, name, 6, 17, ML_DATUM, c.coinFg, TFT_BLACK);
+    if (p.hasPrice && !p.bad) {
+      float pc = change(v, 0);
       useFont(g, FONT_SMALL);
-      text(g, price(hi, c), 236, 140, MR_DATUM, TFT_LIGHTGREY, TFT_BLACK);
-      text(g, price(lo, c), 236, 230, MR_DATUM, TFT_LIGHTGREY, TFT_BLACK);
+      text(g, percent(pc, c), 214, 17, MR_DATUM, pc >= 0 ? c.pctUpBg : c.pctDownBg, TFT_BLACK);
+    }
+    chart(g, v, 0, 4, 96, 232, 140, c.line);
+    if (p.hasPrice && !p.bad) {  // price band, edge to edge
+      bool up = change(v, 0) >= 0;
+      uint16_t bg = up ? c.upBg : c.downBg;
+      g.fillRect(0, 34 - OY, 182, 50, bg);
+      String ps = price(p.price, c);
+      fit(g, ps, 172, {FONT_PRICE_L, FONT_PRICE_M, FONT_PRICE_S});
+      text(g, ps, 91, 60, MC_DATUM, up ? c.upFg : c.downFg, bg);
+    } else {
+      priceBox(g, v, 0, 34, 50, {FONT_PRICE_S});
+    }
+    g.fillRect(182, 34 - OY, 58, 50, C_INTERVAL);
+    useFont(g, FONT_LARGE);
+    text(g, c.kline, 211, 60, MC_DATUM, TFT_WHITE, C_INTERVAL);
+    if (c.clock) {  // hours and minutes in the clock app's colours, on a small plate over the chart
+      String t = clockText();
+      useFont(g, FONT_LARGE);
+      int w = g.textWidth(t) + 14;
+      g.fillRoundRect(120 - w / 2, 88 - OY, w, 28, 5, C_PLATE);
+      int x = 120 - g.textWidth(t) / 2;
+      text(g, t.substring(0, 3), x, 102, ML_DATUM, c.hourColor, C_PLATE);
+      text(g, t.substring(3), x + g.textWidth(t.substring(0, 3)), 102, ML_DATUM, c.minuteColor, C_PLATE);
+    }
+    if (p.candles) {
+      useFont(g, FONT_SMALL);
+      text(g, String(p.candles) + c.kline, 4, 230, ML_DATUM, TFT_WHITE, TFT_BLACK);
     }
   } else if (c.theme == 1) {  // large: name, price, change, clock
     nameBox(g, v, 0, 0, 14, 32, true);
@@ -475,7 +499,7 @@ static void layout(TFT_eSPI &g, const View &v) {
   }
   if (v.stale && v.err[0] && v.p[0].hasPrice) {  // old prices on screen: say why
     useFont(g, FONT_SMALL);
-    text(g, v.err, 120, 232, MC_DATUM, TFT_YELLOW, TFT_BLACK);
+    text(g, "немає оновлень", 236, 230, MR_DATUM, TFT_YELLOW, TFT_BLACK);  // details in /btc.json
   }
 }
 

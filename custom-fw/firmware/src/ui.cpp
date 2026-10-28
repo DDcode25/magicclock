@@ -188,6 +188,7 @@ static void drawApp() {
   static int shown = -1;
   if (shown == APP_PICTURE && current != APP_PICTURE) pictures::hide();
   if (shown == APP_BITCOIN && current != APP_BITCOIN) bitcoin::hide();
+  if (shown == APP_ALERTS && current != APP_ALERTS) alerts::hide();
   shown = current;
   if (current == APP_BITCOIN) return bitcoin::draw(tft);
   if (current == APP_ALERTS) return alerts::draw(tft);

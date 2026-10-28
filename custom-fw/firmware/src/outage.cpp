@@ -112,7 +112,7 @@ static bool fetch(const Config &c, Schedule &s, String &err) {
   if (!http.begin(client, sourceUrl(c.src))) return err = "немає з’єднання", false;
   int code = http.GET();
   if (code != 200) {
-    err = "помилка HTTP " + String(code);
+    err = client.httpError(code);
     http.end();
     return false;
   }

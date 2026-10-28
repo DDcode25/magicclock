@@ -174,8 +174,13 @@ void applyTime() {
 bool timeValid() { return time(nullptr) > 1700000000; }
 
 static SemaphoreHandle_t fetchMutex = xSemaphoreCreateMutex();
-void fetchLock() { xSemaphoreTake(fetchMutex, portMAX_DELAY); }
+static uint32_t heapAtLock = 0;
+void fetchLock() {
+  xSemaphoreTake(fetchMutex, portMAX_DELAY);
+  heapAtLock = ESP.getFreeHeap();
+}
 void fetchUnlock() {
+  diag::fetchDone(heapAtLock);  // a fetch that keeps >8 KB is logged (TLS buffers are ~17 KB)
   diag::crumb(diag::FETCH, "idle");
   xSemaphoreGive(fetchMutex);
 }

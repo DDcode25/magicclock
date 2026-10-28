@@ -73,6 +73,23 @@ void crumb(Slot slot, const char *what) {
   if (h < lowHeap) lowHeap = h;
 }
 
+struct Kept {
+  char what[24];
+  int32_t bytes;
+  uint32_t at;  // uptime s
+};
+static Kept kept[8];
+static int keptCount = 0;
+
+void fetchDone(uint32_t heapBefore) {
+  int32_t d = (int32_t)heapBefore - (int32_t)ESP.getFreeHeap();
+  if (d < 8000) return;
+  Kept &k = kept[keptCount++ % 8];
+  strlcpy(k.what, last[FETCH], sizeof k.what);
+  k.bytes = d;
+  k.at = millis() / 1000;
+}
+
 String json() {
   JsonDocument doc;
   doc["uptime"] = millis() / 1000;
@@ -83,6 +100,12 @@ String json() {
   doc["ui"] = (const char *)last[UI];
   doc["web"] = (const char *)last[WEB];
   doc["fetch"] = (const char *)last[FETCH];
+  for (int i = max(0, keptCount - 8); i < keptCount; i++) {
+    JsonObject o = doc["kept"].add<JsonObject>();
+    o["what"] = (const char *)kept[i % 8].what;
+    o["bytes"] = kept[i % 8].bytes;
+    o["at"] = kept[i % 8].at;
+  }
   doc["boots"] = store::load(LOG)["boots"];
   String out;
   serializeJson(doc, out);
