@@ -1,3 +1,6 @@
+> **Magic Box FW** — своя прошивка для этого устройства (карта тревог, график света, украинский язык):
+> [custom-fw/README.md](custom-fw/README.md)
+
 # 📦 GeekMagic Smalltv Pro - Firmware Repository
 
 Hello everybody,
