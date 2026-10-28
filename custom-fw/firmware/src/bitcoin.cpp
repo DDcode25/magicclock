@@ -69,6 +69,23 @@ static uint16_t parseColor(const String &hex, uint16_t def) {
 
 static uint16_t color(const char *key, uint16_t def) { return parseColor(store::getStr(COLOR, key, ""), def); }
 
+// The stock web UI stores these as numbers, older files as strings ("1").
+static int num(JsonVariantConst v, int def) {
+  if (v.is<int>()) return v.as<int>();
+  if (v.is<const char *>()) return atoi(v.as<const char *>());
+  return def;
+}
+
+// Time covered by the chart, as the stock screen labels it: 30 x "1w" -> "30w", 30 x "4h" -> "5d".
+static String span(int candles, const String &interval) {
+  int n = atoi(interval.c_str());
+  char unit = interval.length() ? interval[interval.length() - 1] : 'd';
+  long total = (long)n * candles;
+  if (unit == 'm' && total >= 120 && total % 60 == 0) total /= 60, unit = 'h';
+  if (unit == 'h' && total >= 48 && total % 24 == 0) total /= 24, unit = 'd';
+  return String(total) + unit;
+}
+
 static void loadConfig() {
   Config c;
   JsonDocument coin = store::load(COIN);
@@ -81,11 +98,11 @@ static void loadConfig() {
     c.name[c.count] = coin["cn" + String(i)] | "";
     c.count++;
   }
-  c.refreshS = max(10, (int)String(coin["c_i"] | "30").toInt());
-  c.rotate = String(coin["c_l"] | "1") == "1";
-  c.loading = String(coin["c_loading"] | "1") == "1";
-  c.clock = String(coin["c_clock"] | "0") == "1";
-  c.pctCandle = String(coin["c_pct_mode"] | "0") == "1";
+  c.refreshS = max(10, num(coin["c_i"], 30));
+  c.rotate = num(coin["c_l"], 1) == 1;
+  c.loading = num(coin["c_loading"], 1) == 1;
+  c.clock = num(coin["c_clock"], 0) == 1;
+  c.pctCandle = num(coin["c_pct_mode"], 0) == 1;
   c.rotateS = max(3, store::getInt("/.sys/cr.json", "rot_i", 10));
   c.kline = store::getStr("/.sys/k.json", "k", "1d");
   c.theme = constrain(store::getInt("/.sys/c_theme.json", "c_theme", 0), 0, 3);
@@ -472,7 +489,7 @@ static void layout(TFT_eSPI &g, const View &v) {
     }
     if (p.candles) {
       useFont(g, FONT_SMALL);
-      text(g, String(p.candles) + c.kline, 4, 230, ML_DATUM, TFT_WHITE, TFT_BLACK);
+      text(g, span(p.candles, c.kline), 4, 230, ML_DATUM, TFT_WHITE, TFT_BLACK);
     }
   } else if (c.theme == 1) {  // large: name, price, change, clock
     nameBox(g, v, 0, 0, 14, 32, true);
