@@ -29,11 +29,11 @@ static int touchThreshold = 93, touchBase = 0;
 static float touchBaseF = 0;
 static uint32_t touchReadyAt = 0;  // ignore the sensor right after calibration
 static volatile int touchRaw = 0;
-static uint32_t taps = 0, doubleTaps = 0, longPresses = 0;
+static uint32_t taps = 0, doubleTaps = 0, tripleTaps = 0, longPresses = 0;
 
 static const uint32_t TOUCH_SAMPLE_MS = 20;
 static const uint32_t LONG_PRESS_MS = 800;
-static const uint32_t DOUBLE_TAP_MS = 350;  // stock: double tap = previous screen
+static const uint32_t DOUBLE_TAP_MS = 350;  // max pause between taps of a double / triple tap
 
 // Backlight is active-low: duty 255 = off, 0 = full brightness.
 static void setBacklight(int pct) {
@@ -142,7 +142,8 @@ void begin() {
 
 void applySettings() {
   msgShown = false;
-  if (!settings.appEnabled[current]) current = firstEnabled(current, 1);
+  // Settings opened by a triple tap stay on screen even when the app is disabled.
+  if (!settings.appEnabled[current] && current != APP_SETTINGS) current = firstEnabled(current, 1);
   setBacklight(effectiveBrightness());
   dirty = true;
 }
@@ -181,7 +182,7 @@ String stateJson() {
 
 String touchJson() {
   return String("{\"raw\":") + touchRaw + ",\"base\":" + touchBase + ",\"threshold\":" + touchThreshold +
-         ",\"taps\":" + taps + ",\"double\":" + doubleTaps +
+         ",\"taps\":" + taps + ",\"double\":" + doubleTaps + ",\"triple\":" + tripleTaps +
          ",\"long\":" + longPresses + "}";
 }
 
@@ -272,13 +273,24 @@ static void drawStatus() {
 }
 
 // Stock controls: tap = next app, double tap = previous app, long press = enter().
-// A single tap waits DOUBLE_TAP_MS for a second one before acting.
+// Triple tap = Settings, even when that app is disabled (to find the IP address).
+// Taps are counted until a pause longer than DOUBLE_TAP_MS, then acted on.
+static void openSettings() {
+  msgShown = false;
+  current = APP_SETTINGS;
+  dirty = true;
+}
+
 static void handleTouch() {
   static uint32_t lastSample = 0, pressStart = 0, tapAt = 0;
-  static bool pressed = false, longFired = false, tapPending = false;
-  if (tapPending && millis() - tapAt > DOUBLE_TAP_MS) {
-    tapPending = false;
-    next(1);
+  static bool pressed = false, longFired = false;
+  static int tapCount = 0;
+  if (tapCount && !pressed && millis() - tapAt > DOUBLE_TAP_MS) {
+    int n = tapCount;
+    tapCount = 0;
+    if (n == 1) taps++, next(1);
+    else if (n == 2) doubleTaps++, next(-1);
+    else tripleTaps++, openSettings();
   }
   if (millis() - lastSample < TOUCH_SAMPLE_MS || millis() < touchReadyAt) return;
   lastSample = millis();
@@ -299,21 +311,14 @@ static void handleTouch() {
     pressStart = millis();
   } else if (down && pressed && !longFired && millis() - pressStart > LONG_PRESS_MS) {
     longFired = true;
-    tapPending = false;
+    tapCount = 0;
     longPresses++;
     enter();
   } else if (!down && pressed) {
     pressed = false;
     if (longFired || millis() - pressStart <= 40) return;
-    if (tapPending) {
-      tapPending = false;
-      doubleTaps++;
-      next(-1);
-    } else {
-      taps++;
-      tapPending = true;
-      tapAt = millis();
-    }
+    tapCount++;
+    tapAt = millis();
   }
 }
 

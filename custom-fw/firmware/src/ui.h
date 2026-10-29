@@ -14,6 +14,6 @@ bool open(const String &name);
 // UI loop draws it and keeps it up until the next app change or applySettings().
 void message(const String &title, const String &text);
 String touchJson();
-String stateJson();  // current app and UI state, for /state.json  // {"raw":..,"base":..,"threshold":..,"taps":..,"double":..,"long":..} for /touch.json
+String stateJson();  // current app and UI state, for /state.json  // {"raw":..,"base":..,"threshold":..,"taps":..,"double":..,"triple":..,"long":..} for /touch.json
 
 }  // namespace ui
