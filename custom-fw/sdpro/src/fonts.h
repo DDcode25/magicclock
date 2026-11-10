@@ -21,3 +21,6 @@ void useFont(TFT_eSPI &tft, UiFont font);
 // Bold font sized so the city of `region` fills its own line (tools/gen_city_fonts.py); holds only
 // that city's letters. region -1: FONT_LARGE.
 void useCityFont(TFT_eSPI &tft, int region);
+
+// Frees the screen font's glyph tables (~2.5 KB) for a TLS fetch; the next useFont() loads it again.
+void releaseFont();

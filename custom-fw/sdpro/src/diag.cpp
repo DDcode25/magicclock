@@ -2,6 +2,7 @@
 #include <ArduinoJson.h>
 #include <user_interface.h>
 #include "net.h"
+#include <time.h>
 #include "store.h"
 
 namespace diag {
@@ -73,13 +74,13 @@ struct Kept {
   int32_t bytes;
   uint32_t at;  // uptime s
 };
-static Kept kept[8];
+static Kept kept[4];
 static int keptCount = 0;
 
 void fetchDone(uint32_t heapBefore) {
   int32_t d = (int32_t)heapBefore - (int32_t)ESP.getFreeHeap();
   if (d < 4000) return;
-  Kept &k = kept[keptCount++ % 8];
+  Kept &k = kept[keptCount++ % 4];
   strlcpy(k.what, rtc.last[FETCH], sizeof k.what);
   k.bytes = d;
   k.at = millis() / 1000;
@@ -88,6 +89,7 @@ void fetchDone(uint32_t heapBefore) {
 String json() {
   JsonDocument doc;
   doc["uptime"] = millis() / 1000;
+  doc["time"] = (long)time(nullptr);
   doc["heap"] = ESP.getFreeHeap();
   doc["minHeap"] = rtc.lowHeap;
   doc["maxBlock"] = ESP.getMaxFreeBlockSize();
@@ -97,11 +99,11 @@ String json() {
   doc["ui"] = (const char *)rtc.last[UI];
   doc["web"] = (const char *)rtc.last[WEB];
   doc["fetch"] = (const char *)rtc.last[FETCH];
-  for (int i = max(0, keptCount - 8); i < keptCount; i++) {
+  for (int i = max(0, keptCount - 4); i < keptCount; i++) {
     JsonObject o = doc["kept"].add<JsonObject>();
-    o["what"] = (const char *)kept[i % 8].what;
-    o["bytes"] = kept[i % 8].bytes;
-    o["at"] = kept[i % 8].at;
+    o["what"] = (const char *)kept[i % 4].what;
+    o["bytes"] = kept[i % 4].bytes;
+    o["at"] = kept[i % 4].at;
   }
   doc["boots"] = store::load(LOG)["boots"];
   String out;

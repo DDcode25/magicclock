@@ -91,7 +91,7 @@ static bool geocode(const Config &c, String &err) {
   for (size_t i = 0; i < c.city.length(); i++) numeric &= isDigit(c.city[i]);
   if (numeric) return err = "потрібна назва міста", false;  // OpenWeatherMap city ids need an OWM key
   JsonDocument doc;
-  if (!getJson("http://geocoding-api.open-meteo.com/v1/search?count=1&language=uk&format=json&name=" + urlEncode(c.city),
+  if (!getJson(String(F("http://geocoding-api.open-meteo.com/v1/search?count=1&language=uk&format=json&name=")) + urlEncode(c.city),
                doc, err))
     return false;
   JsonObject r = doc["results"][0];
@@ -104,12 +104,12 @@ static bool geocode(const Config &c, String &err) {
 
 static bool fetch(const Config &c, Data &d, String &err) {
   if (!geocode(c, err)) return false;
-  String url = String("http://api.open-meteo.com/v1/forecast?latitude=") + String(lat, 4) + "&longitude=" + String(lon, 4) +
-               "&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,"
-               "pressure_msl,is_day&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto"
-               "&wind_speed_unit=" +
+  String url = String(F("http://api.open-meteo.com/v1/forecast?latitude=")) + String(lat, 4) + "&longitude=" + String(lon, 4) +
+               F("&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,"
+                 "pressure_msl,is_day&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto"
+                 "&wind_speed_unit=") +
                (c.wind == "km/h" ? "kmh" : c.wind == "mile/h" ? "mph" : "ms") +
-               (c.fahrenheit ? "&temperature_unit=fahrenheit" : "");
+               (c.fahrenheit ? String(F("&temperature_unit=fahrenheit")) : String());
   JsonDocument doc;
   if (!getJson(url, doc, err)) return false;
   JsonObject cur = doc["current"];
@@ -172,34 +172,34 @@ void pause(bool on) { paused = on; }
 
 // ---- text -----------------------------------------------------------------------------
 
-static const char *describe(int code) {
+static const __FlashStringHelper *describe(int code) {
   switch (code) {
-    case 0: return "Ясно";
-    case 1: return "Переважно ясно";
-    case 2: return "Мінлива хмарність";
-    case 3: return "Хмарно";
-    case 45: return "Туман";
-    case 48: return "Туман з інеєм";
-    case 51: return "Слабка мряка";
-    case 53: return "Мряка";
-    case 55: return "Сильна мряка";
-    case 56: case 57: return "Крижана мряка";
-    case 61: return "Слабкий дощ";
-    case 63: return "Дощ";
-    case 65: return "Сильний дощ";
-    case 66: case 67: return "Крижаний дощ";
-    case 71: return "Слабкий сніг";
-    case 73: return "Сніг";
-    case 75: return "Сильний сніг";
-    case 77: return "Снігова крупа";
-    case 80: return "Слабка злива";
-    case 81: return "Злива";
-    case 82: return "Сильна злива";
-    case 85: return "Снігопад";
-    case 86: return "Сильний снігопад";
-    case 95: return "Гроза";
-    case 96: case 99: return "Гроза з градом";
-    default: return "";
+    case 0: return F("Ясно");
+    case 1: return F("Переважно ясно");
+    case 2: return F("Мінлива хмарність");
+    case 3: return F("Хмарно");
+    case 45: return F("Туман");
+    case 48: return F("Туман з інеєм");
+    case 51: return F("Слабка мряка");
+    case 53: return F("Мряка");
+    case 55: return F("Сильна мряка");
+    case 56: case 57: return F("Крижана мряка");
+    case 61: return F("Слабкий дощ");
+    case 63: return F("Дощ");
+    case 65: return F("Сильний дощ");
+    case 66: case 67: return F("Крижаний дощ");
+    case 71: return F("Слабкий сніг");
+    case 73: return F("Сніг");
+    case 75: return F("Сильний сніг");
+    case 77: return F("Снігова крупа");
+    case 80: return F("Слабка злива");
+    case 81: return F("Злива");
+    case 82: return F("Сильна злива");
+    case 85: return F("Снігопад");
+    case 86: return F("Сильний снігопад");
+    case 95: return F("Гроза");
+    case 96: case 99: return F("Гроза з градом");
+    default: return F("");
   }
 }
 

@@ -57,30 +57,9 @@ struct Field {
   Kind kind;
 };
 
+// SD PRO: only the settings of the apps built here (the stock UI's crypto, stock, album and monitor
+// fields are ignored).
 static const Field FIELDS[] = {
-    {"c_theme", "c_theme.json", "c_theme", STR},
-    {"c_chart", "c_chart.json", "c_chart", STR},
-    {"kline", "k.json", "k", STR},
-    {"c_loading", "coin2.json", "c_loading", INT},
-    {"c_clock", "coin2.json", "c_clock", INT},
-    {"ani", "coin2.json", "c_ani", INT},
-    {"c_pct_mode", "coin2.json", "c_pct_mode", INT},
-    {"c_i", "coin2.json", "c_i", INT},
-    {"c_l", "coin2.json", "c_l", INT},
-    {"rot_i", "cr.json", "rot_i", STR},
-    {"g_theme", "g_theme.json", "g_theme", STR},
-    {"g_range", "cg_range.json", "range", STR},
-    {"g_loading", "cgk.json", "g_loading", INT},
-    {"g_clock", "cgk.json", "g_clock", INT},
-    {"g_ani", "cgk.json", "g_ani", INT},
-    {"g_i", "cgk.json", "g_i", INT},
-    {"g_l", "cgk.json", "g_l", INT},
-    {"g_rot_i", "cgk.json", "g_rot_i", INT},
-    {"st_chart", "st_chart.json", "st_chart", STR},
-    {"st_kline", "stk.json", "st_kline", STR},
-    {"s_i", "stock2.json", "s_i", STR},
-    {"s_l", "stock2.json", "s_l", STR},
-    {"s_ani", "stock2.json", "s_ani", STR},
     {"cd1", "city.json", "cd1", STR},
     {"cd2", "city.json", "cd2", STR},
     {"nickname", "city.json", "nickname", STR},
@@ -88,7 +67,6 @@ static const Field FIELDS[] = {
     {"w_u", "unit.json", "w_u", STR},
     {"t_u", "unit.json", "t_u", STR},
     {"p_u", "unit.json", "p_u", STR},
-    {"key", "key.json", "key", STR},
     {"hc", "timecolor.json", "hc", STR},
     {"mc", "timecolor.json", "mc", STR},
     {"sc", "timecolor.json", "sc", STR},
@@ -97,15 +75,6 @@ static const Field FIELDS[] = {
     {"sec_mode", "clock.json", "sm", INT},
     {"tz_offset", "tz.json", "offset", INT},
     {"ntp", "ntp.json", "ntp", STR},
-    {"gif_loop", "album.json", "gif_loop", INT},
-    {"i_i", "album.json", "i_i", INT},
-    {"autoplay", "album.json", "autoplay", INT},
-    {"album_path", "album.json", "path", STR},
-    {"album_autoplay", "album.json", "autoplay", INT},
-    {"gif", "gif.json", "gif", STR},
-    {"ip", "monitor.json", "ip", STR},
-    {"m_i", "monitor.json", "m_i", INT},
-    {"delay", "delay.json", "delay", STR},
     {"brt", "brt.json", "brt", INV_STR},
     {"t1", "timebrt.json", "t1", INT},
     {"t2", "timebrt.json", "t2", INT},
@@ -114,18 +83,6 @@ static const Field FIELDS[] = {
     {"en", "timebrt.json", "en", INT},
     {"theme", "app.json", "theme", STR},
     {"rot", "app.json", "rot", INT},  // SD PRO: seconds per app in the auto rotation (0 = off)
-    {"up_fg", "ccolor.json", "up_fg", STR},
-    {"up_bg", "ccolor.json", "up_bg", STR},
-    {"down_fg", "ccolor.json", "down_fg", STR},
-    {"down_bg", "ccolor.json", "down_bg", STR},
-    {"coin_fg", "ccolor.json", "coin_fg", STR},
-    {"coin_bg", "ccolor.json", "coin_bg", STR},
-    {"pct_up_fg", "ccolor.json", "pct_up_fg", STR},
-    {"pct_up_bg", "ccolor.json", "pct_up_bg", STR},
-    {"pct_down_fg", "ccolor.json", "pct_down_fg", STR},
-    {"pct_down_bg", "ccolor.json", "pct_down_bg", STR},
-    {"dec_sep", "sep.json", "decimal_sep", STR},
-    {"thous_sep", "sep.json", "thousand_sep", STR},
     // UA Smart Box: air alerts app
     {"al_src", "alerts.json", "src", STR},
     {"al_token", "alerts.json", "token", STR},
@@ -225,7 +182,6 @@ static void handleSet() {
   }
 
   Batch batch;
-  bool stockForm = server.hasArg("s_i");  // cn0..9 belongs to stock2.json in the stock form
   bool timeChanged = false, alertsChanged = false, weatherChanged = false, outageChanged = false;
   for (int i = 0; i < server.args(); i++) {
     String name = server.argName(i), v = server.arg(i);
@@ -251,14 +207,6 @@ static void handleSet() {
       timeChanged = true;
     } else if (name.startsWith("app_")) {
       batch.doc("app.json")["apps"][name.substring(4)] = v.toInt();
-    } else if (indexed(name, "cin", 12)) {
-      batch.doc("coin2.json")[name] = v;
-    } else if (indexed(name, "gin", 12)) {
-      batch.doc("cgk.json")[name] = v;
-    } else if (indexed(name, "cn", 12)) {
-      batch.doc(stockForm ? "stock2.json" : "coin2.json")[name] = v;
-    } else if (indexed(name, "c", 10)) {
-      batch.doc("stock2.json")[name] = v;
     } else {
       Serial.printf("set: unknown %s=%s\n", name.c_str(), v.c_str());
     }
@@ -285,14 +233,14 @@ static void handleFileList() {
   String dir = server.arg("dir");
   File d = LittleFS.open(dir.isEmpty() ? "/" : dir, "r");
   if (!d || !d.isDirectory()) return server.send(200, "text/html", "failed o dir");
-  String h = "<table id='list'><tbody><tr><th>#</th><th>File name</th><th>Size(KB)</th><th></th></tr>";
+  String h = F("<table id='list'><tbody><tr><th>#</th><th>File name</th><th>Size(KB)</th><th></th></tr>");
   int n = 0;
   for (File f = d.openNextFile(); f; f = d.openNextFile()) {
     if (f.isDirectory()) continue;
     String path = joinPath(dir, f.name());
-    h += "<tr><td>" + String(++n) + "</td><td><a href='" + path + "'>" + f.name() + "</a></td><td>" +
-         String(f.size() / 1024) + "</td><td><input type='button' class='btndel' onclick=\"deletef('" + path +
-         "')\" value='X'></td></tr>";
+    h += String(F("<tr><td>")) + (++n) + F("</td><td><a href='") + path + F("'>") + f.name() + F("</a></td><td>") +
+         (f.size() / 1024) + F("</td><td><input type='button' class='btndel' onclick=\"deletef('") + path +
+         F("')\" value='X'></td></tr>");
   }
   h += "</tbody></table>";
   server.send(200, "text/html", h);
@@ -385,7 +333,7 @@ static void handleUpdateDone() {
     ui::applySettings();
     return;
   }
-  server.send(200, "text/html", "<META http-equiv=\"refresh\" content=\"15;URL=/\">Update Success! Rebooting...");
+  server.send(200, "text/html", F("<META http-equiv=\"refresh\" content=\"15;URL=/\">Update Success! Rebooting..."));
   restartSoon("Оновлено");
 }
 

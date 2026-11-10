@@ -62,24 +62,28 @@ static void loadConfig() {
 
 static bool fetch(const Config &c, Snapshot &out, String &err) {
   String url;
-  if (c.src == "ubilling") url = "https://ubilling.net.ua/aerialalerts/";
-  else if (c.src == "neptun") url = "https://neptun.in.ua/api/v1/alerts";
+  if (c.src == "ubilling") url = F("http://ubilling.net.ua/aerialalerts/");  // plain HTTP: no TLS memory
+  else if (c.src == "neptun") url = F("https://neptun.in.ua/api/v1/alerts");
   else if (c.src == "alertsinua") {
     if (c.token.isEmpty()) return err = "немає токена", false;
-    url = "https://api.alerts.in.ua/v1/iot/active_air_raid_alerts_by_oblast.json?token=" + c.token;
-  } else url = "https://vadimklimenko.com/map/statuses.json";
+    url = String(F("https://api.alerts.in.ua/v1/iot/active_air_raid_alerts_by_oblast.json?token=")) + c.token;
+  } else url = F("https://vadimklimenko.com/map/statuses.json");
 
-  TlsClient client;
+  // ubilling is plain HTTP: a plain client, no TLS buffers at all.
+  bool secure = url.startsWith("https");
+  std::unique_ptr<TlsClient> tls(secure ? new TlsClient() : nullptr);
+  std::unique_ptr<WiFiClient> plain(secure ? nullptr : new WiFiClient());
+  WiFiClient &client = secure ? (WiFiClient &)*tls : *plain;
   HTTPClient http;
   http.setTimeout(10000);
   http.useHTTP10(true);  // plain body: JSON is parsed straight from the stream
   // Some sources reject unknown clients; present a desktop Chrome.
-  http.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36");
-  client.sizeFor(url);
+  http.setUserAgent(F("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"));
+  if (secure) tls->sizeFor(url);
   if (!http.begin(client, url)) return err = "немає з’єднання", false;
   int code = http.GET();
   if (code != 200) {
-    err = client.httpError(code);
+    err = secure ? tls->httpError(code) : "помилка HTTP " + String(code);
     http.end();
     return false;
   }
@@ -91,7 +95,7 @@ static bool fetch(const Config &c, Snapshot &out, String &err) {
     NetReader reader{http.getStream(), 10000};
     ok = c.src == "ubilling" ? parseWith(reader, filterUbilling, fromUbilling, out)
          : c.src == "neptun" ? parseWith(reader, filterNeptun, fromNeptun, out)
-                             : parseWith(reader, filterKlymenko, fromKlymenko, out);
+                             : parseKlymenkoStream(reader, out);
   }
   http.end();
   if (!ok) err = String("погані дані: ") + lastError;
@@ -213,7 +217,7 @@ static void fillRings(int firstRing, int rings, uint16_t color) {
       y0 = min(y0, y), y1 = max(y1, y);
     }
   }
-  static int32_t xs[96];
+  int32_t xs[96];  // stack: only while drawing
   int top = MAP_Y + bandTop, bottom = min(MAP_Y + MAP_H, top + BAND_ROWS) - 1;
   for (int py = max(y0 / F, top); py <= min(y1 / F, bottom); py++) {
     yield();  // the whole map takes a while (points are read from flash): keep the watchdog fed

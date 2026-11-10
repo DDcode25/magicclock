@@ -13,7 +13,9 @@ static int dateFormat = 1;
 static bool countdown = false;  // under the time: seconds, or the countdown to the next power change
 static int shownMinute = -1, shownDay = -1, shownBottom = -1;
 
-static const char *const WEEKDAYS[] = {"неділя", "понеділок", "вівторок", "середа", "четвер", "п’ятниця", "субота"};
+static const char WD0[] PROGMEM = "неділя", WD1[] PROGMEM = "понеділок", WD2[] PROGMEM = "вівторок",
+                  WD3[] PROGMEM = "середа", WD4[] PROGMEM = "четвер", WD5[] PROGMEM = "п’ятниця", WD6[] PROGMEM = "субота";
+static const char *const WEEKDAYS[] PROGMEM = {WD0, WD1, WD2, WD3, WD4, WD5, WD6};
 
 static uint16_t parseColor(const String &hex, uint16_t def) {
   if (hex.length() != 7 || hex[0] != '#') return def;
@@ -67,7 +69,7 @@ static void drawDay(TFT_eSPI &tft, const struct tm &t) {
   useFont(tft, FONT_LARGE);
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-  tft.drawString(WEEKDAYS[t.tm_wday], 120, 38);
+  tft.drawString(String(FPSTR((const char *)pgm_read_ptr(&WEEKDAYS[t.tm_wday]))), 120, 38);
   tft.drawString(dateText(t), 120, 220);
 }
 

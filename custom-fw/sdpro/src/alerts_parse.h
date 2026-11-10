@@ -33,6 +33,50 @@ int raionByKey(const char *neptunKey);  // -1 if unknown
 // districts carry alert_level red/yellow (none = red).
 void filterKlymenko(JsonDocument &filter);
 bool fromKlymenko(JsonDocument &doc, Snapshot &out);
+// Streaming variant for the ESP8266 (the whole document needs ~10 KB): the "states" object is read
+// one state at a time, each parsed on its own through filterKlymenkoState.
+void filterKlymenkoState(JsonDocument &filter);
+void klymenkoState(const char *name, JsonObjectConst state, Snapshot &out);
+void clearSnapshot(Snapshot &out);
+
+// in: anything with read() returning -1 at the end (NetReader).
+template <typename Input>
+bool parseKlymenkoStream(Input &in, Snapshot &out) {
+  // Skip to the object after "states".
+  static const char KEY[] = "\"states\"";
+  int matched = 0, ch;
+  while (KEY[matched] && (ch = in.read()) >= 0) matched = ch == KEY[matched] ? matched + 1 : (ch == KEY[0] ? 1 : 0);
+  if (KEY[matched]) return lastError = "no states", false;
+  while ((ch = in.read()) >= 0 && ch != '{') {}
+  if (ch < 0) return lastError = "no states", false;
+  clearSnapshot(out);
+  JsonDocument filter;
+  filterKlymenkoState(filter);
+  int states = 0;
+  for (;;) {
+    // Next key, or the end of "states".
+    while ((ch = in.read()) >= 0 && ch != '"' && ch != '}') {}
+    if (ch == '}') break;
+    if (ch < 0) return lastError = "cut short", false;
+    char name[96];
+    int n = 0;
+    while ((ch = in.read()) >= 0 && ch != '"') {
+      if (ch == '\\') ch = in.read();
+      if (n < (int)sizeof name - 1) name[n++] = (char)ch;
+    }
+    name[n] = 0;
+    while ((ch = in.read()) >= 0 && ch != ':') {}
+    if (ch < 0) return lastError = "cut short", false;
+    JsonDocument doc;  // one state with its districts: ~1.5 KB
+    DeserializationError e = deserializeJson(doc, in, DeserializationOption::Filter(filter));
+    if (e) return lastError = e.c_str(), false;
+    klymenkoState(name, doc.as<JsonObjectConst>(), out);
+    states++;
+  }
+  lastError = states ? "" : "empty";
+  return states > 0;
+}
+
 // ubilling.net.ua/aerialalerts/: "alertnow" per oblast -> FULL (it cannot tell partial alerts);
 // regions it does not list (e.g. Crimea) stay UNKNOWN.
 void filterUbilling(JsonDocument &filter);

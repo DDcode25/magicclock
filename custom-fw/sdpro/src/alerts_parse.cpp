@@ -9,35 +9,35 @@ namespace alerts {
 const char *lastError = "";
 
 // Ukrainian names used by Klymenko and ubilling, in alerts.in.ua IoT order.
-static const char *const NAMES[REGIONS] = {
-    "АР Крим",
-    "Волинська область",
-    "Вінницька область",
-    "Дніпропетровська область",
-    "Донецька область",
-    "Житомирська область",
-    "Закарпатська область",
-    "Запорізька область",
-    "Івано-Франківська область",
-    "м. Київ",
-    "Київська область",
-    "Кіровоградська область",
-    "Луганська область",
-    "Львівська область",
-    "Миколаївська область",
-    "Одеська область",
-    "Полтавська область",
-    "Рівненська область",
-    "Севастополь",
-    "Сумська область",
-    "Тернопільська область",
-    "Харківська область",
-    "Херсонська область",
-    "Хмельницька область",
-    "Черкаська область",
-    "Чернівецька область",
-    "Чернігівська область",
-};
+// Flash: RAM is short on the ESP8266.
+static const char NAME_0[] PROGMEM = "АР Крим";
+static const char NAME_1[] PROGMEM = "Волинська область";
+static const char NAME_2[] PROGMEM = "Вінницька область";
+static const char NAME_3[] PROGMEM = "Дніпропетровська область";
+static const char NAME_4[] PROGMEM = "Донецька область";
+static const char NAME_5[] PROGMEM = "Житомирська область";
+static const char NAME_6[] PROGMEM = "Закарпатська область";
+static const char NAME_7[] PROGMEM = "Запорізька область";
+static const char NAME_8[] PROGMEM = "Івано-Франківська область";
+static const char NAME_9[] PROGMEM = "м. Київ";
+static const char NAME_10[] PROGMEM = "Київська область";
+static const char NAME_11[] PROGMEM = "Кіровоградська область";
+static const char NAME_12[] PROGMEM = "Луганська область";
+static const char NAME_13[] PROGMEM = "Львівська область";
+static const char NAME_14[] PROGMEM = "Миколаївська область";
+static const char NAME_15[] PROGMEM = "Одеська область";
+static const char NAME_16[] PROGMEM = "Полтавська область";
+static const char NAME_17[] PROGMEM = "Рівненська область";
+static const char NAME_18[] PROGMEM = "Севастополь";
+static const char NAME_19[] PROGMEM = "Сумська область";
+static const char NAME_20[] PROGMEM = "Тернопільська область";
+static const char NAME_21[] PROGMEM = "Харківська область";
+static const char NAME_22[] PROGMEM = "Херсонська область";
+static const char NAME_23[] PROGMEM = "Хмельницька область";
+static const char NAME_24[] PROGMEM = "Черкаська область";
+static const char NAME_25[] PROGMEM = "Чернівецька область";
+static const char NAME_26[] PROGMEM = "Чернігівська область";
+static const char *const NAMES[REGIONS] PROGMEM = {NAME_0, NAME_1, NAME_2, NAME_3, NAME_4, NAME_5, NAME_6, NAME_7, NAME_8, NAME_9, NAME_10, NAME_11, NAME_12, NAME_13, NAME_14, NAME_15, NAME_16, NAME_17, NAME_18, NAME_19, NAME_20, NAME_21, NAME_22, NAME_23, NAME_24, NAME_25, NAME_26};
 
 static int raionCount(int region) {
   static int8_t count[REGIONS] = {-1};
@@ -69,7 +69,7 @@ int raionByKey(const char *key) {
 int regionByName(const char *name) {
   if (!name) return -1;
   for (int i = 0; i < REGIONS; i++)
-    if (strcmp(name, NAMES[i]) == 0) return i;
+    if (strcmp_P(name, (const char *)pgm_read_ptr(&NAMES[i])) == 0) return i;
   if (strcmp(name, "Автономна Республіка Крим") == 0) return 0;
   if (strcmp(name, "м. Севастополь") == 0) return 18;
   if (strcmp(name, "Київ") == 0 || strcmp(name, "м.Київ") == 0 || strcmp(name, "місто Київ") == 0) return 9;
@@ -128,35 +128,46 @@ void filterKlymenko(JsonDocument &filter) {
   filter["states"]["*"]["districts"]["*"]["alert_level"] = true;
 }
 
+void filterKlymenkoState(JsonDocument &filter) {
+  filter["enabled"] = true;
+  filter["enabled_at"] = true;
+  filter["districts"]["*"]["enabled"] = true;
+  filter["districts"]["*"]["enabled_at"] = true;
+  filter["districts"]["*"]["alert_level"] = true;
+}
+
+void klymenkoState(const char *name, JsonObjectConst s, Snapshot &out) {
+  int r = regionByName(name);
+  if (r < 0) return;
+  if (s["enabled"] | false) {
+    out.level[r] = FULL;
+    out.since[r] = parseIso(s["enabled_at"]);
+    setRaionsOf(out, r, R_RED);
+    return;
+  }
+  bool unmatched = false;
+  for (JsonPairConst dp : s["districts"].as<JsonObjectConst>()) {
+    JsonObjectConst dist = dp.value();
+    if (!(dist["enabled"] | false)) continue;
+    int d = raionByName(dp.key().c_str());
+    if (d >= 0) out.raion[d] = raionLevel(dist["alert_level"]);
+    else unmatched = true;
+    time_t t = parseIso(dist["enabled_at"]);
+    if (t && (!out.since[r] || t < out.since[r])) out.since[r] = t;
+  }
+  levelFromRaions(out, r);
+  if (unmatched && out.level[r] == NONE) out.level[r] = PARTIAL;
+}
+
 bool fromKlymenko(JsonDocument &doc, Snapshot &out) {
   JsonObject states = doc["states"];
   if (states.isNull()) return false;
   clear(out);
-  for (JsonPair st : states) {
-    int r = regionByName(st.key().c_str());
-    if (r < 0) continue;
-    JsonObject s = st.value();
-    if (s["enabled"] | false) {
-      out.level[r] = FULL;
-      out.since[r] = parseIso(s["enabled_at"]);
-      setRaionsOf(out, r, R_RED);
-      continue;
-    }
-    bool unmatched = false;
-    for (JsonPair dp : s["districts"].as<JsonObject>()) {
-      JsonObject dist = dp.value();
-      if (!(dist["enabled"] | false)) continue;
-      int d = raionByName(dp.key().c_str());
-      if (d >= 0) out.raion[d] = raionLevel(dist["alert_level"]);
-      else unmatched = true;
-      time_t t = parseIso(dist["enabled_at"]);
-      if (t && (!out.since[r] || t < out.since[r])) out.since[r] = t;
-    }
-    levelFromRaions(out, r);
-    if (unmatched && out.level[r] == NONE) out.level[r] = PARTIAL;
-  }
+  for (JsonPair st : states) klymenkoState(st.key().c_str(), st.value(), out);
   return true;
 }
+
+void clearSnapshot(Snapshot &out) { clear(out); }
 
 void filterUbilling(JsonDocument &filter) {
   filter["states"]["*"]["alertnow"] = true;

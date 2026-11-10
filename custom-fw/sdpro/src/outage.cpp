@@ -42,7 +42,7 @@ static void loadConfig() {
   if (changed) valid = false;
 }
 
-static const char *POE_URL = "https://www.poe.pl.ua/customs/dynamicgpv-info.php";
+static const char POE_URL[] PROGMEM = "https://www.poe.pl.ua/customs/dynamicgpv-info.php";
 
 // Local midnight of y-m-d (device time zone).
 static time_t localMidnight(int y, int m, int d) {
@@ -95,10 +95,10 @@ static bool fetchPoe(WiFiClient &stream, const Config &c, Schedule &s, String &e
 }
 
 static String sourceUrl(const String &src) {
-  if (src == "poe") return POE_URL;
+  if (src == "poe") return FPSTR(POE_URL);
   String name = src.substring(2);
-  if (src.startsWith("b:")) return "https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/data/" + name + ".json";
-  return "https://raw.githubusercontent.com/yaroslav2901/OE_OUTAGE_DATA/main/data/" + name + ".json";
+  if (src.startsWith("b:")) return String(F("https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/data/")) + name + ".json";
+  return String(F("https://raw.githubusercontent.com/yaroslav2901/OE_OUTAGE_DATA/main/data/")) + name + ".json";
 }
 
 static bool fetch(const Config &c, Schedule &s, String &err) {

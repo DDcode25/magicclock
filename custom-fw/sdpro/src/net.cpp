@@ -1,11 +1,11 @@
 #include "net.h"
 #include <ESP8266WiFi.h>
 #include <DNSServer.h>
-#include <ESP8266mDNS.h>
 #include <coredecls.h>
 #include <time.h>
 #include "board.h"
 #include "diag.h"
+#include "fonts.h"
 #include "store.h"
 
 namespace net {
@@ -140,14 +140,11 @@ void begin() {
   } else {
     startAp();
   }
-  MDNS.begin(HOSTNAME);
-  MDNS.addService("http", "tcp", 80);
   applyTime();
 }
 
 void loop() {
   if (ap) dns.processNextRequest();
-  MDNS.update();
   if (WiFi.status() == WL_CONNECTED) {
     lastConnectedMs = millis();
   } else {
@@ -179,14 +176,19 @@ void applyTime() {
   int off = settings.tzOffsetMin;
   if (settings.tzManual)
     snprintf(tz, sizeof tz, "UTC%c%d:%02d", off >= 0 ? '-' : '+', abs(off) / 60, abs(off) % 60);
-  configTime(tz, settings.ntpServer.c_str(), "pool.ntp.org", "time.windows.com");
+  // String overload: the core keeps copies (the const char * one keeps only the pointers, and
+  // settings.ntpServer is reallocated by every settings reload).
+  configTime(tz, settings.ntpServer, String(F("pool.ntp.org")), String(F("time.windows.com")));
 }
 
 bool timeValid() { return time(nullptr) > 1700000000; }
 
 // Fetches run one at a time from loop() (single thread); these only feed the diagnostics.
 static uint32_t heapAtLock = 0;
-void fetchLock() { heapAtLock = ESP.getFreeHeap(); }
+void fetchLock() {
+  releaseFont();  // every KB counts: a TLS session needs ~25 KB next to the parsed JSON
+  heapAtLock = ESP.getFreeHeap();
+}
 void fetchUnlock() {
   diag::fetchDone(heapAtLock);
   diag::crumb(diag::FETCH, "idle");

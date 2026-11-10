@@ -25,6 +25,11 @@ static void load(TFT_eSPI &tft, const uint8_t *data) {
   if (isScreen) loaded = data;
 }
 
+void releaseFont() {
+  if (screen && loaded) screen->unloadFont();
+  loaded = nullptr;
+}
+
 void useFont(TFT_eSPI &tft, UiFont font) {
   static const uint8_t *const DATA[] = {nullptr, FONT_UA_15, FONT_UA_24B, FONT_DIGITS_71B, FONT_DIGITS_36B, FONT_DIGITS_45B, FONT_DIGITS_56B, FONT_DIGITS_16B, FONT_NUM_24B, FONT_NUM_28B, FONT_ALARM_DATA,
                                         // Price fonts (Bitcoin app) are not built on the SD PRO.
