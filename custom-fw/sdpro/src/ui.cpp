@@ -240,10 +240,11 @@ void loop() {
   }
   if (msgShown) return;  // keep the notice up (e.g. during OTA)
 
-  // No touch: the enabled apps take turns (not while the alert map is up because of an alert).
+  // No touch: the enabled apps take turns, each for its own time (not while the alert map is up
+  // because of an alert).
   static int autoReturnApp = -1;
-  if (settings.rotateSec > 0 && autoReturnApp < 0 && !alerts::blinkingNow() &&
-      millis() - shownSince > (uint32_t)settings.rotateSec * 1000) {
+  int sec = settings.appSec[current];
+  if (sec > 0 && autoReturnApp < 0 && !alerts::blinkingNow() && millis() - shownSince > (uint32_t)sec * 1000) {
     int nextApp = firstEnabled(APP_ORDER[(orderPos(current) + 1) % APP_COUNT], 1);
     if (nextApp != current) current = nextApp, dirty = true;
     else shownSince = millis();

@@ -29,10 +29,13 @@ struct Settings {
   bool tzManual = false;
   int tzOffsetMin = 0;
   String ntpServer = "pool.ntp.org";
-  int rotateSec = 15;  // no touch: the enabled apps take turns this many seconds each (0 = stay)
+  // No touch: the enabled apps take turns, each for its own number of seconds (0 = stays on it).
+  // /.sys/app.json {"dur":{"weather":15,...}}, indexed like APP_ITEMS.
+  int appSec[16];
 
   Settings() {
     for (bool &e : appEnabled) e = true;
+    for (int &d : appSec) d = 15;
   }
   void load();
 };

@@ -82,7 +82,6 @@ static const Field FIELDS[] = {
     {"b2", "timebrt.json", "b2", INV_INT},
     {"en", "timebrt.json", "en", INT},
     {"theme", "app.json", "theme", STR},
-    {"rot", "app.json", "rot", INT},  // SD PRO: seconds per app in the auto rotation (0 = off)
     // UA Smart Box: air alerts app
     {"al_src", "alerts.json", "src", STR},
     {"al_token", "alerts.json", "token", STR},
@@ -207,6 +206,8 @@ static void handleSet() {
       timeChanged = true;
     } else if (name.startsWith("app_")) {
       batch.doc("app.json")["apps"][name.substring(4)] = v.toInt();
+    } else if (name.startsWith("dur_")) {  // SD PRO: seconds on screen per app (0 = stays)
+      batch.doc("app.json")["dur"][name.substring(4)] = constrain(v.toInt(), 0, 3600);
     } else {
       Serial.printf("set: unknown %s=%s\n", name.c_str(), v.c_str());
     }
