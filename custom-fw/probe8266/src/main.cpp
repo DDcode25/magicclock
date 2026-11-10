@@ -6,6 +6,7 @@
 //   POST /update         OTA, multipart field "firmware" (ESP8266HTTPUpdateServer)
 //   GET  /disp?i=N       stop cycling, show display candidate N
 //   GET  /disp?dc=&rst=&cs=&bl=&blinv=   stop cycling, try a custom pin set
+//   GET  /seq            pin-confirmation sequence: stages 1..4, 5 s each, repeated
 //   GET  /cycle          resume cycling through candidates (4 s each)
 //   GET  /reboot
 //
@@ -32,6 +33,7 @@ static int cur = 0;
 static bool cycling = true;
 static uint32_t lastSwitch = 0;
 static Cand custom;
+static int seqStage = 0;  // 0 = off
 static bool useCustom = false;
 
 static void addCand(int8_t dc, int8_t rst, int8_t cs, int8_t bl, bool blLow) {
@@ -90,9 +92,15 @@ static void drawDigit(int d, int x, int y, int s, uint16_t color) {
       if (DIGITS[d][r] & (4 >> c)) fill(x + c * s, y + r * s, s, s, color);
 }
 
+static uint32_t holdHighMask = 0;  // pins releasePins() drives high instead of floating
+
 static void releasePins() {
   const int8_t pins[] = {0, 2, 4, 5, 12, 15, 16};
-  for (int8_t p : pins) pinMode(p, INPUT);
+  for (int8_t p : pins) {
+    if (holdHighMask & (1u << p)) { pinMode(p, OUTPUT); digitalWrite(p, HIGH); }
+    else pinMode(p, INPUT);
+  }
+  if (holdHighMask) delay(150);  // let a just-released reset line finish the controller's reset
 }
 
 static void showCandidate(const Cand &c, int number) {
@@ -124,6 +132,25 @@ static void showCandidate(const Cand &c, int number) {
   int tens = number / 10, ones = number % 10, s = 16;
   if (number >= 10) drawDigit(tens, 120 - 3 * s - s / 2 - s, 80, s, 0xFFFF);
   drawDigit(ones, number >= 10 ? 120 + s / 2 : 120 - 3 * s / 2, 80, s, 0xFFFF);
+}
+
+// Confirmation sequence on top of the found layout (DC 0, CS 15, BL 5 active low).
+// Every stage starts clean: GPIO2 and GPIO4 driven high, full init, number painted.
+// 1.5 s later the stage applies its action and keeps it until the next stage:
+//  1: nothing                     -> number stays the whole 5 s
+//  2: GPIO2 low                   -> picture vanishes if RST is GPIO2
+//  3: GPIO4 low                   -> picture vanishes if RST is GPIO4
+//  4: GPIO5 high                  -> screen goes dark if BL is active low
+static void runStage(int st) {
+  Cand base = {0, -1, 15, 5, true};
+  holdHighMask = (1u << 2) | (1u << 4);
+  showCandidate(base, st);
+}
+
+static void stageAction(int st) {
+  if (st == 2) digitalWrite(2, LOW);
+  if (st == 3) digitalWrite(4, LOW);
+  if (st == 4) digitalWrite(5, HIGH);
 }
 
 // ---------------- Web ----------------
@@ -175,6 +202,8 @@ static int8_t argPin(const char *name, int8_t def) {
 
 static void handleDisp() {
   cycling = false;
+  seqStage = 0;
+  holdHighMask = 0;
   if (server.hasArg("i")) {
     useCustom = false;
     cur = constrain(server.arg("i").toInt(), 0, nCands - 1);
@@ -208,7 +237,8 @@ void setup() {
   server.on("/", handleRoot);
   server.on("/flash", handleFlash);
   server.on("/disp", handleDisp);
-  server.on("/cycle", [] { cycling = true; useCustom = false; lastSwitch = 0; handleRoot(); });
+  server.on("/seq", [] { cycling = false; seqStage = 1; runStage(1); lastSwitch = millis(); handleRoot(); });
+  server.on("/cycle", [] { seqStage = 0; cycling = true; useCustom = false; lastSwitch = 0; handleRoot(); });
   server.on("/reboot", [] { server.send(200, "text/plain", "rebooting"); delay(200); ESP.restart(); });
   server.begin();
 
@@ -227,6 +257,14 @@ void loop() {
   if (millis() - lastCheck > 5000) {
     lastCheck = millis();
     if (WiFi.status() == WL_CONNECTED && (WiFi.getMode() & WIFI_AP)) WiFi.mode(WIFI_STA);
+  }
+  static bool acted = false;
+  if (seqStage && !acted && millis() - lastSwitch > 1500) { stageAction(seqStage); acted = true; }
+  if (seqStage && millis() - lastSwitch > 5000) {
+    acted = false;
+    seqStage = seqStage % 4 + 1;
+    runStage(seqStage);
+    lastSwitch = millis();
   }
   if (cycling && millis() - lastSwitch > 4000) {
     cur = (cur + 1) % nCands;
