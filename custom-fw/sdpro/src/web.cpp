@@ -302,9 +302,17 @@ static const char UPDATE_PAGE[] PROGMEM =
     "<form method='POST' action='/update' enctype='multipart/form-data'>"
     "<input type='file' name='firmware' accept='.bin'> <input type='submit' value='Update'></form></body></html>";
 
+// An ESP32 image also starts with 0xE9 and the ESP8266 updater would take it (and the device would
+// not boot again): ESP32 apps carry the app descriptor magic 0xABCD5432 at offset 0x20.
+static bool wrongChip = false;
+static bool isEsp32Image(const uint8_t *b, size_t n) {
+  return n >= 0x24 && b[0] == 0xE9 && b[0x20] == 0x32 && b[0x21] == 0x54 && b[0x22] == 0xCD && b[0x23] == 0xAB;
+}
+
 static void handleUpdateData() {
   HTTPUpload &u = server.upload();
   if (u.status == UPLOAD_FILE_START) {
+    wrongChip = false;
     alerts::pause(true);  // no fetches between the upload and the reboot
     weather::pause(true);
     outagescreen::pause(true);
@@ -312,8 +320,14 @@ static void handleUpdateData() {
     uint32_t maxSketch = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
     if (!Update.begin(maxSketch, U_FLASH)) Update.printError(Serial);
   } else if (u.status == UPLOAD_FILE_WRITE) {
+    if (Update.progress() == 0 && isEsp32Image(u.buf, u.currentSize)) {
+      wrongChip = true;
+      Update.end(false);
+    }
+    if (wrongChip) return;
     if (Update.write(u.buf, u.currentSize) != u.currentSize) Update.printError(Serial);
   } else if (u.status == UPLOAD_FILE_END) {
+    if (wrongChip) return;
     if (!Update.end(true)) Update.printError(Serial);
   } else if (u.status == UPLOAD_FILE_ABORTED) {
     Update.end(false);
@@ -324,13 +338,15 @@ static void handleUpdateData() {
 }
 
 static void handleUpdateDone() {
-  bool success = !Update.hasError();
+  bool success = !wrongChip && !Update.hasError() && Update.isFinished();
   server.sendHeader("Connection", "close");
   if (!success) {
     alerts::pause(false);
     weather::pause(false);
     outagescreen::pause(false);
-    server.send(500, "text/plain", String("FAIL: ") + Update.getErrorString());
+    server.send(500, "text/plain",
+                wrongChip ? String(F("FAIL: this is an ESP32 (SmallTV Pro) firmware, use UASmartBox-SD-*.bin"))
+                          : String("FAIL: ") + Update.getErrorString());
     ui::applySettings();
     return;
   }

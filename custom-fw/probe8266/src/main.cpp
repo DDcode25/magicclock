@@ -19,7 +19,13 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266HTTPUpdateServer.h>
 #include <SPI.h>
+#ifdef LOADER
+// Release loader (env sdpro-loader): the first step from the stock firmware to UA Smart Box SD. No
+// credentials inside: it joins the network the stock firmware saved in the SDK config, has no
+// display test (screen stays dark) and serves only /, /update, /flash and /reboot.
+#else
 #include "secrets.h"
+#endif
 
 ESP8266WebServer server(80);
 ESP8266HTTPUpdateServer updater;
@@ -161,7 +167,11 @@ static String candStr(const Cand &c) {
 }
 
 static void handleRoot() {
+#ifdef LOADER
+  String o = "UA Smart Box SD loader: upload UASmartBox-SD-<version>.bin at /update\n\n";
+#else
   String o = "SD PRO probe\n\n";
+#endif
   o += "MAC: " + WiFi.macAddress() + "\n";
   o += "Chip ID: " + String(ESP.getChipId(), HEX) + "\n";
   o += "Core: " + ESP.getCoreVersion() + ", SDK " + ESP.getSdkVersion() + "\n";
@@ -223,14 +233,23 @@ void setup() {
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
   WiFi.hostname("sdpro-probe");
+#ifdef LOADER
+  WiFi.begin();  // network saved in the SDK config by the stock firmware
+#else
   WiFi.begin(WIFI_SSID, WIFI_PASS);
+#endif
   uint32_t t0 = millis();
   while (WiFi.status() != WL_CONNECTED && millis() - t0 < 20000) delay(200);
   if (WiFi.status() != WL_CONNECTED) {
     // Fallback: open AP at 192.168.4.1 while STA keeps retrying.
     WiFi.mode(WIFI_AP_STA);
+#ifdef LOADER
+    WiFi.softAP("UASmartBox-Loader");
+    WiFi.begin();
+#else
     WiFi.softAP("SDPro-Probe");
     WiFi.begin(WIFI_SSID, WIFI_PASS);
+#endif
   }
 
   updater.setup(&server, "/update");
@@ -242,6 +261,12 @@ void setup() {
   server.on("/reboot", [] { server.send(200, "text/plain", "rebooting"); delay(200); ESP.restart(); });
   server.begin();
 
+#ifdef LOADER
+  pinMode(5, OUTPUT);
+  digitalWrite(5, HIGH);  // backlight off (active low)
+  cycling = false;
+  return;
+#endif
   SPI.begin();
   SPI.setFrequency(20000000);
   SPI.setDataMode(SPI_MODE3);
