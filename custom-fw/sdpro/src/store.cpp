@@ -40,7 +40,7 @@ bool save(const char *path, const JsonDocument &doc) {
   return ok;
 }
 
-static int asInt(JsonVariantConst v, int def) {
+int asInt(JsonVariantConst v, int def) {
   if (v.is<int>()) return v.as<int>();
   if (v.is<const char *>()) {
     const char *s = v.as<const char *>();
@@ -86,11 +86,9 @@ void Settings::load() {
     appEnabled[i] = appAvailable(i) &&
                     (f.isNull() ? def : f.as<int>() == 1 || (f.is<const char *>() && strcmp(f.as<const char *>(), "1") == 0));
   }
+  autoNext = store::asInt(app["auto"], 1) != 0;
   JsonObjectConst dur = app["dur"];
-  for (int i = 0; i < APP_COUNT; i++) {
-    JsonVariantConst d = dur[APP_ITEMS[i].key];
-    appSec[i] = d.isNull() ? 15 : constrain(d.is<const char *>() ? atoi(d.as<const char *>()) : d.as<int>(), 0, 3600);
-  }
+  for (int i = 0; i < APP_COUNT; i++) appSec[i] = constrain(store::asInt(dur[APP_ITEMS[i].key], 15), 0, 3600);
 
   tzManual = store::getInt("/.sys/tz.json", "mode", 0) == 1;
   tzOffsetMin = store::getInt("/.sys/tz.json", "offset", 0);

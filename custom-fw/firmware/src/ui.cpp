@@ -27,6 +27,7 @@ static bool dirty = true;
 static const int TOUCH_PRESS_PCT = 92, TOUCH_RELEASE_PCT = 95;
 static int touchThreshold = 93, touchBase = 0;
 static float touchBaseF = 0;
+static uint32_t shownSince = 0;  // when the current app came up, or the last touch (auto rotation)
 static uint32_t touchReadyAt = 0;  // ignore the sensor right after calibration
 static volatile int touchRaw = 0;
 static uint32_t taps = 0, doubleTaps = 0, tripleTaps = 0, longPresses = 0;
@@ -233,6 +234,7 @@ static void drawApp() {
   if (shown == APP_BITCOIN && current != APP_BITCOIN) bitcoin::hide();
   if (shown == APP_ALERTS && current != APP_ALERTS) alerts::hide();
   shown = current;
+  shownSince = millis();
   if (current == APP_BITCOIN) return bitcoin::draw(tft);
   if (current == APP_ALERTS) return alerts::draw(tft);
   if (current == APP_PICTURE) return pictures::show(tft);
@@ -335,12 +337,23 @@ void loop() {
     msgShown = true;
   }
   if (msgShown) return;  // keep the notice up (e.g. during OTA)
+  uint32_t touches = taps + doubleTaps + tripleTaps + longPresses;
   handleTouch();
+  if (taps + doubleTaps + tripleTaps + longPresses != touches) shownSince = millis();  // touched: stay a while
+
+  // Auto rotation (setting, same as the SD PRO): the enabled apps take turns, each for its own time
+  // (not while the alert map is up because of an alert).
+  static int autoReturnApp = -1;
+  int sec = settings.appSec[current];
+  if (settings.autoNext && sec > 0 && autoReturnApp < 0 && !alerts::blinkingNow() && millis() - shownSince > (uint32_t)sec * 1000) {
+    int nextApp = firstEnabled(APP_ORDER[(orderPos(current) + 1) % APP_COUNT], 1);
+    if (nextApp != current) current = nextApp, dirty = true;
+    else shownSince = millis();
+  }
 
   // A new alert in the home region brings the alert map up (it blinks there) and keeps it. With the
   // "auto" setting any change in the alerts shows the map for a minute, then the previous app is back
   // (unless the user switched apps meanwhile).
-  static int autoReturnApp = -1;
   static uint32_t autoUntil = 0;
   bool homeAlert = alerts::homeAlertStarted(), changed = alerts::alertsChanged();
   if (autoReturnApp >= 0 && current != APP_ALERTS) autoReturnApp = -1;  // switched by touch / web

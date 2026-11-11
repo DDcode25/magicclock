@@ -25,6 +25,7 @@ bool alertsChanged();  // blink as if the home region got `level` (FULL/PARTIAL)
 
 void draw(TFT_eSPI &tft);  // full redraw of the app screen
 void hide();               // app left: redraw the map in full next time
+bool blinkingNow();        // the home alarm blink is running
 void tick(TFT_eSPI &tft);  // called every second while the app is shown
 void loop(TFT_eSPI &tft);  // called every UI loop while the app is shown (alarm blink)
 

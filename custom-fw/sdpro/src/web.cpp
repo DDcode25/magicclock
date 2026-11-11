@@ -208,8 +208,10 @@ static void handleSet() {
       timeChanged = true;
     } else if (name.startsWith("app_")) {
       batch.doc("app.json")["apps"][name.substring(4)] = v.toInt();
-    } else if (name.startsWith("dur_")) {  // SD PRO: seconds on screen per app (0 = stays)
+    } else if (name.startsWith("dur_")) {  // seconds on screen per app (0 = stays)
       batch.doc("app.json")["dur"][name.substring(4)] = constrain(v.toInt(), 0, 3600);
+    } else if (name == "auto") {  // auto rotation on / off
+      batch.doc("app.json")["auto"] = v.toInt() ? 1 : 0;
     } else {
       Serial.printf("set: unknown %s=%s\n", name.c_str(), v.c_str());
     }

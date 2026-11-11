@@ -502,6 +502,8 @@ static void drawAlarmFrame(TFT_eSPI &tft, int home) {
 
 void hide() { drawnVersion = UINT32_MAX; }
 
+bool blinkingNow() { return blinking; }
+
 void draw(TFT_eSPI &tft) {
   tft.fillScreen(TFT_BLACK);
   render(tft, true);

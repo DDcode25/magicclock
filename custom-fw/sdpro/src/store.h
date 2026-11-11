@@ -13,6 +13,7 @@ JsonDocument load(const char *path);  // empty object if missing or invalid
 bool save(const char *path, const JsonDocument &doc);
 
 // Stock files mix strings and numbers ("brt":"196" vs "en":0); accept both.
+int asInt(JsonVariantConst v, int def);  // number or numeric string, else def
 int getInt(const char *path, const char *key, int def);
 String getStr(const char *path, const char *key, const char *def);
 
@@ -29,8 +30,9 @@ struct Settings {
   bool tzManual = false;
   int tzOffsetMin = 0;
   String ntpServer = "pool.ntp.org";
-  // No touch: the enabled apps take turns, each for its own number of seconds (0 = stays on it).
-  // /.sys/app.json {"dur":{"weather":15,...}}, indexed like APP_ITEMS.
+  // Auto rotation: the enabled apps take turns, each for its own number of seconds (0 = stays on it).
+  // /.sys/app.json {"auto":1,"dur":{"weather":15,...}}, dur indexed like APP_ITEMS.
+  bool autoNext = true;
   int appSec[16];
 
   Settings() {
