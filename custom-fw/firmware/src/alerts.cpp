@@ -40,7 +40,7 @@ static char error[48] = "";  // last fetch error, guarded by lock
 static SemaphoreHandle_t lock;  // guards cfg, snap, version, updatedAt, error (Strings: no spinlock)
 static volatile bool fetchNow = true;
 static volatile bool paused = false;
-static volatile uint32_t lastFetchAt = 0, lastFetchMs = 0;  // diagnostics
+static volatile uint32_t lastFetchAt = 0, lastFetchMs = 0, lastMapMs = 0;  // diagnostics
 
 static TFT_eSprite *map8 = nullptr;
 static uint32_t drawnVersion = UINT32_MAX;
@@ -165,7 +165,7 @@ String statusJson() {
   levels[REGIONS] = 0;
   for (int i = 0; i < RAIONS; i++) raions[i] = "NYRI"[s.raion[i]];
   raions[RAIONS] = 0;
-  return String("{\"fetchAt\":") + lastFetchAt + ",\"fetchMs\":" + lastFetchMs + ",\"levels\":\"" + levels + "\",\"raions\":\"" + raions + "\",\"updated\":" + (long)upd + ",\"error\":\"" + err + "\",\"src\":\"" +
+  return String("{\"fetchAt\":") + lastFetchAt + ",\"fetchMs\":" + lastFetchMs + ",\"mapMs\":" + lastMapMs + ",\"levels\":\"" + levels + "\",\"raions\":\"" + raions + "\",\"updated\":" + (long)upd + ",\"error\":\"" + err + "\",\"src\":\"" +
          c.src + "\",\"home\":" + c.home + "}";
 }
 
@@ -215,34 +215,46 @@ static int bandTop = 0;  // first map row of the band being drawn
 // Even-odd scanline fill of rings [firstRing, firstRing + rings) into the band sprite.
 // Vertices are in 1/MAP_FIX px; a pixel is filled when its centre lies inside (standard
 // rasterisation rule), so shapes keep sub-pixel accuracy and neighbours share edges without gaps.
+// Each edge is visited once per band: its crossings with the band's pixel-centre rows go into
+// `cross` as (row << 16 | x), one sort orders them by row then x, and each row fills between pairs.
+// (Walking every edge for every row visited the 12k map points ~6x as often.)
+static const int CROSS_MAX = 512;  // the busiest region/band has 176 crossings
+static uint32_t cross[CROSS_MAX];
+
 static void fillRings(int firstRing, int rings, uint16_t color) {
   const int F = MAP_FIX, H = MAP_FIX / 2;
-  int y0 = INT16_MAX, y1 = INT16_MIN;
+  int top = MAP_Y + bandTop, bottom = min(MAP_Y + MAP_H, top + BAND_ROWS) - 1;
+  int32_t yTop = top * F + H, yBottom = bottom * F + H;  // first/last pixel centre of the band
+  int n = 0;
   for (int k = 0; k < rings; k++) {
     const MapRing &ring = MAP_RINGS[firstRing + k];
+    int16_t ax = MAP_POINTS[ring.first + ring.count - 1][0], ay = MAP_POINTS[ring.first + ring.count - 1][1];
     for (int i = 0; i < ring.count; i++) {
-      int y = MAP_POINTS[ring.first + i][1];
-      y0 = min(y0, y), y1 = max(y1, y);
+      int16_t bx = MAP_POINTS[ring.first + i][0], by = MAP_POINTS[ring.first + i][1];
+      // centres yc with min(ay,by) <= yc < max(ay,by), as in the per-row test before
+      int32_t lo = min(ay, by), hi = max(ay, by);
+      if (hi > yTop && lo <= yBottom) {  // crosses a pixel-centre row of this band
+        int32_t r0 = lo <= H ? 0 : (lo - H + F - 1) / F;  // first row whose centre >= lo
+        for (int32_t r = max(r0, (int32_t)top); r <= bottom && r * F + H < hi; r++) {
+          if (n >= CROSS_MAX) break;
+          int32_t yc = r * F + H;
+          int32_t x = ax + (yc - ay) * (bx - ax) / (by - ay);
+          cross[n++] = (uint32_t)(r - top) << 16 | (uint16_t)constrain(x, 0, 0xFFFF);
+        }
+      }
+      ax = bx, ay = by;
     }
   }
-  static int32_t xs[96];
-  int top = MAP_Y + bandTop, bottom = min(MAP_Y + MAP_H, top + BAND_ROWS) - 1;
-  for (int py = max(y0 / F, top); py <= min(y1 / F, bottom); py++) {
-    int32_t yc = py * F + H;  // pixel centre
-    int n = 0;
-    for (int k = 0; k < rings; k++) {
-      const MapRing &ring = MAP_RINGS[firstRing + k];
-      for (int i = 0; i < ring.count && n < 96; i++) {
-        const int16_t *a = MAP_POINTS[ring.first + i], *b = MAP_POINTS[ring.first + (i + 1) % ring.count];
-        if ((a[1] <= yc && yc < b[1]) || (b[1] <= yc && yc < a[1]))
-          xs[n++] = a[0] + (int32_t)(yc - a[1]) * (b[0] - a[0]) / (b[1] - a[1]);
-      }
+  std::sort(cross, cross + n);
+  for (int i = 0; i + 1 < n; i += 2) {
+    int row = cross[i] >> 16;
+    if ((int)(cross[i + 1] >> 16) != row) {  // odd count in a row (clipped list): resync
+      i--;
+      continue;
     }
-    std::sort(xs, xs + n);
-    for (int i = 0; i + 1 < n; i += 2) {
-      int xa = (xs[i] - H + F - 1) / F, xb = (xs[i + 1] - H) / F;  // first/last pixel centre inside
-      if (xb >= xa) map8->drawFastHLine(xa, py - top, xb - xa + 1, color);
-    }
+    int32_t x0 = cross[i] & 0xFFFF, x1 = cross[i + 1] & 0xFFFF;
+    int xa = (x0 - H + F - 1) / F, xb = (x1 - H) / F;  // first/last pixel centre inside
+    if (xb >= xa) map8->drawFastHLine(xa, row, xb - xa + 1, color);
   }
 }
 
@@ -268,6 +280,7 @@ static void drawMap(TFT_eSPI &tft, const Snapshot &s, int home) {
     map8 = nullptr;
     return;
   }
+  uint32_t t0 = millis();
   int clockRow = CLOCK_BOX_Y0 - SCREEN_Y;  // map rows from here on are pushed right of the clock box
   for (bandTop = 0; bandTop < MAP_H; bandTop += BAND_ROWS) {
     int rows = min(BAND_ROWS, MAP_H - bandTop);
@@ -288,6 +301,7 @@ static void drawMap(TFT_eSPI &tft, const Snapshot &s, int home) {
     if (rows > full) map8->pushSprite(CLOCK_BOX_X1, SCREEN_Y + bandTop + full, CLOCK_BOX_X1, full, 240 - CLOCK_BOX_X1, rows - full);
   }
   bandTop = 0;
+  lastMapMs = millis() - t0;
   map8->deleteSprite();
   delete map8;
   map8 = nullptr;
