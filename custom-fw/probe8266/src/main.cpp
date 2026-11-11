@@ -232,6 +232,7 @@ void setup() {
 
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);  // modem sleep delays incoming data: uploads crawl
   WiFi.hostname("sdpro-probe");
 #ifdef LOADER
   WiFi.begin();  // network saved in the SDK config by the stock firmware
