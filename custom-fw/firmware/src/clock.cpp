@@ -62,12 +62,13 @@ static void drawTime(TFT_eSPI &tft, const struct tm &t) {
 }
 
 static void drawDay(TFT_eSPI &tft, const struct tm &t) {
-  tft.fillRect(0, 18, 240, 40, TFT_BLACK);
+  tft.fillRect(0, 10, 240, 62, TFT_BLACK);
   tft.fillRect(0, 200, 240, 40, TFT_BLACK);
-  useFont(tft, FONT_LARGE);
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-  tft.drawString(WEEKDAYS[t.tm_wday], 120, 38);
+  useFont(tft, FONT_WEEKDAY);
+  tft.drawString(WEEKDAYS[t.tm_wday], 120, 40);
+  useFont(tft, FONT_LARGE);
   tft.drawString(dateText(t), 120, 220);
 }
 
