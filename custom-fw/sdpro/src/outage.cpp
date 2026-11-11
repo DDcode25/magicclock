@@ -266,7 +266,7 @@ static void drawCenter(TFT_eSPI &tft, const Config &c, const uint8_t *slots) {
   tft.setTextDatum(MC_DATUM);
   int on = 0, off = 0;
   for (int i = 0; i < outage::SLOTS; i++) on += slots[i] == outage::ON, off += slots[i] == outage::OFF || slots[i] == outage::MAYBE;
-  int yOff = CY - 14, yOn = CY + 14;
+  int x = CX, yOff = CY - 14, yOn = CY + 14;
   if (c.showQueue) {
     useFont(tft, FONT_NUM_BIG);
     tft.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -275,11 +275,12 @@ static void drawCenter(TFT_eSPI &tft, const Config &c, const uint8_t *slots) {
     yOff = 121, yOn = 143;
   } else {
     useFont(tft, FONT_NUM_XL);
+    x += 4, yOff += 6, yOn += 6;  // the free centre of the spiral is lower right of the dial centre
   }
   tft.setTextColor(C_OFF, TFT_BLACK);
-  tft.drawString("-" + hoursText(off), CX, yOff);
+  tft.drawString("-" + hoursText(off), x, yOff);
   tft.setTextColor(C_ON, TFT_BLACK);
-  tft.drawString("+" + hoursText(on), CX, yOn);
+  tft.drawString("+" + hoursText(on), x, yOn);
 }
 
 static void render(TFT_eSPI &tft, bool clear) {
