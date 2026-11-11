@@ -8,7 +8,7 @@ namespace net {
 // If none is reachable (or the link stays down), opens the AP "UASmartBox" at 192.168.4.1 with a
 // captive DNS so the device can always be reached for setup and OTA; while offline it looks for a
 // known network every minute (not while a client is on the AP).
-void begin();
+void begin(void (*waiting)(int pct) = nullptr);  // waiting: Wi-Fi connect progress
 void loop();
 
 bool connected();

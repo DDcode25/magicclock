@@ -379,11 +379,14 @@ static void handleUpdateData() {
     outagescreen::pause(true);
     bitcoin::pause(true);
     ui::message("Оновлення", "не вимикайте живлення");
+    ui::progress(0);
     if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) Update.printError(Serial);
   } else if (u.status == UPLOAD_FILE_WRITE) {
     if (Update.write(u.buf, u.currentSize) != u.currentSize) Update.printError(Serial);
+    if (server.clientContentLength() > 0) ui::progress((uint64_t)u.totalSize * 100 / server.clientContentLength());
   } else if (u.status == UPLOAD_FILE_END) {
     if (!Update.end(true)) Update.printError(Serial);
+    ui::progress(100);
   } else if (u.status == UPLOAD_FILE_ABORTED) {
     Update.abort();
     alerts::pause(false);

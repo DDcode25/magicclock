@@ -152,8 +152,24 @@ String stateJson() {
   return String(F("{\"app\":\"")) + appKey(current) + F("\",\"message\":") + (msgShown ? 1 : 0) + '}';
 }
 
+// Progress bar under a message (boot, OTA): frame once, then only the newly filled part.
+static int progShown = -1;
+static void drawProgress(int pct) {
+  static const int X = 30, Y = 192, W = 180, H = 12;
+  pct = constrain(pct, 0, 100);
+  if (progShown < 0 || pct < progShown) {
+    tft.drawRect(X, Y, W, H, TFT_DARKGREY);
+    tft.fillRect(X + 2, Y + 2, W - 4, H - 4, TFT_BLACK);
+    progShown = 0;
+  }
+  int from = (W - 4) * progShown / 100, to = (W - 4) * pct / 100;
+  if (to > from) tft.fillRect(X + 2 + from, Y + 2, to - from, H - 4, TFT_ORANGE);
+  progShown = pct;
+}
+
 static void drawMessage(const char *title, const char *text) {
   tft.fillScreen(TFT_BLACK);
+  progShown = -1;
   drawBlock({{title, TFT_ORANGE}, {text, TFT_WHITE}});
 }
 
@@ -162,6 +178,10 @@ void message(const String &title, const String &text) {
   drawMessage(title.c_str(), text.c_str());
   msgShown = true;
   ipUntil = 0;
+}
+
+void progress(int pct) {
+  if (msgShown && pct != progShown) drawProgress(pct);
 }
 
 // Device info, like the stock Settings screen: firmware, Wi-Fi mode, SSID, IP.

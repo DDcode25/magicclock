@@ -113,7 +113,7 @@ static void importSdkWifi() {
   saveWifi(ssid, pass);
 }
 
-void begin() {
+void begin(void (*waiting)(int pct)) {
   if (!store::mounted() || store::getStr(PSTR("/.sys/config.json"), PSTR("a"), PSTR("")).isEmpty()) importSdkWifi();
   WiFi.persistent(false);  // credentials live in /.sys, not the SDK config
   WiFi.mode(WIFI_STA);
@@ -133,7 +133,10 @@ void begin() {
   bool ok = false;
   if (connectKnown()) {
     uint32_t t0 = millis();
-    while (millis() - t0 < CONNECT_TIMEOUT_MS && WiFi.status() != WL_CONNECTED) delay(200);
+    while (millis() - t0 < CONNECT_TIMEOUT_MS && WiFi.status() != WL_CONNECTED) {
+      delay(200);
+      if (waiting) waiting((millis() - t0) * 100 / CONNECT_TIMEOUT_MS);
+    }
     ok = WiFi.status() == WL_CONNECTED;
   }
   lastRetryMs = millis();

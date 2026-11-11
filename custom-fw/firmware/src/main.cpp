@@ -24,12 +24,19 @@ void setup() {
   settings.load();
   ui::begin();
   ui::message("UA Smart Box", "підключення до Wi-Fi…");
-  net::begin();
+  ui::progress(5);
+  net::begin([](int pct) { ui::progress(5 + pct * 70 / 100); });
+  ui::progress(75);
   web::begin();
+  ui::progress(80);
   alerts::begin();
+  ui::progress(85);
   weather::begin();
+  ui::progress(90);
   bitcoin::begin();
+  ui::progress(95);
   outagescreen::begin();
+  ui::progress(100);
   ui::applySettings();
 }
 

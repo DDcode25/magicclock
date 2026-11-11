@@ -27,11 +27,17 @@ void setup() {
   settings.load();
   ui::begin();
   ui::message(F("UA Smart Box"), F("підключення до Wi-Fi…"));
-  net::begin();
+  ui::progress(5);
+  net::begin([](int pct) { ui::progress(5 + pct * 70 / 100); });
+  ui::progress(75);
   web::begin();
+  ui::progress(80);
   alerts::begin();
+  ui::progress(87);
   weather::begin();
+  ui::progress(94);
   outagescreen::begin();
+  ui::progress(100);
   ui::applySettings();
   ui::showIp();
 }

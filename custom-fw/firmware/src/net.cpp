@@ -101,7 +101,7 @@ static bool connectKnown() {
   return true;
 }
 
-void begin() {
+void begin(void (*waiting)(int pct)) {
   WiFi.persistent(false);  // credentials live in /.sys, not NVS
   WiFi.mode(WIFI_STA);
   WiFi.setHostname(HOSTNAME);
@@ -118,7 +118,10 @@ void begin() {
   xSemaphoreTake(radio, portMAX_DELAY);
   if (connectKnown()) {
     uint32_t t0 = millis();
-    while (millis() - t0 < CONNECT_TIMEOUT_MS && WiFi.status() != WL_CONNECTED) delay(200);
+    while (millis() - t0 < CONNECT_TIMEOUT_MS && WiFi.status() != WL_CONNECTED) {
+      delay(200);
+      if (waiting) waiting((millis() - t0) * 100 / CONNECT_TIMEOUT_MS);
+    }
     ok = WiFi.status() == WL_CONNECTED;
   }
   xSemaphoreGive(radio);

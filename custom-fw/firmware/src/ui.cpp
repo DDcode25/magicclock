@@ -20,6 +20,7 @@ static TFT_eSPI tft;
 static TaskHandle_t uiTask = nullptr;  // set when the UI loop runs; draws only happen there
 static portMUX_TYPE msgLock = portMUX_INITIALIZER_UNLOCKED;
 static volatile bool msgPending = false, msgShown = false;
+static volatile int progPending = -1;  // progress() from another task, drawn by the UI loop
 static char msgTitle[48], msgText[64];
 
 static int current = 0;
@@ -188,8 +189,24 @@ String touchJson() {
          ",\"long\":" + longPresses + "}";
 }
 
+// Progress bar under a message (boot, OTA): frame once, then only the newly filled part.
+static int progShown = -1;
+static void drawProgress(int pct) {
+  static const int X = 30, Y = 192, W = 180, H = 12;
+  pct = constrain(pct, 0, 100);
+  if (progShown < 0 || pct < progShown) {
+    tft.drawRect(X, Y, W, H, TFT_DARKGREY);
+    tft.fillRect(X + 2, Y + 2, W - 4, H - 4, TFT_BLACK);
+    progShown = 0;
+  }
+  int from = (W - 4) * progShown / 100, to = (W - 4) * pct / 100;
+  if (to > from) tft.fillRect(X + 2 + from, Y + 2, to - from, H - 4, TFT_ORANGE);
+  progShown = pct;
+}
+
 static void drawMessage(const char *title, const char *text) {
   tft.fillScreen(TFT_BLACK);
+  progShown = -1;
   drawBlock({{title, TFT_ORANGE}, {text, TFT_WHITE}});
 }
 
@@ -199,7 +216,13 @@ void message(const String &title, const String &text) {
   strlcpy(msgTitle, title.c_str(), sizeof msgTitle);
   strlcpy(msgText, text.c_str(), sizeof msgText);
   msgPending = true;
+  progPending = -1;
   portEXIT_CRITICAL(&msgLock);
+}
+
+void progress(int pct) {
+  if (!uiTask) return drawProgress(pct);  // boot
+  progPending = pct;
 }
 
 // Device info, like the stock Settings screen: firmware, Wi-Fi mode, SSID, IP.
@@ -337,6 +360,8 @@ void loop() {
     drawMessage(title, text);
     msgShown = true;
   }
+  int p = progPending;
+  if (msgShown && p >= 0 && p != progShown) drawProgress(p);
   if (msgShown) return;  // keep the notice up (e.g. during OTA)
   uint32_t touches = taps + doubleTaps + tripleTaps + longPresses;
   handleTouch();

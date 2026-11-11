@@ -13,6 +13,7 @@ bool open(const String &name);
 // Full-screen notice (OTA, reboot). Safe from any task: outside the UI loop it is queued and the
 // UI loop draws it and keeps it up until the next app change or applySettings().
 void message(const String &title, const String &text);
+void progress(int pct);  // 0..100: a bar under the message
 String touchJson();
 String stateJson();  // current app and UI state, for /state.json  // {"raw":..,"base":..,"threshold":..,"taps":..,"double":..,"triple":..,"long":..} for /touch.json
 

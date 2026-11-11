@@ -329,6 +329,7 @@ static void handleUpdateData() {
     weather::pause(true);
     outagescreen::pause(true);
     ui::message(F("Оновлення"), F("не вимикайте живлення"));
+    ui::progress(0);
     uint32_t maxSketch = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
     if (!Update.begin(maxSketch, U_FLASH)) Update.printError(Serial);
   } else if (u.status == UPLOAD_FILE_WRITE) {
@@ -338,9 +339,11 @@ static void handleUpdateData() {
     }
     if (wrongChip) return;
     if (Update.write(u.buf, u.currentSize) != u.currentSize) Update.printError(Serial);
+    if (u.contentLength) ui::progress((uint64_t)u.totalSize * 100 / u.contentLength);
   } else if (u.status == UPLOAD_FILE_END) {
     if (wrongChip) return;
     if (!Update.end(true)) Update.printError(Serial);
+    ui::progress(100);
   } else if (u.status == UPLOAD_FILE_ABORTED) {  // connection lost: back to the apps
     Update.end(false);
     alerts::pause(false);

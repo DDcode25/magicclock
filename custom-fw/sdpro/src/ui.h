@@ -13,6 +13,7 @@ bool open(const String &name);
 void showIp();         // boot: network and IP for a few seconds (there is no touch to ask for it)
 // Full-screen notice (OTA, reboot), kept up until the next app change or applySettings().
 void message(const String &title, const String &text);
+void progress(int pct);  // 0..100: a bar under the message
 String stateJson();  // current app and UI state, for /state.json
 
 }  // namespace ui
