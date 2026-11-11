@@ -275,7 +275,7 @@ static void drawCenter(TFT_eSPI &tft, const Config &c, const uint8_t *slots) {
     yOff = 121, yOn = 143;
   } else {
     useFont(tft, FONT_NUM_XL);
-    x += 9, yOff += 6, yOn += 6;  // the free centre of the spiral is lower right of the dial centre
+    x -= 6, yOff += 6, yOn += 6;  // the free centre of the spiral is lower left of the dial centre
   }
   tft.setTextColor(C_OFF, TFT_BLACK);
   tft.drawString("-" + hoursText(off), x, yOff);
