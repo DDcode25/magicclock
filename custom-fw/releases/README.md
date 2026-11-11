@@ -2,8 +2,8 @@
 
 | Файл | Пристрій | Як ставити |
 |---|---|---|
-| `UASmartBox-1.0.4.bin` | GeekMagic SmallTV Pro (ESP32) | `http://<IP>/update` або заводська сторінка оновлення |
-| `UASmartBox-SD-1.0.0.bin` | JUZIPi SD PRO (ESP8266) | `http://<IP>/update` (з UA Smart Box SD або із завантажувача) |
+| `UASmartBox-1.1.0.bin` | GeekMagic SmallTV Pro (ESP32) | `http://<IP>/update` або заводська сторінка оновлення |
+| `UASmartBox-SD-1.1.0.bin` | JUZIPi SD PRO (ESP8266) | `http://<IP>/update` (з UA Smart Box SD або із завантажувача) |
 | `SDP_UASmartBox-SD-loader.bin` | JUZIPi SD PRO, перший крок із заводської прошивки | заводська сторінка «Firmware Update (OTA)», потім `UASmartBox-SD-*.bin` |
 
 Не плутайте файли. UA Smart Box SD відхиляє прошивку для ESP32, SmallTV Pro відхиляє прошивку для
