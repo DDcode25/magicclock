@@ -231,11 +231,12 @@ static int markR0, markR1;
 
 static void eraseNow(TFT_eSPI &tft) {
   if (markA < 0) return;
-  tft.drawWideLine(px(markA, markR0), py(markA, markR0), px(markA, markR1), py(markA, markR1), 5, TFT_BLACK, TFT_BLACK);
+  tft.drawWideLine(px(markA, markR0), py(markA, markR0), px(markA, markR1), py(markA, markR1), 11, TFT_BLACK, TFT_BLACK);
   markA = -1;
 }
 
-static void drawNow(TFT_eSPI &tft) {
+// "Now": a bold line across the band with a black outline (readable on any band colour).
+static void drawNow(TFT_eSPI &tft, const uint8_t *slots) {
   if (showDay != 0 || !net::timeValid()) return;
   time_t now = time(nullptr);
   struct tm t;
@@ -243,7 +244,10 @@ static void drawNow(TFT_eSPI &tft) {
   float slot = (t.tm_hour * 60 + t.tm_min) / 30.0f, r0 = bandIn(slot);
   markA = fmodf(slot * 15, 360);
   markR0 = lroundf(r0) - 2, markR1 = lroundf(r0) + W + 2;
-  tft.drawWideLine(px(markA, markR0), py(markA, markR0), px(markA, markR1), py(markA, markR1), 3, cfg.handColor, TFT_BLACK);
+  uint16_t bg = slotColor(slots[min((int)slot, outage::SLOTS - 1)]);
+  int x0 = px(markA, markR0), y0 = py(markA, markR0), x1 = px(markA, markR1), y1 = py(markA, markR1);
+  tft.drawWideLine(x0, y0, x1, y1, 8, TFT_BLACK, bg);
+  tft.drawWideLine(x0, y0, x1, y1, 4, cfg.handColor, TFT_BLACK);
 }
 
 static String hoursText(int slots) { return slots % 2 ? String(slots / 2) + ".5" : String(slots / 2); }
@@ -309,7 +313,7 @@ static void render(TFT_eSPI &tft, bool clear) {
   if (!clear) eraseNow(tft);
   else markA = -1;
   drawRings(tft, s.day[showDay]);
-  drawNow(tft);
+  drawNow(tft, s.day[showDay]);
   drawCenter(tft, c, s.day[showDay]);
   wifiMarkRedraw(tft);
 }
