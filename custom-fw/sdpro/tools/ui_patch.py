@@ -297,10 +297,17 @@ PATCHES = [
      r"\n\2  const d=await getJson('/wifiknown.json');const list=Array.isArray(d.list)?d.list:[];"
      r"\n\2  box.innerHTML=list.length?list.map(s=>`<div class=\"line\"><div><strong>${esc(s)}</strong><span>${s===d.current?'підключено':'збережена'}</span></div>"
      r"<button class=\"ghost\" type=\"button\" data-forget=\"${esc(s)}\">Забути</button></div>`).join(''):'<div class=\"hint\">Збережених мереж немає.</div>';"
-     r"\n\2  box.querySelectorAll('[data-forget]').forEach(b=>b.addEventListener('click',()=>send('/wififorget?s='+encodeURIComponent(b.dataset.forget)).then(loadWifiKnown).catch(e=>toast(e.message,0))));"
+     r"\n\2  box.querySelectorAll('[data-forget]').forEach(b=>b.addEventListener('click',()=>{"
+     r"\n\2    const s=b.dataset.forget;"
+     r"\n\2    if((s===d.current||list.length===1)&&!confirm(list.length===1?'Це остання збережена мережа. Після перезапуску пристрій відкриє точку доступу UASmartBox. Забути?':'Пристрій зараз підключений до цієї мережі й лишиться в ній до перезапуску. Забути?')) return;"
+     r"\n\2    send('/wififorget?s='+encodeURIComponent(s)).then(()=>{toast('Мережу забуто.',1);loadWifiKnown();}).catch(e=>toast(e.message,0));"
+     r"\n\2  }));"
      r"\n\2}\1"),
     (r"(\n(\s*)const select=byId\('wifiSelect'\);\n\s*if\(force\) loaded\.wifi=0;)",
      r"\n\2loadWifiKnown();\1"),
+    # ...and show them as soon as the System tab loads, not only after a scan
+    (r"(function loadSettingsConfig\(force\)\{\n(\s*)return once\('settings',force,async\(\)=>\{)",
+     r"\1\n\2  loadWifiKnown().catch(()=>{});"),
     # the vendor's GitHub links -> the device's own address
     (r'<a href="https://github\.com/GeekMagicClock/smalltv-pro/tree/main/user%20manual"[^>]*>[^<]*</a>',
      r'<a href="http://uasmartbox.local" target="_blank" rel="noopener">uasmartbox.local</a>'),
