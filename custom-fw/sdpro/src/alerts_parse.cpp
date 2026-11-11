@@ -6,7 +6,8 @@
 
 namespace alerts {
 
-const char *lastError = "";
+static const char NO_ERROR[] PROGMEM = "";
+const __FlashStringHelper *lastError = FPSTR(NO_ERROR);
 
 // Ukrainian names used by Klymenko and ubilling, in alerts.in.ua IoT order.
 // Flash: RAM is short on the ESP8266.
@@ -70,9 +71,9 @@ int regionByName(const char *name) {
   if (!name) return -1;
   for (int i = 0; i < REGIONS; i++)
     if (strcmp_P(name, (const char *)pgm_read_ptr(&NAMES[i])) == 0) return i;
-  if (strcmp(name, "Автономна Республіка Крим") == 0) return 0;
-  if (strcmp(name, "м. Севастополь") == 0) return 18;
-  if (strcmp(name, "Київ") == 0 || strcmp(name, "м.Київ") == 0 || strcmp(name, "місто Київ") == 0) return 9;
+  if (strcmp_P(name, PSTR("Автономна Республіка Крим")) == 0) return 0;
+  if (strcmp_P(name, PSTR("м. Севастополь")) == 0) return 18;
+  if (strcmp_P(name, PSTR("Київ")) == 0 || strcmp_P(name, PSTR("м.Київ")) == 0 || strcmp_P(name, PSTR("місто Київ")) == 0) return 9;
   return -1;
 }
 
@@ -87,7 +88,7 @@ static void setRaionsOf(Snapshot &s, int region, RaionLevel l) {
     if (mapRaion(i).oblast == region) s.raion[i] = l;
 }
 
-static RaionLevel raionLevel(const char *level) { return level && strcmp(level, "yellow") == 0 ? R_YELLOW : R_RED; }
+static RaionLevel raionLevel(const char *level) { return level && strcmp_P(level, PSTR("yellow")) == 0 ? R_YELLOW : R_RED; }
 
 // Region level from its raions: FULL when all of them are alerted, PARTIAL when some are.
 static void levelFromRaions(Snapshot &s, int r) {
@@ -121,38 +122,38 @@ static time_t parseIso(const char *s) {
 }
 
 void filterKlymenko(JsonDocument &filter) {
-  filter["states"]["*"]["enabled"] = true;
-  filter["states"]["*"]["enabled_at"] = true;
-  filter["states"]["*"]["districts"]["*"]["enabled"] = true;
-  filter["states"]["*"]["districts"]["*"]["enabled_at"] = true;
-  filter["states"]["*"]["districts"]["*"]["alert_level"] = true;
+  filter[F("states")]["*"][F("enabled")] = true;
+  filter[F("states")]["*"][F("enabled_at")] = true;
+  filter[F("states")]["*"][F("districts")]["*"][F("enabled")] = true;
+  filter[F("states")]["*"][F("districts")]["*"][F("enabled_at")] = true;
+  filter[F("states")]["*"][F("districts")]["*"][F("alert_level")] = true;
 }
 
 void filterKlymenkoState(JsonDocument &filter) {
-  filter["enabled"] = true;
-  filter["enabled_at"] = true;
-  filter["districts"]["*"]["enabled"] = true;
-  filter["districts"]["*"]["enabled_at"] = true;
-  filter["districts"]["*"]["alert_level"] = true;
+  filter[F("enabled")] = true;
+  filter[F("enabled_at")] = true;
+  filter[F("districts")]["*"][F("enabled")] = true;
+  filter[F("districts")]["*"][F("enabled_at")] = true;
+  filter[F("districts")]["*"][F("alert_level")] = true;
 }
 
 void klymenkoState(const char *name, JsonObjectConst s, Snapshot &out) {
   int r = regionByName(name);
   if (r < 0) return;
-  if (s["enabled"] | false) {
+  if (s[F("enabled")] | false) {
     out.level[r] = FULL;
-    out.since[r] = parseIso(s["enabled_at"]);
+    out.since[r] = parseIso(s[F("enabled_at")]);
     setRaionsOf(out, r, R_RED);
     return;
   }
   bool unmatched = false;
-  for (JsonPairConst dp : s["districts"].as<JsonObjectConst>()) {
+  for (JsonPairConst dp : s[F("districts")].as<JsonObjectConst>()) {
     JsonObjectConst dist = dp.value();
-    if (!(dist["enabled"] | false)) continue;
+    if (!(dist[F("enabled")] | false)) continue;
     int d = raionByName(dp.key().c_str());
-    if (d >= 0) out.raion[d] = raionLevel(dist["alert_level"]);
+    if (d >= 0) out.raion[d] = raionLevel(dist[F("alert_level")]);
     else unmatched = true;
-    time_t t = parseIso(dist["enabled_at"]);
+    time_t t = parseIso(dist[F("enabled_at")]);
     if (t && (!out.since[r] || t < out.since[r])) out.since[r] = t;
   }
   levelFromRaions(out, r);
@@ -160,7 +161,7 @@ void klymenkoState(const char *name, JsonObjectConst s, Snapshot &out) {
 }
 
 bool fromKlymenko(JsonDocument &doc, Snapshot &out) {
-  JsonObject states = doc["states"];
+  JsonObject states = doc[F("states")];
   if (states.isNull()) return false;
   clear(out);
   for (JsonPair st : states) klymenkoState(st.key().c_str(), st.value(), out);
@@ -170,53 +171,53 @@ bool fromKlymenko(JsonDocument &doc, Snapshot &out) {
 void clearSnapshot(Snapshot &out) { clear(out); }
 
 void filterUbilling(JsonDocument &filter) {
-  filter["states"]["*"]["alertnow"] = true;
+  filter[F("states")]["*"][F("alertnow")] = true;
 }
 
 bool fromUbilling(JsonDocument &doc, Snapshot &out) {
-  JsonObject states = doc["states"];
+  JsonObject states = doc[F("states")];
   if (states.isNull()) return false;
   clear(out, UNKNOWN, R_INHERIT);
   for (JsonPair st : states) {
     int r = regionByName(st.key().c_str());
-    if (r >= 0) out.level[r] = (st.value()["alertnow"] | false) ? FULL : NONE;
+    if (r >= 0) out.level[r] = (st.value()[F("alertnow")] | false) ? FULL : NONE;
   }
   return true;
 }
 
 void filterNeptun(JsonDocument &filter) {
-  filter["oblasts"][0]["name"] = true;
-  filter["oblasts"][0]["since"] = true;
-  filter["raions"][0]["oblast"] = true;
-  filter["raions"][0]["key"] = true;
-  filter["raions"][0]["since"] = true;
-  filter["raions"][0]["level"] = true;
+  filter[F("oblasts")][0][F("name")] = true;
+  filter[F("oblasts")][0][F("since")] = true;
+  filter[F("raions")][0][F("oblast")] = true;
+  filter[F("raions")][0][F("key")] = true;
+  filter[F("raions")][0][F("since")] = true;
+  filter[F("raions")][0][F("level")] = true;
 }
 
 bool fromNeptun(JsonDocument &doc, Snapshot &out) {
-  JsonArray oblasts = doc["oblasts"], raions = doc["raions"];
+  JsonArray oblasts = doc[F("oblasts")], raions = doc[F("raions")];
   if (oblasts.isNull() || raions.isNull()) return false;
   clear(out);
   for (JsonObject o : oblasts) {
-    int r = regionByName(o["name"]);
+    int r = regionByName(o[F("name")]);
     if (r < 0) continue;
     out.level[r] = FULL;
-    out.since[r] = parseIso(o["since"]);
+    out.since[r] = parseIso(o[F("since")]);
     setRaionsOf(out, r, R_RED);
   }
   // A raion may be listed more than once (one entry per threat): keep the highest level.
   bool unmatched[REGIONS] = {};
   for (JsonObject d : raions) {
-    int r = regionByName(d["oblast"]);
+    int r = regionByName(d[F("oblast")]);
     if (r < 0 || out.level[r] == FULL) continue;
-    int k = raionByKey(d["key"]);
+    int k = raionByKey(d[F("key")]);
     if (k >= 0) {
-      RaionLevel l = raionLevel(d["level"]);
+      RaionLevel l = raionLevel(d[F("level")]);
       if (out.raion[k] == R_NONE || l > out.raion[k]) out.raion[k] = l;
     } else {
       unmatched[r] = true;
     }
-    time_t t = parseIso(d["since"]);
+    time_t t = parseIso(d[F("since")]);
     if (t && (!out.since[r] || t < out.since[r])) out.since[r] = t;
   }
   for (int r = 0; r < REGIONS; r++) {

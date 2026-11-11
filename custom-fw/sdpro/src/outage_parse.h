@@ -25,7 +25,7 @@ struct Schedule {
 // Files reach 300 KB (Kyiv), so the device parses straight from the network stream through a
 // filter that keeps only `group`; `in` is anything ArduinoJson reads (Stream, std::istream, ...).
 void makeFilter(const char *group, JsonDocument &filter);
-extern const char *lastError;  // why the last parse() failed (diagnostics)
+extern const __FlashStringHelper *lastError;  // why the last parse() failed (diagnostics, in flash)
 bool fromDoc(const JsonDocument &doc, const char *group, Schedule &out);
 
 template <typename Input>
@@ -34,7 +34,7 @@ bool parse(Input &&in, const char *group, Schedule &out) {
   makeFilter(group, filter);
   DeserializationError e = deserializeJson(doc, in, DeserializationOption::Filter(filter));
   if (e) {
-    lastError = e.c_str();
+    lastError = e.f_str();
     return false;
   }
   return fromDoc(doc, group, out);

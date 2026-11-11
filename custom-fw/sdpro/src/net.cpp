@@ -14,7 +14,7 @@ static const uint32_t CONNECT_TIMEOUT_MS = 20000;
 static const uint32_t LINK_LOST_AP_MS = 120000;  // open the AP after this long without STA
 static const uint32_t RETRY_MS = 60000;          // offline: look for a known network this often
 static const int KNOWN_MAX = 5;
-static const char *KNOWN_FILE = "/.sys/wifis.json";  // {"list":[{"a":ssid,"p":pass},...]}, newest first
+static const char KNOWN_FILE[] PROGMEM = "/.sys/wifis.json";  // {"list":[{"a":ssid,"p":pass},...]}, newest first
 
 static DNSServer dns;
 static bool ap = false;
@@ -58,7 +58,7 @@ static void startAp() {
   WiFi.softAP(AP_SSID);
   dns.start(53, "*", WiFi.softAPIP());
   ap = true;
-  Serial.printf("WiFi: AP %s at %s\n", AP_SSID, WiFi.softAPIP().toString().c_str());
+  Serial.printf_P(PSTR("WiFi: AP %s at %s\n"), AP_SSID, WiFi.softAPIP().toString().c_str());
 }
 
 static void stopAp() {
@@ -92,11 +92,11 @@ static bool connectKnown() {
       if (WiFi.SSID(i) == k[j].ssid && WiFi.RSSI(i) > bestRssi) best = j, bestRssi = WiFi.RSSI(i);
   WiFi.scanDelete();
   if (best < 0) {
-    Serial.println("WiFi: no known network in range");
+    Serial.println(F("WiFi: no known network in range"));
     return false;
   }
   staSsid = k[best].ssid;
-  Serial.printf("WiFi: connecting to %s (%d dBm)\n", staSsid.c_str(), bestRssi);
+  Serial.printf_P(PSTR("WiFi: connecting to %s (%d dBm)\n"), staSsid.c_str(), bestRssi);
   WiFi.begin(k[best].ssid.c_str(), k[best].pass.c_str());
   return true;
 }
@@ -109,12 +109,12 @@ static void importSdkWifi() {
   char ssid[33] = {0}, pass[65] = {0};
   memcpy(ssid, conf.ssid, 32);
   memcpy(pass, conf.password, 64);
-  Serial.printf("WiFi: imported %s from the SDK config\n", ssid);
+  Serial.printf_P(PSTR("WiFi: imported %s from the SDK config\n"), ssid);
   saveWifi(ssid, pass);
 }
 
 void begin() {
-  if (!store::mounted() || store::getStr("/.sys/config.json", "a", "").isEmpty()) importSdkWifi();
+  if (!store::mounted() || store::getStr(PSTR("/.sys/config.json"), PSTR("a"), PSTR("")).isEmpty()) importSdkWifi();
   WiFi.persistent(false);  // credentials live in /.sys, not the SDK config
   WiFi.mode(WIFI_STA);
   // No modem sleep: asleep between beacons the radio answered 5..225 ms late and an OTA upload
@@ -124,10 +124,10 @@ void begin() {
   WiFi.setAutoReconnect(true);
 
   // The stock config.json holds the network saved last; older firmware knew only that one.
-  String a = store::getStr("/.sys/config.json", "a", "");
+  String a = store::getStr(PSTR("/.sys/config.json"), PSTR("a"), PSTR(""));
   Known k[KNOWN_MAX];
   int n = loadKnown(k);
-  if (a.length() && (!n || k[0].ssid != a)) remember(a, store::getStr("/.sys/config.json", "p", ""));
+  if (a.length() && (!n || k[0].ssid != a)) remember(a, store::getStr(PSTR("/.sys/config.json"), PSTR("p"), PSTR("")));
   staSsid = a;
 
   bool ok = false;
@@ -139,7 +139,7 @@ void begin() {
   lastRetryMs = millis();
   if (ok) {
     lastConnectedMs = millis();
-    Serial.printf("WiFi: %s\n", WiFi.localIP().toString().c_str());
+    Serial.printf_P(PSTR("WiFi: %s\n"), WiFi.localIP().toString().c_str());
   } else {
     startAp();
   }
@@ -170,7 +170,7 @@ void loop() {
 
 bool connected() { return WiFi.status() == WL_CONNECTED; }
 bool apActive() { return ap; }
-String ip() { return connected() ? WiFi.localIP().toString() : (ap ? WiFi.softAPIP().toString() : String("-")); }
+String ip() { return connected() ? WiFi.localIP().toString() : (ap ? WiFi.softAPIP().toString() : String('-')); }
 String ssid() { return staSsid; }
 
 void applyTime() {
@@ -194,30 +194,30 @@ void fetchLock() {
 }
 void fetchUnlock() {
   diag::fetchDone(heapAtLock);
-  diag::crumb(diag::FETCH, "idle");
+  diag::crumb(diag::FETCH, PSTR("idle"));
 }
 
 String scanJson() {
   int n = scan();
-  String j = "{\"aps\":[";
+  String j = F("{\"aps\":[");
   for (int i = 0; i < n; i++) {
     int q = constrain(2 * (WiFi.RSSI(i) + 100), 0, 100);
     String s = WiFi.SSID(i);
     s.replace("\\", "\\\\");
     s.replace("\"", "\\\"");
-    if (i) j += ",";
-    j += "{\"ss\":\"" + s + "\",\"r\":" + q + ",\"e\":" + (WiFi.encryptionType(i) == ENC_TYPE_NONE ? 0 : 1) + "}";
+    if (i) j += ',';
+    j += F("{\"ss\":\"") + s + F("\",\"r\":") + q + F(",\"e\":") + (WiFi.encryptionType(i) == ENC_TYPE_NONE ? 0 : 1) + '}';
   }
   WiFi.scanDelete();
   lastRetryMs = millis();  // the STA retries stopped for the scan: reconnect after RETRY_MS
-  return j + "]}";
+  return j + F("]}");
 }
 
 bool saveWifi(const String &s, const String &p) {
   JsonDocument doc;
   doc["a"] = s;
   doc["p"] = p;
-  return store::save("/.sys/config.json", doc) && remember(s, p);
+  return store::save(PSTR("/.sys/config.json"), doc) && remember(s, p);
 }
 
 String knownJson() {
@@ -226,7 +226,7 @@ String knownJson() {
   JsonDocument doc;
   JsonArray list = doc["list"].to<JsonArray>();
   for (int i = 0; i < n; i++) list.add(k[i].ssid);
-  doc["current"] = WiFi.status() == WL_CONNECTED ? WiFi.SSID() : String("");
+  doc[F("current")] = WiFi.status() == WL_CONNECTED ? WiFi.SSID() : String();
   String out;
   serializeJson(doc, out);
   return out;

@@ -9,13 +9,15 @@ namespace store {
 bool begin();  // mounts LittleFS, formats it when it does not mount
 bool mounted();
 
-JsonDocument load(const char *path);  // empty object if missing or invalid
-bool save(const char *path, const JsonDocument &doc);
+// Paths, keys and defaults may be in flash (PSTR / PROGMEM) or in RAM: they are read with the _P
+// functions, which take both.
+JsonDocument load(PGM_P path);  // empty object if missing or invalid
+bool save(PGM_P path, const JsonDocument &doc);
 
 // Stock files mix strings and numbers ("brt":"196" vs "en":0); accept both.
 int asInt(JsonVariantConst v, int def);  // number or numeric string, else def
-int getInt(const char *path, const char *key, int def);
-String getStr(const char *path, const char *key, const char *def);
+int getInt(PGM_P path, PGM_P key, int def);
+String getStr(PGM_P path, PGM_P key, PGM_P def);
 
 }  // namespace store
 

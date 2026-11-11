@@ -12,16 +12,16 @@ static bool fsMounted = false;
 // its old data (different layout) there. Settings are small and the web UI recreates them.
 bool begin() {
   fsMounted = LittleFS.begin();
-  if (fsMounted && !LittleFS.exists("/.sys")) LittleFS.mkdir("/.sys");
+  if (fsMounted && !LittleFS.exists(F("/.sys"))) LittleFS.mkdir(F("/.sys"));
   return fsMounted;
 }
 
 bool mounted() { return fsMounted; }
 
-JsonDocument load(const char *path) {
+JsonDocument load(PGM_P path) {
   JsonDocument doc;
   if (fsMounted) {
-    File f = LittleFS.open(path, "r");
+    File f = LittleFS.open(FPSTR(path), "r");
     if (f) {
       if (deserializeJson(doc, f)) doc.clear();
       f.close();
@@ -31,9 +31,9 @@ JsonDocument load(const char *path) {
   return doc;
 }
 
-bool save(const char *path, const JsonDocument &doc) {
+bool save(PGM_P path, const JsonDocument &doc) {
   if (!fsMounted) return false;
-  File f = LittleFS.open(path, "w");
+  File f = LittleFS.open(FPSTR(path), "w");
   if (!f) return false;
   bool ok = serializeJson(doc, f) > 0;
   f.close();
@@ -51,15 +51,15 @@ int asInt(JsonVariantConst v, int def) {
   return def;
 }
 
-int getInt(const char *path, const char *key, int def) {
+int getInt(PGM_P path, PGM_P key, int def) {
   JsonDocument doc = load(path);
-  return asInt(doc[key], def);
+  return asInt(doc[FPSTR(key)], def);
 }
 
-String getStr(const char *path, const char *key, const char *def) {
+String getStr(PGM_P path, PGM_P key, PGM_P def) {
   JsonDocument doc = load(path);
-  JsonVariantConst v = doc[key];
-  if (v.isNull()) return def;
+  JsonVariantConst v = doc[FPSTR(key)];
+  if (v.isNull()) return FPSTR(def);
   return v.is<const char *>() ? String(v.as<const char *>()) : v.as<String>();
 }
 
@@ -69,18 +69,18 @@ String getStr(const char *path, const char *key, const char *def) {
 static int pctFromStored(int stored) { return constrain(255 - stored, 0, 100); }
 
 void Settings::load() {
-  brightness = pctFromStored(store::getInt("/.sys/brt.json", "brt", 205));
+  brightness = pctFromStored(store::getInt(PSTR("/.sys/brt.json"), PSTR("brt"), 205));
 
-  nightEnabled = store::getInt("/.sys/timebrt.json", "en", 0) == 1;
-  nightFrom = store::getInt("/.sys/timebrt.json", "t1", 22);
-  nightTo = store::getInt("/.sys/timebrt.json", "t2", 7);
-  nightBrightness = pctFromStored(store::getInt("/.sys/timebrt.json", "b2", 205));
+  nightEnabled = store::getInt(PSTR("/.sys/timebrt.json"), PSTR("en"), 0) == 1;
+  nightFrom = store::getInt(PSTR("/.sys/timebrt.json"), PSTR("t1"), 22);
+  nightTo = store::getInt(PSTR("/.sys/timebrt.json"), PSTR("t2"), 7);
+  nightBrightness = pctFromStored(store::getInt(PSTR("/.sys/timebrt.json"), PSTR("b2"), 205));
 
-  JsonDocument app = store::load("/.sys/app.json");
-  bootApp = store::getInt("/.sys/app.json", "theme", -1);
+  JsonDocument app = store::load(PSTR("/.sys/app.json"));
+  bootApp = store::getInt(PSTR("/.sys/app.json"), PSTR("theme"), -1);
   JsonObjectConst flags = app["apps"];
   for (int i = 0; i < APP_COUNT; i++) {
-    JsonVariantConst f = flags[APP_ITEMS[i].key];
+    JsonVariantConst f = flags[appKey(i)];
     // No touch on this device: the Settings screen is off unless switched on (the IP shows at boot).
     bool def = i != APP_SETTINGS;
     appEnabled[i] = appAvailable(i) &&
@@ -88,10 +88,10 @@ void Settings::load() {
   }
   autoNext = store::asInt(app["auto"], 1) != 0;
   JsonObjectConst dur = app["dur"];
-  for (int i = 0; i < APP_COUNT; i++) appSec[i] = constrain(store::asInt(dur[APP_ITEMS[i].key], 15), 0, 3600);
+  for (int i = 0; i < APP_COUNT; i++) appSec[i] = constrain(store::asInt(dur[appKey(i)], 15), 0, 3600);
 
-  tzManual = store::getInt("/.sys/tz.json", "mode", 0) == 1;
-  tzOffsetMin = store::getInt("/.sys/tz.json", "offset", 0);
-  ntpServer = store::getStr("/.sys/ntp.json", "ntp", "");
-  if (ntpServer.isEmpty()) ntpServer = "pool.ntp.org";
+  tzManual = store::getInt(PSTR("/.sys/tz.json"), PSTR("mode"), 0) == 1;
+  tzOffsetMin = store::getInt(PSTR("/.sys/tz.json"), PSTR("offset"), 0);
+  ntpServer = store::getStr(PSTR("/.sys/ntp.json"), PSTR("ntp"), PSTR(""));
+  if (ntpServer.isEmpty()) ntpServer = F("pool.ntp.org");
 }

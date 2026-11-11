@@ -9,13 +9,13 @@ namespace outage {
 static void hourSlots(const char *v, uint8_t &a, uint8_t &b) {
   a = b = UNKNOWN;
   if (!v) return;
-  if (!strcmp(v, "yes")) a = b = ON;
-  else if (!strcmp(v, "no")) a = b = OFF;
-  else if (!strcmp(v, "first")) a = OFF, b = ON;
-  else if (!strcmp(v, "second")) a = ON, b = OFF;
-  else if (!strcmp(v, "mfirst")) a = MAYBE, b = ON;
-  else if (!strcmp(v, "msecond")) a = ON, b = MAYBE;
-  else if (!strcmp(v, "maybe") || !strcmp(v, "mno")) a = b = MAYBE;
+  if (!strcmp_P(v, PSTR("yes"))) a = b = ON;
+  else if (!strcmp_P(v, PSTR("no"))) a = b = OFF;
+  else if (!strcmp_P(v, PSTR("first"))) a = OFF, b = ON;
+  else if (!strcmp_P(v, PSTR("second"))) a = ON, b = OFF;
+  else if (!strcmp_P(v, PSTR("mfirst"))) a = MAYBE, b = ON;
+  else if (!strcmp_P(v, PSTR("msecond"))) a = ON, b = MAYBE;
+  else if (!strcmp_P(v, PSTR("maybe")) || !strcmp_P(v, PSTR("mno"))) a = b = MAYBE;
 }
 
 static void fillDay(JsonObjectConst hours, uint8_t *slots) {
@@ -26,44 +26,46 @@ static void fillDay(JsonObjectConst hours, uint8_t *slots) {
   }
 }
 
-const char *lastError = "";
+static const char NO_ERROR[] PROGMEM = "";
+const __FlashStringHelper *lastError = FPSTR(NO_ERROR);
 
 void makeFilter(const char *group, JsonDocument &filter) {
   char gkey[16];
   snprintf(gkey, sizeof gkey, "GPV%s", group);
-  filter["fact"]["today"] = true;
-  filter["fact"]["update"] = true;
-  filter["fact"]["data"]["*"][gkey] = true;
+  filter[F("fact")][F("today")] = true;
+  filter[F("fact")][F("update")] = true;
+  filter[F("fact")][F("data")]["*"][gkey] = true;
 }
 
 bool fromDoc(const JsonDocument &doc, const char *group, Schedule &out) {
   char gkey[16];
   snprintf(gkey, sizeof gkey, "GPV%s", group);
-  JsonObjectConst fact = doc["fact"];
-  if (fact.isNull()) return lastError = "no fact", false;
+  JsonObjectConst fact = doc[F("fact")];
+  if (fact.isNull()) return lastError = F("no fact"), false;
 
   out = Schedule();
   memset(out.day, UNKNOWN, sizeof out.day);
-  out.today = (time_t)(fact["today"] | 0LL);
-  strncpy(out.update, fact["update"] | "", sizeof out.update - 1);
+  out.today = (time_t)(fact[F("today")] | 0LL);
+  strncpy(out.update, fact[F("update")] | "", sizeof out.update - 1);
   char key[16];
   for (int d = 0; d < 2; d++) {
     snprintf(key, sizeof key, "%lld", (long long)out.today + d * 86400LL);
-    JsonObjectConst hours = fact["data"][key][gkey];
+    JsonObjectConst hours = fact[F("data")][key][gkey];
     if (hours.isNull()) continue;
     fillDay(hours, out.day[d]);
     (d ? out.hasTomorrow : out.hasToday) = true;
   }
-  if (!out.today) lastError = "no today";
-  else if (!out.hasToday) lastError = "no group";
-  else lastError = "";
+  if (!out.today) lastError = F("no today");
+  else if (!out.hasToday) lastError = F("no group");
+  else lastError = F("");
   return out.today != 0 && out.hasToday;
 }
 
 // ---- Poltavaoblenergo ------------------------------------------------------------------
 
-static const char *const MONTHS[] = {"січня", "лютого", "березня", "квітня", "травня", "червня",
-                                     "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"};
+// Genitive month names as poe.pl.ua writes dates, in flash (fixed width; read with strcmp_P).
+static const char MONTHS[12][20] PROGMEM = {"січня", "лютого", "березня", "квітня", "травня", "червня",
+                                           "липня", "серпня", "вересня", "жовтня", "листопада", "грудня"};
 
 PoeParser::PoeParser(const char *group) {
   wantQueue = atoi(group);
@@ -94,11 +96,11 @@ void PoeParser::feed(char c) {
 
 // Slot state from a cell's class: old layout light_1|2|3, new layout gpv-s1|2|3 (on, off, possible).
 static int cellState(const char *tag) {
-  if (strncmp(tag, "td", 2)) return -1;
-  const char *l = strstr(tag, "light_");
+  if (strncmp_P(tag, PSTR("td"), 2)) return -1;
+  const char *l = strstr_P(tag, PSTR("light_"));
   int n = l ? 6 : 0;
   if (!l) {
-    for (l = strstr(tag, "gpv-s"); l && !(l[5] >= '1' && l[5] <= '3'); l = strstr(l + 5, "gpv-s")) {}
+    for (l = strstr_P(tag, PSTR("gpv-s")); l && !(l[5] >= '1' && l[5] <= '3'); l = strstr_P(l + 5, PSTR("gpv-s"))) {}
     n = 5;
   }
   if (!l) return -1;
@@ -109,15 +111,15 @@ static int cellState(const char *tag) {
 // slot cells; </tr> ends a row.
 void PoeParser::onTag() {
   int st;
-  if (!strcmp(tag, "b")) want = DATE, textLen = 0;
-  else if (!strncmp(tag, "td", 2) && strstr(tag, "\"gpv-q\"")) want = QNAME, textLen = 0;
-  else if (strstr(tag, "turnoff-scheduleui-table-subqueue")) want = SUBQUEUE, textLen = 0;
-  else if (strstr(tag, "turnoff-scheduleui-table-queue")) want = QUEUE, textLen = 0;
+  if (!strcmp_P(tag, PSTR("b"))) want = DATE, textLen = 0;
+  else if (!strncmp_P(tag, PSTR("td"), 2) && strstr_P(tag, PSTR("\"gpv-q\""))) want = QNAME, textLen = 0;
+  else if (strstr_P(tag, PSTR("turnoff-scheduleui-table-subqueue"))) want = SUBQUEUE, textLen = 0;
+  else if (strstr_P(tag, PSTR("turnoff-scheduleui-table-queue"))) want = QUEUE, textLen = 0;
   else if ((st = cellState(tag)) >= 0) {
     if (cells < SLOTS) row[cells++] = st;
-  } else if (!strncmp(tag, "tr", 2)) {
+  } else if (!strncmp_P(tag, PSTR("tr"), 2)) {
     cells = 0;
-  } else if (!strcmp(tag, "/tr")) {
+  } else if (!strcmp_P(tag, PSTR("/tr"))) {
     if (cells == SLOTS && queue == wantQueue && sub == wantSub && curY) {
       for (int i = 0; i < count; i++)
         if (found[i].year == curY && found[i].month == curM && found[i].day == curD) return;
@@ -138,7 +140,7 @@ void PoeParser::onText() {
     char month[32] = "";
     if (sscanf(text, "%d %31s %d", &d, month, &y) == 3)
       for (int m = 0; m < 12; m++)
-        if (!strcmp(month, MONTHS[m])) curY = y, curM = m + 1, curD = d;
+        if (!strcmp_P(month, MONTHS[m])) curY = y, curM = m + 1, curD = d;
   } else if (want == QUEUE) {  // "1 черга": a new queue, the first row is subqueue 1
     queue = atoi(text);
     sub = 1;

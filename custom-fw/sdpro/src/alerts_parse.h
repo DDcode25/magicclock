@@ -22,7 +22,7 @@ struct Snapshot {
   uint8_t raion[RAIONS];  // RaionLevel
 };
 
-extern const char *lastError;  // why the last parse failed (diagnostics)
+extern const __FlashStringHelper *lastError;  // why the last parse failed (diagnostics, in flash)
 
 int regionByName(const char *ukName);   // -1 if unknown
 int raionByName(const char *ukName);    // current or pre-2024 name, -1 if unknown
@@ -43,12 +43,12 @@ void clearSnapshot(Snapshot &out);
 template <typename Input>
 bool parseKlymenkoStream(Input &in, Snapshot &out) {
   // Skip to the object after "states".
-  static const char KEY[] = "\"states\"";
+  static const char KEY[] = "\"states\"";  // 9 bytes; the matcher wants a plain array
   int matched = 0, ch;
   while (KEY[matched] && (ch = in.read()) >= 0) matched = ch == KEY[matched] ? matched + 1 : (ch == KEY[0] ? 1 : 0);
-  if (KEY[matched]) return lastError = "no states", false;
+  if (KEY[matched]) return lastError = F("no states"), false;
   while ((ch = in.read()) >= 0 && ch != '{') {}
-  if (ch < 0) return lastError = "no states", false;
+  if (ch < 0) return lastError = F("no states"), false;
   clearSnapshot(out);
   JsonDocument filter;
   filterKlymenkoState(filter);
@@ -57,7 +57,7 @@ bool parseKlymenkoStream(Input &in, Snapshot &out) {
     // Next key, or the end of "states".
     while ((ch = in.read()) >= 0 && ch != '"' && ch != '}') {}
     if (ch == '}') break;
-    if (ch < 0) return lastError = "cut short", false;
+    if (ch < 0) return lastError = F("cut short"), false;
     char name[96];
     int n = 0;
     while ((ch = in.read()) >= 0 && ch != '"') {
@@ -66,14 +66,14 @@ bool parseKlymenkoStream(Input &in, Snapshot &out) {
     }
     name[n] = 0;
     while ((ch = in.read()) >= 0 && ch != ':') {}
-    if (ch < 0) return lastError = "cut short", false;
+    if (ch < 0) return lastError = F("cut short"), false;
     JsonDocument doc;  // one state with its districts: ~1.5 KB
     DeserializationError e = deserializeJson(doc, in, DeserializationOption::Filter(filter));
-    if (e) return lastError = e.c_str(), false;
+    if (e) return lastError = e.f_str(), false;
     klymenkoState(name, doc.as<JsonObjectConst>(), out);
     states++;
   }
-  lastError = states ? "" : "empty";
+  lastError = states ? F("") : F("empty");
   return states > 0;
 }
 
@@ -93,7 +93,7 @@ bool parseWith(Input &&in, void (*filter)(JsonDocument &), bool (*from)(JsonDocu
   JsonDocument f, doc;
   filter(f);
   DeserializationError e = deserializeJson(doc, in, DeserializationOption::Filter(f));
-  lastError = e.c_str();
+  lastError = e.f_str();
   return !e && from(doc, out);
 }
 
@@ -102,7 +102,7 @@ inline bool parseWith(const char *json, size_t len, void (*filter)(JsonDocument 
   JsonDocument f, doc;
   filter(f);
   DeserializationError e = deserializeJson(doc, json, len, DeserializationOption::Filter(f));
-  lastError = e.c_str();
+  lastError = e.f_str();
   return !e && from(doc, out);
 }
 

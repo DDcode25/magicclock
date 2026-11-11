@@ -13,7 +13,7 @@
 
 namespace alerts {
 
-static const char *CONFIG = "/.sys/alerts.json";
+static const char CONFIG[] PROGMEM = "/.sys/alerts.json";
 static const int MIN_INTERVAL_S = 15;  // alerts.in.ua allows ~10 requests/min per IP
 
 struct Config {
@@ -51,27 +51,27 @@ static const int CLOCK_BOX_X1 = 148, CLOCK_BOX_Y0 = 147, CLOCK_Y = 168, CITY_Y =
 
 static void loadConfig() {
   Config c;
-  c.src = store::getStr(CONFIG, "src", "klymenko");
-  c.token = store::getStr(CONFIG, "token", "");
-  c.interval = max(MIN_INTERVAL_S, store::getInt(CONFIG, "i", 30));
-  c.home = constrain(store::getInt(CONFIG, "home", -1), -1, REGIONS - 1);
-  c.clockColor = parseColor(store::getStr(CONFIG, "cc", "#ffffff"), TFT_WHITE);
-  c.autoShow = constrain(store::getInt(CONFIG, "auto", 0), 0, 2);
+  c.src = store::getStr(CONFIG, PSTR("src"), PSTR("klymenko"));
+  c.token = store::getStr(CONFIG, PSTR("token"), PSTR(""));
+  c.interval = max(MIN_INTERVAL_S, store::getInt(CONFIG, PSTR("i"), 30));
+  c.home = constrain(store::getInt(CONFIG, PSTR("home"), -1), -1, REGIONS - 1);
+  c.clockColor = parseColor(store::getStr(CONFIG, PSTR("cc"), PSTR("#ffffff")), TFT_WHITE);
+  c.autoShow = constrain(store::getInt(CONFIG, PSTR("auto"), 0), 0, 2);
   cfg = c;
 }
 
 // One attempt; again = it failed with the trial TLS buffer and is worth repeating (TlsClient::retryBig).
 static bool fetchOnce(const Config &c, Snapshot &out, String &err, bool &again) {
   String url;
-  if (c.src == "ubilling") url = F("http://ubilling.net.ua/aerialalerts/");  // plain HTTP: no TLS memory
-  else if (c.src == "neptun") url = F("https://neptun.in.ua/api/v1/alerts");
-  else if (c.src == "alertsinua") {
-    if (c.token.isEmpty()) return err = "немає токена", false;
+  if (c.src.equals(F("ubilling"))) url = F("http://ubilling.net.ua/aerialalerts/");  // plain HTTP: no TLS memory
+  else if (c.src.equals(F("neptun"))) url = F("https://neptun.in.ua/api/v1/alerts");
+  else if (c.src.equals(F("alertsinua"))) {
+    if (c.token.isEmpty()) return err = F("немає токена"), false;
     url = String(F("https://api.alerts.in.ua/v1/iot/active_air_raid_alerts_by_oblast.json?token=")) + c.token;
   } else url = F("https://vadimklimenko.com/map/statuses.json");
 
   // ubilling is plain HTTP: a plain client, no TLS buffers at all.
-  bool secure = url.startsWith("https");
+  bool secure = url.startsWith(F("https"));
   std::unique_ptr<TlsClient> tls(secure ? new TlsClient() : nullptr);
   std::unique_ptr<WiFiClient> plain(secure ? nullptr : new WiFiClient());
   WiFiClient &client = secure ? (WiFiClient &)*tls : *plain;
@@ -81,27 +81,27 @@ static bool fetchOnce(const Config &c, Snapshot &out, String &err, bool &again) 
   // Some sources reject unknown clients; present a desktop Chrome.
   http.setUserAgent(F("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"));
   if (secure) tls->sizeFor(url);
-  if (!http.begin(client, url)) return err = "немає з’єднання", false;
+  if (!http.begin(client, url)) return err = F("немає з’єднання"), false;
   int code = http.GET();
   if (code != 200) {
-    err = secure ? tls->httpError(code) : "помилка HTTP " + String(code);
+    err = secure ? tls->httpError(code) : F("помилка HTTP ") + String(code);
     if (secure && code < 0) again = tls->retryBig();
     http.end();
     return false;
   }
   bool ok;
-  if (c.src == "alertsinua") {  // tiny: a 29-byte JSON string
+  if (c.src.equals(F("alertsinua"))) {  // tiny: a 29-byte JSON string
     String body = http.getString();
     ok = parseAlertsInUa(body.c_str(), body.length(), out);
   } else {
     NetReader reader{http.getStream(), 10000};
-    ok = c.src == "ubilling" ? parseWith(reader, filterUbilling, fromUbilling, out)
-         : c.src == "neptun" ? parseWith(reader, filterNeptun, fromNeptun, out)
+    ok = c.src.equals(F("ubilling")) ? parseWith(reader, filterUbilling, fromUbilling, out)
+         : c.src.equals(F("neptun"))   ? parseWith(reader, filterNeptun, fromNeptun, out)
                              : parseKlymenkoStream(reader, out);
   }
   if (!ok && secure) again = tls->retryBig();
   http.end();
-  if (!ok) err = String("погані дані: ") + lastError;
+  if (!ok) err = String(F("погані дані: ")) + lastError;
   return ok;
 }
 
@@ -124,10 +124,10 @@ bool poll() {
   Snapshot s;
   String err;
   net::fetchLock();
-  diag::crumb(diag::FETCH, "alerts fetch");
+  diag::crumb(diag::FETCH, PSTR("alerts fetch"));
   bool ok = fetch(c, s, err);
   net::fetchUnlock();
-  Serial.printf("alerts: %s %s in %lu ms\n", c.src.c_str(), ok ? "ok" : err.c_str(), millis() - last);
+  Serial.printf_P(PSTR("alerts: %s %s in %lu ms\n"), c.src.c_str(), ok ? "ok" : err.c_str(), millis() - last);
   lastFetchMs = millis() - last;
   if (ok) {
     snap = s;
@@ -166,8 +166,8 @@ String statusJson() {
   levels[REGIONS] = 0;
   for (int i = 0; i < RAIONS; i++) raions[i] = "NYRI"[s.raion[i]];
   raions[RAIONS] = 0;
-  return String("{\"fetchAt\":") + lastFetchAt + ",\"fetchMs\":" + lastFetchMs + ",\"mapMs\":" + lastMapMs + ",\"levels\":\"" + levels + "\",\"raions\":\"" + raions + "\",\"updated\":" + (long)upd + ",\"error\":\"" + err + "\",\"src\":\"" +
-         c.src + "\",\"home\":" + c.home + "}";
+  return String(F("{\"fetchAt\":")) + lastFetchAt + F(",\"fetchMs\":") + lastFetchMs + F(",\"mapMs\":") + lastMapMs + F(",\"levels\":\"") + levels + F("\",\"raions\":\"") + raions + F("\",\"updated\":") + (long)upd + F(",\"error\":\"") + err + F("\",\"src\":\"") +
+         c.src + F("\",\"home\":") + c.home + F("}");
 }
 
 // Alert colour of a region as the map shows it: 0 none, 1 orange (drones / some districts),
@@ -340,7 +340,7 @@ static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, c
     shownClock = shownCity = shownProblem = "";
   }
 
-  String clock = net::timeValid() ? hhmm(time(nullptr)) : String("--:--");
+  String clock = net::timeValid() ? hhmm(time(nullptr)) : String(F("--:--"));
   if (clock != shownClock || clockColor != shownClockColor) {
     if (!full) tft.fillRect(0, CLOCK_BOX_Y0, CLOCK_BOX_X1, 189 - CLOCK_BOX_Y0, TFT_BLACK);
     useFont(tft, FONT_ALERT_CLOCK);
@@ -371,8 +371,8 @@ static void drawFooter(TFT_eSPI &tft, const Snapshot &s, int home, time_t upd, c
   String problem;
   if (*err || stale) {
     useFont(tft, FONT_SMALL);
-    problem = *err ? String(err) : "дані з " + hhmm(upd);
-    if (tft.textWidth(problem) > 237 - CLOCK_BOX_X1) problem = *err ? "помилка" : "старі дані";
+    problem = *err ? String(err) : F("дані з ") + hhmm(upd);
+    if (tft.textWidth(problem) > 237 - CLOCK_BOX_X1) problem = *err ? F("помилка") : F("старі дані");
   }
   if (problem != shownProblem) {
     if (!full) tft.fillRect(CLOCK_BOX_X1, SCREEN_Y + MAP_H, 240 - CLOCK_BOX_X1, 190 - SCREEN_Y - MAP_H, TFT_BLACK);
@@ -408,7 +408,7 @@ static void render(TFT_eSPI &tft, bool full) {
   bool offline = isOffline();
   if (offline) {  // the last data may be outdated: no alert colours at all
     for (int r = 0; r < REGIONS; r++) s.level[r] = UNKNOWN;
-    strlcpy(err, "без мережі", sizeof err);
+    strncpy_P(err, PSTR("без мережі"), sizeof err - 1);
   }
   if (full || v != drawnVersion || offline != drawnOffline) {
     drawnVersion = v, drawnOffline = offline;
@@ -495,7 +495,7 @@ static void drawAlarmFrame(TFT_eSPI &tft, int home) {
   tft.setTextColor(TFT_BLACK, bg);
   // As large as fits: the word fills the width (narrowed font), the city uses its own largest font.
   useFont(tft, FONT_ALARM);
-  tft.drawString("ТРИВОГА", 120, 92);  // full vs partial differs by colour only
+  tft.drawString(F("ТРИВОГА"), 120, 92);  // full vs partial differs by colour only
   if (home >= 0) {
     useCityFont(tft, home);
     tft.setTextDatum(MC_DATUM);

@@ -24,12 +24,12 @@ static uint16_t parseColor(const String &hex, uint16_t def) {
 }
 
 static void loadSettings() {
-  hourColor = parseColor(store::getStr("/.sys/timecolor.json", "hc", "#FFFFFF"), TFT_WHITE);
-  minuteColor = parseColor(store::getStr("/.sys/timecolor.json", "mc", "#FEBA01"), 0xFDC0);
-  secondColor = parseColor(store::getStr("/.sys/timecolor.json", "sc", "#FF5900"), 0xFAC0);
-  hour12 = store::getInt("/.sys/hour12.json", "h", 0) == 1;
-  dateFormat = constrain(store::getInt("/.sys/day.json", "day", 1), 1, 5);
-  countdown = store::getInt("/.sys/clock.json", "sm", 0) == 1;
+  hourColor = parseColor(store::getStr(PSTR("/.sys/timecolor.json"), PSTR("hc"), PSTR("#FFFFFF")), TFT_WHITE);
+  minuteColor = parseColor(store::getStr(PSTR("/.sys/timecolor.json"), PSTR("mc"), PSTR("#FEBA01")), 0xFDC0);
+  secondColor = parseColor(store::getStr(PSTR("/.sys/timecolor.json"), PSTR("sc"), PSTR("#FF5900")), 0xFAC0);
+  hour12 = store::getInt(PSTR("/.sys/hour12.json"), PSTR("h"), 0) == 1;
+  dateFormat = constrain(store::getInt(PSTR("/.sys/day.json"), PSTR("day"), 1), 1, 5);
+  countdown = store::getInt(PSTR("/.sys/clock.json"), PSTR("sm"), 0) == 1;
 }
 
 static String two(int v) { return v < 10 ? "0" + String(v) : String(v); }
@@ -89,7 +89,7 @@ static void drawSeconds(TFT_eSPI &tft, const struct tm &t, time_t now) {
       useFont(tft, FONT_SMALL);
       tft.setTextDatum(MC_DATUM);
       tft.setTextColor(bottom == 2 ? C_ON : C_OFF, TFT_BLACK);
-      tft.drawString(bottom == 2 ? "до ввімкнення світла" : "до вимкнення світла", 120, 193);
+      tft.drawString(bottom == 2 ? F("до ввімкнення світла") : F("до вимкнення світла"), 120, 193);
     }
   }
   useFont(tft, FONT_CLOCK_SEC);
@@ -122,7 +122,7 @@ void tick(TFT_eSPI &tft) {
       useFont(tft, FONT_LARGE);
       tft.setTextDatum(MC_DATUM);
       tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
-      tft.drawString("синхронізація часу…", 120, 120);
+      tft.drawString(F("синхронізація часу…"), 120, 120);
       shownMinute = -2;
     }
     return;

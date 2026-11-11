@@ -16,7 +16,7 @@ namespace outagescreen {
 
 using outage::Schedule;
 
-static const char *CONFIG = "/.sys/outage.json";
+static const char CONFIG[] PROGMEM = "/.sys/outage.json";
 
 struct Config {
   String src = "poe";
@@ -42,12 +42,12 @@ static uint16_t parseColor(const String &hex, uint16_t def) {
 
 static void loadConfig() {
   Config c;
-  c.src = store::getStr(CONFIG, "src", "poe");
-  c.group = store::getStr(CONFIG, "grp", "1.1");
-  c.intervalMin = max(5, store::getInt(CONFIG, "i", 10));
-  c.handColor = parseColor(store::getStr(CONFIG, "hc", "#ffffff"), TFT_WHITE);
+  c.src = store::getStr(CONFIG, PSTR("src"), PSTR("poe"));
+  c.group = store::getStr(CONFIG, PSTR("grp"), PSTR("1.1"));
+  c.intervalMin = max(5, store::getInt(CONFIG, PSTR("i"), 10));
+  c.handColor = parseColor(store::getStr(CONFIG, PSTR("hc"), PSTR("#ffffff")), TFT_WHITE);
   bool changed = c.src != cfg.src || c.group != cfg.group;
-  c.showQueue = store::getInt(CONFIG, "sq", 1) != 0;
+  c.showQueue = store::getInt(CONFIG, PSTR("sq"), 1) != 0;
   bool recolor = c.handColor != cfg.handColor || c.showQueue != cfg.showQueue;
   cfg = c;
   if (changed) valid = false;
@@ -85,8 +85,8 @@ static bool fetchPoe(WiFiClient &stream, const Config &c, Schedule &s, String &e
   outage::PoeParser p(c.group.c_str());
   NetReader r{stream, 15000};
   for (int ch; (ch = r.read()) >= 0;) p.feed((char)ch);
-  if (!p.days()) return err = "немає графіка для черги", false;
-  if (!net::timeValid()) return err = "немає часу", false;
+  if (!p.days()) return err = F("немає графіка для черги"), false;
+  if (!net::timeValid()) return err = F("немає часу"), false;
   time_t now = time(nullptr);
   struct tm t;
   localtime_r(&now, &t);
@@ -101,16 +101,16 @@ static bool fetchPoe(WiFiClient &stream, const Config &c, Schedule &s, String &e
     memcpy(s.day[diff], d.slots, outage::SLOTS);
     (diff ? s.hasTomorrow : s.hasToday) = true;
   }
-  strlcpy(s.update, "poe.pl.ua", sizeof s.update);
-  if (!s.hasToday) return err = "немає графіка на сьогодні", false;
+  strncpy_P(s.update, PSTR("poe.pl.ua"), sizeof s.update - 1);
+  if (!s.hasToday) return err = F("немає графіка на сьогодні"), false;
   return true;
 }
 
 static String sourceUrl(const String &src) {
-  if (src == "poe") return FPSTR(POE_URL);
+  if (src.equals(F("poe"))) return FPSTR(POE_URL);
   String name = src.substring(2);
-  if (src.startsWith("b:")) return String(F("https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/data/")) + name + ".json";
-  return String(F("https://raw.githubusercontent.com/yaroslav2901/OE_OUTAGE_DATA/main/data/")) + name + ".json";
+  if (src.startsWith(F("b:"))) return String(F("https://raw.githubusercontent.com/Baskerville42/outage-data-ua/main/data/")) + name + F(".json");
+  return String(F("https://raw.githubusercontent.com/yaroslav2901/OE_OUTAGE_DATA/main/data/")) + name + F(".json");
 }
 
 // One attempt; again = it failed with the trial TLS buffer and is worth repeating (TlsClient::retryBig).
@@ -121,7 +121,7 @@ static bool fetchOnce(const Config &c, Schedule &s, String &err, bool &again) {
   http.useHTTP10(true);  // plain body: parsed straight from the stream (files up to 300 KB)
   String url = sourceUrl(c.src);
   client.sizeFor(url);
-  if (!http.begin(client, url)) return err = "немає з’єднання", false;
+  if (!http.begin(client, url)) return err = F("немає з’єднання"), false;
   int code = http.GET();
   if (code != 200) {
     err = client.httpError(code);
@@ -130,12 +130,12 @@ static bool fetchOnce(const Config &c, Schedule &s, String &err, bool &again) {
     return false;
   }
   bool ok;
-  if (c.src == "poe") {
+  if (c.src.equals(F("poe"))) {
     ok = fetchPoe(http.getStream(), c, s, err);
   } else {
     NetReader reader{http.getStream(), 15000};
     ok = outage::parse(reader, c.group.c_str(), s);
-    if (!ok) err = String("немає графіка: ") + outage::lastError;
+    if (!ok) err = String(F("немає графіка: ")) + outage::lastError;
   }
   if (!ok) again = client.retryBig();
   http.end();
@@ -162,11 +162,11 @@ bool poll() {
   Schedule s;
   String err;
   net::fetchLock();
-  diag::crumb(diag::FETCH, "outage fetch");
+  diag::crumb(diag::FETCH, PSTR("outage fetch"));
   bool ok = fetch(c, s, err);
   net::fetchUnlock();
   lastOk = ok;
-  Serial.printf("outage: %s\n", ok ? "ok" : err.c_str());
+  Serial.printf_P(PSTR("outage: %s\n"), ok ? "ok" : err.c_str());
   if (ok) {
     sched = s;
     valid = true;
@@ -258,7 +258,7 @@ static void drawNow(TFT_eSPI &tft, const uint8_t *slots) {
   tft.drawWideLine(x0, y0, x1, y1, 4, cfg.handColor, TFT_BLACK);
 }
 
-static String hoursText(int slots) { return slots % 2 ? String(slots / 2) + ".5" : String(slots / 2); }
+static String hoursText(int slots) { return slots % 2 ? String(slots / 2) + F(".5") : String(slots / 2); }
 
 // Centre, one under another: queue (28 px), hours without power (possible outages counted in, as on
 // the oblenergo cards) and hours with power (24 px). With the queue hidden ("sq":0) only the two
@@ -273,7 +273,7 @@ static void drawCenter(TFT_eSPI &tft, const Config &c, const uint8_t *slots) {
   if (showDay) {
     useFont(tft, FONT_SMALL);
     tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
-    tft.drawString("завтра", 4, 4);
+    tft.drawString(F("завтра"), 4, 4);
   }
   tft.setTextDatum(MC_DATUM);
   int on = 0, off = 0;
@@ -290,9 +290,9 @@ static void drawCenter(TFT_eSPI &tft, const Config &c, const uint8_t *slots) {
     x -= 6, yOff += 6, yOn += 6;  // the free centre of the spiral is lower left of the dial centre
   }
   tft.setTextColor(C_OFF, TFT_BLACK);
-  tft.drawString("-" + hoursText(off), x, yOff);
+  tft.drawString('-' + hoursText(off), x, yOff);
   tft.setTextColor(C_ON, TFT_BLACK);
-  tft.drawString("+" + hoursText(on), x, yOn);
+  tft.drawString('+' + hoursText(on), x, yOn);
 }
 
 static void render(TFT_eSPI &tft, bool clear) {
@@ -304,16 +304,17 @@ static void render(TFT_eSPI &tft, bool clear) {
   memcpy(err, error, sizeof err);
   if (ok && !rollOver(s)) {  // no schedule for the new day yet
     ok = false;
-    if (!*err) strlcpy(err, "графік застарів", sizeof err);
+    if (!*err) strncpy_P(err, PSTR("графік застарів"), sizeof err - 1);
   }
   if (clear) tft.fillScreen(TFT_BLACK);
   if (!ok) {
     tft.fillScreen(TFT_BLACK);
     useFont(tft, FONT_LARGE);
-    if (tft.textWidth(*err ? err : "завантаження…") > 230) useFont(tft, FONT_SMALL);
+    String text = *err ? String(err) : String(F("завантаження…"));
+    if (tft.textWidth(text) > 230) useFont(tft, FONT_SMALL);
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(*err ? TFT_YELLOW : TFT_DARKGREY, TFT_BLACK);
-    tft.drawString(*err ? err : "завантаження…", CX, CY);
+    tft.drawString(text, CX, CY);
     wifiMarkRedraw(tft);
     return;
   }
@@ -363,9 +364,9 @@ String statusJson() {
   String days[2];
   for (int d = 0; d < 2; d++)
     for (int i = 0; i < outage::SLOTS; i++) days[d] += "+-?."[s.day[d][i]];
-  return String("{\"src\":\"") + c.src + "\",\"group\":\"" + c.group + "\",\"valid\":" + ok + ",\"today\":" +
-         (long)s.today + ",\"update\":\"" + s.update + "\",\"day0\":\"" + days[0] + "\",\"day1\":\"" +
-         (s.hasTomorrow ? days[1] : String("")) + "\",\"fetched\":" + (long)updatedAt + ",\"error\":\"" + err + "\"}";
+  return String(F("{\"src\":\"")) + c.src + F("\",\"group\":\"") + c.group + F("\",\"valid\":") + ok + F(",\"today\":") +
+         (long)s.today + F(",\"update\":\"") + s.update + F("\",\"day0\":\"") + days[0] + F("\",\"day1\":\"") +
+         (s.hasTomorrow ? days[1] : String(F(""))) + F("\",\"fetched\":") + (long)updatedAt + F(",\"error\":\"") + err + F("\"}");
 }
 
 bool nextChange(time_t now, bool &powerOn, time_t &at) {

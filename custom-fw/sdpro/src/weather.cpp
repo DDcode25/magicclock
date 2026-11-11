@@ -11,8 +11,8 @@
 
 namespace weather {
 
-static const char *CITY = "/.sys/city.json";
-static const char *UNIT = "/.sys/unit.json";
+static const char CITY[] PROGMEM = "/.sys/city.json";
+static const char UNIT[] PROGMEM = "/.sys/unit.json";
 
 struct Config {
   String city, nickname;
@@ -43,12 +43,12 @@ static float lat = 0, lon = 0;
 
 static void loadConfig() {
   Config c;
-  c.city = store::getStr(CITY, "cd1", "");
-  c.nickname = store::getStr(CITY, "nickname", "");
-  c.intervalMin = max(5, store::getInt(CITY, "w_i", 20));
-  c.fahrenheit = store::getStr(UNIT, "t_u", "°C") == "°F";
-  c.wind = store::getStr(UNIT, "w_u", "m/s");
-  c.pressure = store::getStr(UNIT, "p_u", "hPa");
+  c.city = store::getStr(CITY, PSTR("cd1"), PSTR(""));
+  c.nickname = store::getStr(CITY, PSTR("nickname"), PSTR(""));
+  c.intervalMin = max(5, store::getInt(CITY, PSTR("w_i"), 20));
+  c.fahrenheit = store::getStr(UNIT, PSTR("t_u"), PSTR("°C")) == "°F";
+  c.wind = store::getStr(UNIT, PSTR("w_u"), PSTR("m/s"));
+  c.pressure = store::getStr(UNIT, PSTR("p_u"), PSTR("hPa"));
   cfg = c;
 }
 
@@ -71,59 +71,59 @@ static bool getJson(const String &url, JsonDocument &doc, String &err) {
   HTTPClient http;
   http.setTimeout(10000);
   http.useHTTP10(true);  // no chunked encoding: the JSON is parsed straight from the stream
-  if (!http.begin(client, url)) return err = "немає з’єднання", false;
+  if (!http.begin(client, url)) return err = F("немає з’єднання"), false;
   int code = http.GET();
   if (code != 200) {
-    err = "помилка HTTP " + String(code);
+    err = F("помилка HTTP ") + String(code);
     http.end();
     return false;
   }
   DeserializationError e = deserializeJson(doc, http.getStream());
   http.end();
-  if (e) return err = "погані дані", false;
+  if (e) return err = F("погані дані"), false;
   return true;
 }
 
 static bool geocode(const Config &c, String &err) {
   if (c.city == geoCity && geoName.length()) return true;
-  if (c.city.isEmpty()) return err = "вкажіть місто", false;
+  if (c.city.isEmpty()) return err = F("вкажіть місто"), false;
   bool numeric = true;
   for (size_t i = 0; i < c.city.length(); i++) numeric &= isDigit(c.city[i]);
-  if (numeric) return err = "потрібна назва міста", false;  // OpenWeatherMap city ids need an OWM key
+  if (numeric) return err = F("потрібна назва міста"), false;  // OpenWeatherMap city ids need an OWM key
   JsonDocument doc;
   if (!getJson(String(F("http://geocoding-api.open-meteo.com/v1/search?count=1&language=uk&format=json&name=")) + urlEncode(c.city),
                doc, err))
     return false;
-  JsonObject r = doc["results"][0];
-  if (r.isNull()) return err = "місто не знайдено", false;
-  lat = r["latitude"], lon = r["longitude"];
-  geoName = r["name"] | c.city.c_str();
+  JsonObject r = doc[F("results")][0];
+  if (r.isNull()) return err = F("місто не знайдено"), false;
+  lat = r[F("latitude")], lon = r[F("longitude")];
+  geoName = r[F("name")] | c.city.c_str();
   geoCity = c.city;
   return true;
 }
 
 static bool fetch(const Config &c, Data &d, String &err) {
   if (!geocode(c, err)) return false;
-  String url = String(F("http://api.open-meteo.com/v1/forecast?latitude=")) + String(lat, 4) + "&longitude=" + String(lon, 4) +
+  String url = String(F("http://api.open-meteo.com/v1/forecast?latitude=")) + String(lat, 4) + F("&longitude=") + String(lon, 4) +
                F("&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,"
                  "pressure_msl,is_day&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto"
                  "&wind_speed_unit=") +
-               (c.wind == "km/h" ? "kmh" : c.wind == "mile/h" ? "mph" : "ms") +
+               (c.wind.equals(F("km/h")) ? F("kmh") : c.wind.equals(F("mile/h")) ? F("mph") : F("ms")) +
                (c.fahrenheit ? String(F("&temperature_unit=fahrenheit")) : String());
   JsonDocument doc;
   if (!getJson(url, doc, err)) return false;
-  JsonObject cur = doc["current"];
-  if (cur.isNull()) return err = "погані дані", false;
+  JsonObject cur = doc[F("current")];
+  if (cur.isNull()) return err = F("погані дані"), false;
   d.place = geoName;
-  d.temp = cur["temperature_2m"];
-  d.feels = cur["apparent_temperature"];
-  d.humidity = cur["relative_humidity_2m"];
-  d.code = cur["weather_code"];
-  d.wind = cur["wind_speed_10m"];
-  d.pressureHpa = cur["pressure_msl"];
-  d.day = (cur["is_day"] | 1) == 1;
-  d.tmax = doc["daily"]["temperature_2m_max"][0];
-  d.tmin = doc["daily"]["temperature_2m_min"][0];
+  d.temp = cur[F("temperature_2m")];
+  d.feels = cur[F("apparent_temperature")];
+  d.humidity = cur[F("relative_humidity_2m")];
+  d.code = cur[F("weather_code")];
+  d.wind = cur[F("wind_speed_10m")];
+  d.pressureHpa = cur[F("pressure_msl")];
+  d.day = (cur[F("is_day")] | 1) == 1;
+  d.tmax = doc[F("daily")][F("temperature_2m_max")][0];
+  d.tmin = doc[F("daily")][F("temperature_2m_min")][0];
   d.updated = time(nullptr);
   d.valid = true;
   return true;
@@ -143,11 +143,11 @@ bool poll() {
   Data d;
   String err;
   net::fetchLock();
-  diag::crumb(diag::FETCH, "weather fetch");
+  diag::crumb(diag::FETCH, PSTR("weather fetch"));
   bool ok = fetch(c, d, err);
   net::fetchUnlock();
   lastOk = ok;
-  Serial.printf("weather: %s\n", ok ? "ok" : err.c_str());
+  Serial.printf_P(PSTR("weather: %s\n"), ok ? "ok" : err.c_str());
   if (ok) {
     data = d;
     version++;
@@ -172,38 +172,49 @@ void pause(bool on) { paused = on; }
 
 // ---- text -----------------------------------------------------------------------------
 
-static const __FlashStringHelper *describe(int code) {
-  switch (code) {
-    case 0: return F("Ясно");
-    case 1: return F("Переважно ясно");
-    case 2: return F("Мінлива хмарність");
-    case 3: return F("Хмарно");
-    case 45: return F("Туман");
-    case 48: return F("Туман з інеєм");
-    case 51: return F("Слабка мряка");
-    case 53: return F("Мряка");
-    case 55: return F("Сильна мряка");
-    case 56: case 57: return F("Крижана мряка");
-    case 61: return F("Слабкий дощ");
-    case 63: return F("Дощ");
-    case 65: return F("Сильний дощ");
-    case 66: case 67: return F("Крижаний дощ");
-    case 71: return F("Слабкий сніг");
-    case 73: return F("Сніг");
-    case 75: return F("Сильний сніг");
-    case 77: return F("Снігова крупа");
-    case 80: return F("Слабка злива");
-    case 81: return F("Злива");
-    case 82: return F("Сильна злива");
-    case 85: return F("Снігопад");
-    case 86: return F("Сильний снігопад");
-    case 95: return F("Гроза");
-    case 96: case 99: return F("Гроза з градом");
-    default: return F("");
-  }
+// WMO weather codes (Open-Meteo), in flash: a switch here became a 400-byte jump table in RAM.
+struct Wmo {
+  uint8_t code;
+  char text[34];
+};
+static const Wmo WMO[] PROGMEM = {
+    {0, "Ясно"},
+    {1, "Переважно ясно"},
+    {2, "Мінлива хмарність"},
+    {3, "Хмарно"},
+    {45, "Туман"},
+    {48, "Туман з інеєм"},
+    {51, "Слабка мряка"},
+    {53, "Мряка"},
+    {55, "Сильна мряка"},
+    {56, "Крижана мряка"},
+    {57, "Крижана мряка"},
+    {61, "Слабкий дощ"},
+    {63, "Дощ"},
+    {65, "Сильний дощ"},
+    {66, "Крижаний дощ"},
+    {67, "Крижаний дощ"},
+    {71, "Слабкий сніг"},
+    {73, "Сніг"},
+    {75, "Сильний сніг"},
+    {77, "Снігова крупа"},
+    {80, "Слабка злива"},
+    {81, "Злива"},
+    {82, "Сильна злива"},
+    {85, "Снігопад"},
+    {86, "Сильний снігопад"},
+    {95, "Гроза"},
+    {96, "Гроза з градом"},
+    {99, "Гроза з градом"},
+};
+
+static String describe(int code) {
+  for (const Wmo &w : WMO)
+    if (pgm_read_byte(&w.code) == code) return FPSTR(w.text);
+  return String();
 }
 
-static String deg(float t) { return String(lround(t)) + "°"; }
+static String deg(float t) { return String(lround(t)) + F("°"); }
 
 // ---- icon -----------------------------------------------------------------------------
 
@@ -284,7 +295,7 @@ static void render(TFT_eSPI &tft) {
     useFont(tft, FONT_LARGE);
     tft.setTextDatum(MC_DATUM);
     tft.setTextColor(*err ? TFT_YELLOW : TFT_DARKGREY, TFT_BLACK);
-    tft.drawString(*err ? err : "завантаження…", 120, 120);
+    tft.drawString(*err ? String(err) : String(F("завантаження…")), 120, 120);
     return;
   }
 
@@ -305,7 +316,7 @@ static void render(TFT_eSPI &tft) {
   useFont(tft, FONT_LARGE);
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(LIGHT, TFT_BLACK);
-  tft.drawString("як " + deg(d.feels), R, 100);
+  tft.drawString(F("як ") + deg(d.feels), R, 100);
 
   String desc = *err ? String(err) : String(describe(d.code));
   if (tft.textWidth(desc) > 228) useFont(tft, FONT_SMALL);
@@ -318,8 +329,8 @@ static void render(TFT_eSPI &tft) {
     int cx;
     String value, unit;
   };
-  String windUnit = c.wind == "km/h" ? "км/год" : c.wind == "mile/h" ? "миль/год" : "м/с";
-  Cell cells[2] = {{L, String(d.humidity), "%"}, {R, String(d.wind, d.wind < 10 && c.wind == "m/s" ? 1 : 0), windUnit}};
+  String windUnit = c.wind.equals(F("km/h")) ? F("км/год") : c.wind.equals(F("mile/h")) ? F("миль/год") : F("м/с");
+  Cell cells[2] = {{L, String(d.humidity), "%"}, {R, String(d.wind, d.wind < 10 && c.wind.equals(F("m/s")) ? 1 : 0), windUnit}};
   for (int i = 0; i < 2; i++) {
     useFont(tft, FONT_LARGE);
     int vw = tft.textWidth(cells[i].value);
@@ -357,10 +368,10 @@ String statusJson() {
   char err[sizeof error];
   d = data, c = cfg;
   memcpy(err, error, sizeof err);
-  return String("{\"city\":\"") + c.city + "\",\"place\":\"" + d.place + "\",\"valid\":" + d.valid +
-         ",\"temp\":" + d.temp + ",\"feels\":" + d.feels + ",\"max\":" + d.tmax + ",\"min\":" + d.tmin +
-         ",\"humidity\":" + d.humidity + ",\"code\":" + d.code + ",\"wind\":" + d.wind + ",\"pressure\":" + d.pressureHpa +
-         ",\"updated\":" + (long)d.updated + ",\"error\":\"" + err + "\"}";
+  return String(F("{\"city\":\"")) + c.city + F("\",\"place\":\"") + d.place + F("\",\"valid\":") + d.valid +
+         F(",\"temp\":") + d.temp + F(",\"feels\":") + d.feels + F(",\"max\":") + d.tmax + F(",\"min\":") + d.tmin +
+         F(",\"humidity\":") + d.humidity + F(",\"code\":") + d.code + F(",\"wind\":") + d.wind + F(",\"pressure\":") + d.pressureHpa +
+         F(",\"updated\":") + (long)d.updated + F(",\"error\":\"") + err + F("\"}");
 }
 
 }  // namespace weather

@@ -14,11 +14,11 @@
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("\nUA Smart Box " FW_VERSION);
-  if (!store::begin()) Serial.println("LittleFS: mount failed");
+  Serial.println(F("\nUA Smart Box " FW_VERSION));
+  if (!store::begin()) Serial.println(F("LittleFS: mount failed"));
   diag::begin();
   if (diag::safeMode()) {
-    Serial.println("Safe mode: Wi-Fi and web (OTA) only");
+    Serial.println(F("Safe mode: Wi-Fi and web (OTA) only"));
     settings.load();
     net::begin();
     web::begin();
@@ -26,7 +26,7 @@ void setup() {
   }
   settings.load();
   ui::begin();
-  ui::message("UA Smart Box", "підключення до Wi-Fi…");
+  ui::message(F("UA Smart Box"), F("підключення до Wi-Fi…"));
   net::begin();
   web::begin();
   alerts::begin();

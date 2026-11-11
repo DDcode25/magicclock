@@ -137,7 +137,7 @@ void enter() {
 
 bool open(const String &name) {
   for (int i = 0; i < APP_COUNT; i++) {
-    if (name.equalsIgnoreCase(APP_ITEMS[i].name) || name.equalsIgnoreCase(APP_ITEMS[i].key)) {
+    if (name.equalsIgnoreCase(appName(i)) || name.equalsIgnoreCase(appKey(i))) {
       if (!settings.appEnabled[i]) return false;
       msgShown = false;
       current = i;
@@ -149,7 +149,7 @@ bool open(const String &name) {
 }
 
 String stateJson() {
-  return String("{\"app\":\"") + APP_ITEMS[current].key + "\",\"message\":" + (msgShown ? 1 : 0) + "}";
+  return String(F("{\"app\":\"")) + appKey(current) + F("\",\"message\":") + (msgShown ? 1 : 0) + '}';
 }
 
 static void drawMessage(const char *title, const char *text) {
@@ -170,11 +170,11 @@ static void drawSettings() {
   tft.setTextDatum(MC_DATUM);
   useFont(tft, FONT_LARGE);
   tft.setTextColor(TFT_ORANGE, TFT_BLACK);
-  tft.drawString("UA Smart Box", 120, 40);
+  tft.drawString(F("UA Smart Box"), 120, 40);
   useFont(tft, FONT_SMALL);
-  const char *labels[] = {"Версія", "Wi-Fi", "Мережа", "IP"};
-  String values[] = {FW_VERSION, net::connected() ? "клієнт" : net::apActive() ? "точка доступу" : "немає",
-                     net::connected() ? net::ssid() : net::apActive() ? String(AP_SSID) : String("-"), net::ip()};
+  const __FlashStringHelper *labels[] = {F("Версія"), F("Wi-Fi"), F("Мережа"), F("IP")};
+  String values[] = {F(FW_VERSION), net::connected() ? F("клієнт") : net::apActive() ? F("точка доступу") : F("немає"),
+                     net::connected() ? net::ssid() : net::apActive() ? String(AP_SSID) : String('-'), net::ip()};
   for (int i = 0; i < 4; i++) {
     tft.setTextDatum(MR_DATUM);
     tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
@@ -206,10 +206,10 @@ static void drawApp() {
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(TFT_ORANGE, 0x18E3);
   useFont(tft, FONT_LARGE);
-  tft.drawString(APP_ITEMS[current].label, 120, 19);
+  tft.drawString(appLabel(current), 120, 19);
   tft.setTextColor(TFT_DARKGREY, TFT_BLACK);
   useFont(tft, FONT_SMALL);
-  tft.drawString("незабаром", 120, 160);
+  tft.drawString(F("незабаром"), 120, 160);
 }
 
 static void drawStatus() {
@@ -226,7 +226,7 @@ static void drawStatus() {
   useFont(tft, FONT_BUILTIN);
   tft.drawString(buf, 120, 105, 7);
   tft.setTextColor(net::connected() ? TFT_GREEN : TFT_YELLOW, TFT_BLACK);
-  String status = net::connected() ? net::ip() : (net::apActive() ? String("Точка доступу ") + net::ip() : String("немає мережі"));
+  String status = net::connected() ? net::ip() : (net::apActive() ? String(F("Точка доступу ")) + net::ip() : String(F("немає мережі")));
   tft.fillRect(0, 210, 240, 22, TFT_BLACK);
   tft.setTextPadding(0);
   useFont(tft, FONT_SMALL);

@@ -14,7 +14,7 @@ extern "C" size_t umm_free_heap_size_min_reset(void);
 
 namespace diag {
 
-static const char *LOG = "/.sys/boots.json";
+static const char LOG[] PROGMEM = "/.sys/boots.json";
 static const uint32_t MAGIC = 0x4D424657;  // "MBFW": the RTC breadcrumbs are valid
 
 // Kept in RTC user memory, which survives a crash or watchdog reset (not a power cycle).
@@ -55,26 +55,26 @@ void begin() {
   if (rtc.magic != MAGIC) rtc.crashes = 0;
   rtc.crashes = crashed ? rtc.crashes + 1 : 0;
   JsonDocument doc = store::load(LOG);
-  JsonArray list = doc["boots"].is<JsonArray>() ? doc["boots"].as<JsonArray>() : doc["boots"].to<JsonArray>();
+  JsonArray list = doc[F("boots")].is<JsonArray>() ? doc[F("boots")].as<JsonArray>() : doc[F("boots")].to<JsonArray>();
   JsonObject e = list.add<JsonObject>();
-  e["reason"] = ESP.getResetReason();
+  e[F("reason")] = ESP.getResetReason();
   e["fw"] = FW_VERSION;
   if (crashed) {
     char b[80];
-    snprintf(b, sizeof b, "exc %u epc1 0x%08x excvaddr 0x%08x", ri->exccause, ri->epc1, ri->excvaddr);
-    e["panic"] = b;
+    snprintf_P(b, sizeof b, PSTR("exc %u epc1 0x%08x excvaddr 0x%08x"), ri->exccause, ri->epc1, ri->excvaddr);
+    e[F("panic")] = b;
     if (rtc.magic == MAGIC) {
       String t;
       for (uint32_t a : rtc.trace)
         if (a) t += String(a, HEX) + ' ';
-      if (t.length()) e["trace"] = t;
+      if (t.length()) e[F("trace")] = t;
     }
   }
   if (ri->reason != REASON_DEFAULT_RST && rtc.magic == MAGIC) {
     e["ui"] = (const char *)rtc.last[UI];
     e["web"] = (const char *)rtc.last[WEB];
-    e["fetch"] = (const char *)rtc.last[FETCH];
-    e["minHeap"] = rtc.lowHeap;
+    e[F("fetch")] = (const char *)rtc.last[FETCH];
+    e[F("minHeap")] = rtc.lowHeap;
   }
   while (list.size() > 10) list.remove(0);
   store::save(LOG, doc);
@@ -107,8 +107,9 @@ uint32_t resetLow() {
   return umm_free_heap_size_min_reset();
 }
 
-void crumb(Slot slot, const char *what) {
-  strlcpy(rtc.last[slot], what, sizeof rtc.last[slot]);
+void crumb(Slot slot, PGM_P what) {
+  strncpy_P(rtc.last[slot], what, sizeof rtc.last[slot] - 1);
+  rtc.last[slot][sizeof rtc.last[slot] - 1] = 0;
   noteLow();
   save();
 }
@@ -132,30 +133,30 @@ void fetchDone(uint32_t heapBefore) {
 
 String json() {
   JsonDocument doc;
-  doc["uptime"] = millis() / 1000;
-  doc["time"] = (long)time(nullptr);
-  doc["heap"] = ESP.getFreeHeap();
+  doc[F("uptime")] = millis() / 1000;
+  doc[F("time")] = (long)time(nullptr);
+  doc[F("heap")] = ESP.getFreeHeap();
   {
     HeapSelectIram iram;
-    doc["iramHeap"] = ESP.getFreeHeap();
+    doc[F("iramHeap")] = ESP.getFreeHeap();
   }
   noteLow();
-  doc["minHeap"] = rtc.lowHeap;
+  doc[F("minHeap")] = rtc.lowHeap;
   doc["low"] = umm_free_heap_size_lw_min();  // since the last /sys.json?reset=1
-  doc["maxBlock"] = ESP.getMaxFreeBlockSize();
-  doc["frag"] = ESP.getHeapFragmentation();
-  doc["reset"] = ESP.getResetReason();
-  doc["safeMode"] = safeMode();
+  doc[F("maxBlock")] = ESP.getMaxFreeBlockSize();
+  doc[F("frag")] = ESP.getHeapFragmentation();
+  doc[F("reset")] = ESP.getResetReason();
+  doc[F("safeMode")] = safeMode();
   doc["ui"] = (const char *)rtc.last[UI];
   doc["web"] = (const char *)rtc.last[WEB];
-  doc["fetch"] = (const char *)rtc.last[FETCH];
+  doc[F("fetch")] = (const char *)rtc.last[FETCH];
   for (int i = max(0, keptCount - 4); i < keptCount; i++) {
-    JsonObject o = doc["kept"].add<JsonObject>();
-    o["what"] = (const char *)kept[i % 4].what;
-    o["bytes"] = kept[i % 4].bytes;
+    JsonObject o = doc[F("kept")].add<JsonObject>();
+    o[F("what")] = (const char *)kept[i % 4].what;
+    o[F("bytes")] = kept[i % 4].bytes;
     o["at"] = kept[i % 4].at;
   }
-  doc["boots"] = store::load(LOG)["boots"];
+  doc[F("boots")] = store::load(LOG)["boots"];
   String out;
   serializeJson(doc, out);
   return out;

@@ -20,7 +20,15 @@ namespace web {
 
 static ESP8266WebServer server(80);
 
-static void ok() { server.send(200, "text/plain", "OK"); }
+// Strings live in flash (PSTR / F / PROGMEM): RAM is the scarce resource on the ESP8266. The server
+// reads content types and send_P bodies from flash itself.
+static const char TEXT[] PROGMEM = "text/plain";
+static const char HTML[] PROGMEM = "text/html";
+static const char JSON_TYPE[] PROGMEM = "application/json";
+
+static void reply(int code, PGM_P msg) { server.send_P(code, TEXT, msg); }
+static void ok() { reply(200, PSTR("OK")); }
+static void sendJson(const String &body) { server.send(200, JSON_TYPE, body); }
 
 static String urlDecode(const String &s) {
   String out;
@@ -37,89 +45,83 @@ static String urlDecode(const String &s) {
   return out;
 }
 
-static const char *contentType(const String &path) {
-  if (path.endsWith(".json")) return "application/json";
-  if (path.endsWith(".gif")) return "image/gif";
-  if (path.endsWith(".jpg") || path.endsWith(".jpeg")) return "image/jpeg";
-  if (path.endsWith(".png")) return "image/png";
-  if (path.endsWith(".ico")) return "image/x-icon";
-  if (path.endsWith(".html") || path.endsWith(".htm")) return "text/html";
-  if (path.endsWith(".css")) return "text/css";
-  if (path.endsWith(".js")) return "application/javascript";
-  return "application/octet-stream";
+static String contentType(const String &path) {
+  if (path.endsWith(F(".json"))) return FPSTR(JSON_TYPE);
+  if (path.endsWith(F(".gif"))) return F("image/gif");
+  if (path.endsWith(F(".jpg")) || path.endsWith(F(".jpeg"))) return F("image/jpeg");
+  if (path.endsWith(F(".png"))) return F("image/png");
+  if (path.endsWith(F(".ico"))) return F("image/x-icon");
+  if (path.endsWith(F(".html")) || path.endsWith(F(".htm"))) return FPSTR(HTML);
+  if (path.endsWith(F(".css"))) return F("text/css");
+  if (path.endsWith(F(".js"))) return F("application/javascript");
+  return F("application/octet-stream");
 }
 
 // ---- /set ---------------------------------------------------------------------------
 
 enum Kind { STR, INT, INV_STR, INV_INT };  // INV: stored as 255 - percent (brightness)
 
+// In flash (PROGMEM, read with memcpy_P); file is the name in /.sys without ".json".
 struct Field {
-  const char *param, *file, *key;
-  Kind kind;
+  char param[10], file[10], key[9];
+  uint8_t kind;
 };
 
 // SD PRO: only the settings of the apps built here (the stock UI's crypto, stock, album and monitor
 // fields are ignored).
-static const Field FIELDS[] = {
-    {"cd1", "city.json", "cd1", STR},
-    {"cd2", "city.json", "cd2", STR},
-    {"nickname", "city.json", "nickname", STR},
-    {"interval", "city.json", "w_i", INT},
-    {"w_u", "unit.json", "w_u", STR},
-    {"t_u", "unit.json", "t_u", STR},
-    {"p_u", "unit.json", "p_u", STR},
-    {"hc", "timecolor.json", "hc", STR},
-    {"mc", "timecolor.json", "mc", STR},
-    {"sc", "timecolor.json", "sc", STR},
-    {"hour", "hour12.json", "h", STR},
-    {"day", "day.json", "day", STR},
-    {"sec_mode", "clock.json", "sm", INT},
-    {"tz_offset", "tz.json", "offset", INT},
-    {"ntp", "ntp.json", "ntp", STR},
-    {"brt", "brt.json", "brt", INV_STR},
-    {"t1", "timebrt.json", "t1", INT},
-    {"t2", "timebrt.json", "t2", INT},
-    {"b1", "timebrt.json", "b1", INT},
-    {"b2", "timebrt.json", "b2", INV_INT},
-    {"en", "timebrt.json", "en", INT},
-    {"theme", "app.json", "theme", STR},
+static const Field FIELDS[] PROGMEM = {
+    {"cd1", "city", "cd1", STR},
+    {"cd2", "city", "cd2", STR},
+    {"nickname", "city", "nickname", STR},
+    {"interval", "city", "w_i", INT},
+    {"w_u", "unit", "w_u", STR},
+    {"t_u", "unit", "t_u", STR},
+    {"p_u", "unit", "p_u", STR},
+    {"hc", "timecolor", "hc", STR},
+    {"mc", "timecolor", "mc", STR},
+    {"sc", "timecolor", "sc", STR},
+    {"hour", "hour12", "h", STR},
+    {"day", "day", "day", STR},
+    {"sec_mode", "clock", "sm", INT},
+    {"tz_offset", "tz", "offset", INT},
+    {"ntp", "ntp", "ntp", STR},
+    {"brt", "brt", "brt", INV_STR},
+    {"t1", "timebrt", "t1", INT},
+    {"t2", "timebrt", "t2", INT},
+    {"b1", "timebrt", "b1", INT},
+    {"b2", "timebrt", "b2", INV_INT},
+    {"en", "timebrt", "en", INT},
+    {"theme", "app", "theme", STR},
     // UA Smart Box: air alerts app
-    {"al_src", "alerts.json", "src", STR},
-    {"al_token", "alerts.json", "token", STR},
-    {"al_i", "alerts.json", "i", INT},
-    {"al_home", "alerts.json", "home", INT},
-    {"al_cc", "alerts.json", "cc", STR},
-    {"al_auto", "alerts.json", "auto", INT},
+    {"al_src", "alerts", "src", STR},
+    {"al_token", "alerts", "token", STR},
+    {"al_i", "alerts", "i", INT},
+    {"al_home", "alerts", "home", INT},
+    {"al_cc", "alerts", "cc", STR},
+    {"al_auto", "alerts", "auto", INT},
     // UA Smart Box: power outage schedule
-    {"out_src", "outage.json", "src", STR},
-    {"out_grp", "outage.json", "grp", STR},
-    {"out_i", "outage.json", "i", INT},
-    {"out_hc", "outage.json", "hc", STR},
-    {"out_sq", "outage.json", "sq", INT},
+    {"out_src", "outage", "src", STR},
+    {"out_grp", "outage", "grp", STR},
+    {"out_i", "outage", "i", INT},
+    {"out_hc", "outage", "hc", STR},
+    {"out_sq", "outage", "sq", INT},
 };
-
-// "cin3" -> true, idx 3 for prefix "cin"
-static bool indexed(const String &name, const char *prefix, int max) {
-  size_t n = strlen(prefix);
-  if (!name.startsWith(prefix) || name.length() == n) return false;
-  for (size_t i = n; i < name.length(); i++)
-    if (!isDigit(name[i])) return false;
-  return name.substring(n).toInt() < max;
-}
 
 class Batch {
  public:
+  // file: name in /.sys without ".json"
   JsonDocument &doc(const String &file) {
     auto it = docs.find(file);
-    if (it == docs.end()) it = docs.emplace(file, store::load(("/.sys/" + file).c_str())).first;
+    if (it == docs.end()) it = docs.emplace(file, store::load(path(file).c_str())).first;
     return it->second;
   }
   void save() {
-    for (auto &kv : docs) store::save(("/.sys/" + kv.first).c_str(), kv.second);
+    for (auto &kv : docs) store::save(path(kv.first).c_str(), kv.second);
   }
 
  private:
   std::map<String, JsonDocument> docs;
+  static String path(const String &file) { return String(F("/.sys/")) + file + F(".json"); }
 };
 
 // Assign through doc[key] directly: converting it to JsonVariant first would not create
@@ -133,88 +135,93 @@ static void setValue(JsonDocument &doc, const char *key, const String &v, Kind k
   }
 }
 
-static bool clearDir(const char *dir) {
+static bool clearDir(PGM_P dirP) {
+  String dir = FPSTR(dirP);
   File d = LittleFS.open(dir, "r");
   if (!d || !d.isDirectory()) return false;
   std::vector<String> files;
   for (File f = d.openNextFile(); f; f = d.openNextFile())
-    if (!f.isDirectory()) files.push_back(String(dir) + "/" + f.name());
+    if (!f.isDirectory()) files.push_back(dir + '/' + f.name());
   for (auto &p : files) LittleFS.remove(p);
   return true;
 }
 
-static void restartSoon(const char *why) {
-  ui::message(why, "перезапуск…");
+static void restartSoon(const __FlashStringHelper *why) {
+  ui::message(why, F("перезапуск…"));
   delay(800);
   ESP.restart();
 }
 
 static void handleSet() {
-  diag::crumb(diag::WEB, "web /set");
+  diag::crumb(diag::WEB, PSTR("web /set"));
   // Actions first.
-  if (server.hasArg("page")) {
-    ui::next(server.arg("page").toInt());
+  if (server.hasArg(F("page"))) {
+    ui::next(server.arg(F("page")).toInt());
     return ok();
   }
-  if (server.hasArg("enter")) {
+  if (server.hasArg(F("enter"))) {
     ui::enter();
     return ok();
   }
-  if (server.hasArg("open_app")) {
-    return ui::open(server.arg("open_app")) ? ok() : server.send(400, "text/plain", "app disabled or unknown");
+  if (server.hasArg(F("open_app"))) {
+    return ui::open(server.arg(F("open_app"))) ? ok() : reply(400, PSTR("app disabled or unknown"));
   }
-  if (server.hasArg("reboot")) {
+  if (server.hasArg(F("reboot"))) {
     ok();
-    restartSoon("Перезапуск");
+    restartSoon(F("Перезапуск"));
   }
-  if (server.hasArg("reset")) {
+  if (server.hasArg(F("reset"))) {
     // Factory reset of settings; Wi-Fi (config.json) is kept so the device stays reachable.
     ok();
-    File d = LittleFS.open("/.sys", "r");
+    File d = LittleFS.open(F("/.sys"), "r");
     std::vector<String> files;
     for (File f = d.openNextFile(); f; f = d.openNextFile())
-      if (strcmp(f.name(), "config.json")) files.push_back(String("/.sys/") + f.name());
+      if (strcmp_P(f.name(), PSTR("config.json"))) files.push_back(String(F("/.sys/")) + f.name());
     for (auto &p : files) LittleFS.remove(p);
-    restartSoon("Скидання");
+    restartSoon(F("Скидання"));
   }
-  if (server.hasArg("clear")) {
-    String kind = server.arg("clear");
-    bool done = kind == "gif" ? clearDir("/image/80x80.gif") : kind == "image" ? clearDir("/image") : false;
-    return done ? ok() : server.send(400, "text/plain", "bad clear");
+  if (server.hasArg(F("clear"))) {
+    String kind = server.arg(F("clear"));
+    bool done = kind.equals(F("gif"))     ? clearDir(PSTR("/image/80x80.gif"))
+                : kind.equals(F("image")) ? clearDir(PSTR("/image"))
+                                          : false;
+    return done ? ok() : reply(400, PSTR("bad clear"));
   }
 
   Batch batch;
   bool timeChanged = false, alertsChanged = false, weatherChanged = false, outageChanged = false;
   for (int i = 0; i < server.args(); i++) {
     String name = server.argName(i), v = server.arg(i);
-    if (name == "plain") continue;
+    if (name.equals(F("plain"))) continue;
     bool handled = false;
-    for (const Field &f : FIELDS) {
+    for (const Field &pf : FIELDS) {
+      Field f;
+      memcpy_P(&f, &pf, sizeof f);
       if (name == f.param) {
-        setValue(batch.doc(f.file), f.key, v, f.kind);
-        if (!strcmp(f.file, "outage.json")) outageChanged = true;
-        if (!strcmp(f.file, "city.json") || !strcmp(f.file, "unit.json") || !strcmp(f.file, "key.json")) weatherChanged = true;
+        setValue(batch.doc(f.file), f.key, v, (Kind)f.kind);
+        if (!strcmp_P(f.file, PSTR("outage"))) outageChanged = true;
+        if (!strcmp_P(f.file, PSTR("city")) || !strcmp_P(f.file, PSTR("unit"))) weatherChanged = true;
         handled = true;
         break;
       }
     }
     if (handled) {
-      if (name == "cd1") batch.doc("city.json")["ct1"] = v;
-      if (name == "tz_offset" || name == "ntp") timeChanged = true;
-      if (name.startsWith("al_")) alertsChanged = true;
+      if (name.equals(F("cd1"))) batch.doc(F("city"))[F("ct1")] = v;
+      if (name.equals(F("tz_offset")) || name.equals(F("ntp"))) timeChanged = true;
+      if (name.startsWith(F("al_"))) alertsChanged = true;
       continue;
     }
-    if (name == "tz_mode") {
-      batch.doc("tz.json")["mode"] = v == "manual" || v == "1" ? 1 : 0;
+    if (name.equals(F("tz_mode"))) {
+      batch.doc(F("tz"))[F("mode")] = v.equals(F("manual")) || v.equals(F("1")) ? 1 : 0;
       timeChanged = true;
-    } else if (name.startsWith("app_")) {
-      batch.doc("app.json")["apps"][name.substring(4)] = v.toInt();
-    } else if (name.startsWith("dur_")) {  // seconds on screen per app (0 = stays)
-      batch.doc("app.json")["dur"][name.substring(4)] = constrain(v.toInt(), 0, 3600);
-    } else if (name == "auto") {  // auto rotation on / off
-      batch.doc("app.json")["auto"] = v.toInt() ? 1 : 0;
+    } else if (name.startsWith(F("app_"))) {
+      batch.doc(F("app"))[F("apps")][name.substring(4)] = v.toInt();
+    } else if (name.startsWith(F("dur_"))) {  // seconds on screen per app (0 = stays)
+      batch.doc(F("app"))[F("dur")][name.substring(4)] = constrain(v.toInt(), 0, 3600);
+    } else if (name.equals(F("auto"))) {  // auto rotation on / off
+      batch.doc(F("app"))[F("auto")] = v.toInt() ? 1 : 0;
     } else {
-      Serial.printf("set: unknown %s=%s\n", name.c_str(), v.c_str());
+      Serial.printf_P(PSTR("set: unknown %s=%s\n"), name.c_str(), v.c_str());
     }
   }
   batch.save();
@@ -230,15 +237,15 @@ static void handleSet() {
 // ---- files --------------------------------------------------------------------------
 
 static String joinPath(String dir, const String &name) {
-  if (!dir.endsWith("/")) dir += "/";
+  if (!dir.endsWith(F("/"))) dir += '/';
   return dir + name;
 }
 
 // Same HTML table as the stock firmware; the web UI parses it.
 static void handleFileList() {
-  String dir = server.arg("dir");
-  File d = LittleFS.open(dir.isEmpty() ? "/" : dir, "r");
-  if (!d || !d.isDirectory()) return server.send(200, "text/html", "failed o dir");
+  String dir = server.arg(F("dir"));
+  File d = LittleFS.open(dir.isEmpty() ? String('/') : dir, "r");
+  if (!d || !d.isDirectory()) return server.send_P(200, HTML, PSTR("failed o dir"));
   String h = F("<table id='list'><tbody><tr><th>#</th><th>File name</th><th>Size(KB)</th><th></th></tr>");
   int n = 0;
   for (File f = d.openNextFile(); f; f = d.openNextFile()) {
@@ -248,8 +255,8 @@ static void handleFileList() {
          (f.size() / 1024) + F("</td><td><input type='button' class='btndel' onclick=\"deletef('") + path +
          F("')\" value='X'></td></tr>");
   }
-  h += "</tbody></table>";
-  server.send(200, "text/html", h);
+  h += F("</tbody></table>");
+  server.send(200, HTML, h);
 }
 
 static File uploadFile;
@@ -258,11 +265,11 @@ static bool uploadOk;
 static void handleUploadData() {
   HTTPUpload &u = server.upload();
   if (u.status == UPLOAD_FILE_START) {
-    String dir = server.arg("dir");
-    if (dir.isEmpty()) dir = "/image";
+    String dir = server.arg(F("dir"));
+    if (dir.isEmpty()) dir = F("/image");
     if (!LittleFS.exists(dir)) LittleFS.mkdir(dir);
     String name = u.filename.substring(u.filename.lastIndexOf('/') + 1);
-    name.replace("&", "_");
+    name.replace('&', '_');
     uploadOk = name.length() > 0;
     if (uploadOk) uploadFile = LittleFS.open(joinPath(dir, name), "w");
     uploadOk = uploadOk && uploadFile;
@@ -275,10 +282,10 @@ static void handleUploadData() {
 }
 
 static void handleDelete() {
-  String path = server.arg("file");
-  if (path.isEmpty() || path == "/.sys/config.json" || !LittleFS.exists(path))
-    return server.send(400, "text/plain", "bad file");
-  LittleFS.remove(path) ? ok() : server.send(500, "text/plain", "delete failed");
+  String path = server.arg(F("file"));
+  if (path.isEmpty() || path.equals(F("/.sys/config.json")) || !LittleFS.exists(path))
+    return reply(400, PSTR("bad file"));
+  LittleFS.remove(path) ? ok() : reply(500, PSTR("delete failed"));
 }
 
 static void handleStatic() {
@@ -286,17 +293,17 @@ static void handleStatic() {
   if (LittleFS.exists(path)) {
     File f = LittleFS.open(path, "r");
     if (f && !f.isDirectory()) {
-      server.sendHeader("Cache-Control", path.startsWith("/.sys/") ? "no-store" : "max-age=3600");
+      server.sendHeader(F("Cache-Control"), path.startsWith(F("/.sys/")) ? F("no-store") : F("max-age=3600"));
       server.streamFile(f, contentType(path));
       f.close();
       return;
     }
   }
   if (net::apActive()) {  // captive portal: send every unknown URL to the UI
-    server.sendHeader("Location", "http://" + net::ip() + "/");
-    return server.send(302, "text/plain", "");
+    server.sendHeader(F("Location"), String(F("http://")) + net::ip() + '/');
+    return reply(302, PSTR(""));
   }
-  server.send(404, "text/plain", "Not found");
+  reply(404, PSTR("Not found"));
 }
 
 // ---- OTA, flash ---------------------------------------------------------------------
@@ -321,7 +328,7 @@ static void handleUpdateData() {
     alerts::pause(true);  // no fetches between the upload and the reboot
     weather::pause(true);
     outagescreen::pause(true);
-    ui::message("Оновлення", "не вимикайте живлення");
+    ui::message(F("Оновлення"), F("не вимикайте живлення"));
     uint32_t maxSketch = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
     if (!Update.begin(maxSketch, U_FLASH)) Update.printError(Serial);
   } else if (u.status == UPLOAD_FILE_WRITE) {
@@ -345,34 +352,34 @@ static void handleUpdateData() {
 
 static void handleUpdateDone() {
   bool success = !wrongChip && !Update.hasError() && Update.isFinished();
-  server.sendHeader("Connection", "close");
+  server.sendHeader(F("Connection"), F("close"));
   if (!success) {
     alerts::pause(false);
     weather::pause(false);
     outagescreen::pause(false);
-    server.send(500, "text/plain",
+    server.send(500, TEXT,
                 wrongChip ? String(F("FAIL: this is an ESP32 (SmallTV Pro) firmware, use UASmartBox-SD-*.bin"))
-                          : String("FAIL: ") + Update.getErrorString());
+                          : String(F("FAIL: ")) + Update.getErrorString());
     ui::applySettings();
     return;
   }
-  server.send(200, "text/html", F("<META http-equiv=\"refresh\" content=\"15;URL=/\">Update Success! Rebooting..."));
-  restartSoon("Оновлено");
+  server.send_P(200, HTML, PSTR("<META http-equiv=\"refresh\" content=\"15;URL=/\">Update Success! Rebooting..."));
+  restartSoon(F("Оновлено"));
 }
 
 static void handleFlash() {
   uint32_t chip = ESP.getFlashChipRealSize();
-  uint32_t off = server.hasArg("offset") ? strtoul(server.arg("offset").c_str(), NULL, 0) : 0;
-  uint32_t size = server.hasArg("size") ? strtoul(server.arg("size").c_str(), NULL, 0) : chip - off;
-  if (off >= chip || size == 0 || off + size > chip) return server.send(400, "text/plain", "bad range");
+  uint32_t off = server.hasArg(F("offset")) ? strtoul(server.arg(F("offset")).c_str(), NULL, 0) : 0;
+  uint32_t size = server.hasArg(F("size")) ? strtoul(server.arg(F("size")).c_str(), NULL, 0) : chip - off;
+  if (off >= chip || size == 0 || off + size > chip) return reply(400, PSTR("bad range"));
   std::unique_ptr<uint32_t[]> mem(new (std::nothrow) uint32_t[256]);  // 1 KB, only during the dump
   uint32_t *buf = mem.get();
-  if (!buf) return server.send(503, "text/plain", "no memory");
+  if (!buf) return reply(503, PSTR("no memory"));
   const size_t BUF = 1024;
   WiFiClient c = server.client();
   server.setContentLength(size);
-  server.sendHeader("Content-Disposition", "attachment; filename=flash.bin");
-  server.send(200, "application/octet-stream", "");
+  server.sendHeader(F("Content-Disposition"), F("attachment; filename=flash.bin"));
+  server.send_P(200, PSTR("application/octet-stream"), PSTR(""));
   for (uint32_t a = off; a < off + size && c.connected();) {
     uint32_t n = min<uint32_t>(BUF, off + size - a);
     if (!ESP.flashRead(a, buf, n) || c.write((const uint8_t *)buf, n) != n) break;
@@ -385,51 +392,52 @@ static void handleFlash() {
 
 
 void begin() {
-  server.on("/", HTTP_GET, [] {
-    server.sendHeader("Content-Encoding", "gzip");
-    server.send_P(200, "text/html", (const char *)WEB_INDEX_GZ, WEB_INDEX_GZ_LEN);
+  server.on(F("/"), HTTP_GET, [] {
+    server.sendHeader(F("Content-Encoding"), F("gzip"));
+    server.send_P(200, HTML, (const char *)WEB_INDEX_GZ, WEB_INDEX_GZ_LEN);
   });
-  server.on("/set", HTTP_GET, handleSet);
-  server.on("/v.json", HTTP_GET, [] {
-    server.send(200, "application/json", String("{\"m\":\"") + MODEL_NAME + "\",\"v\":\"UA Smart Box " FW_VERSION "\"}");
+  server.on(F("/set"), HTTP_GET, handleSet);
+  server.on(F("/v.json"), HTTP_GET, [] {
+    server.send_P(200, JSON_TYPE, PSTR("{\"m\":\"" MODEL_NAME "\",\"v\":\"UA Smart Box " FW_VERSION "\"}"));
   });
-  server.on("/space.json", HTTP_GET, [] {
+  server.on(F("/space.json"), HTTP_GET, [] {
     FSInfo fi;
     LittleFS.info(fi);
-    server.send(200, "application/json", String("{\"total\":") + fi.totalBytes + ",\"free\":" + (fi.totalBytes - fi.usedBytes) + "}");
+    char b[48];
+    snprintf_P(b, sizeof b, PSTR("{\"total\":%u,\"free\":%u}"), (unsigned)fi.totalBytes, (unsigned)(fi.totalBytes - fi.usedBytes));
+    sendJson(b);
   });
-  server.on("/wifi.json", HTTP_GET, [] { server.send(200, "application/json", net::scanJson()); });
-  server.on("/wifisave", HTTP_GET, [] {
-    if (!server.hasArg("s") || server.arg("s").isEmpty()) return server.send(400, "text/plain", "ssid required");
-    net::saveWifi(server.arg("s"), server.arg("p"));
-    server.send(200, "text/plain", "saved");
-    restartSoon("Wi-Fi збережено");
+  server.on(F("/wifi.json"), HTTP_GET, [] { sendJson(net::scanJson()); });
+  server.on(F("/wifisave"), HTTP_GET, [] {
+    if (!server.hasArg(F("s")) || server.arg(F("s")).isEmpty()) return reply(400, PSTR("ssid required"));
+    net::saveWifi(server.arg(F("s")), server.arg(F("p")));
+    reply(200, PSTR("saved"));
+    restartSoon(F("Wi-Fi збережено"));
   });
-  server.on("/wifiknown.json", HTTP_GET, [] { server.send(200, "application/json", net::knownJson()); });
-  server.on("/wififorget", HTTP_GET, [] {
-    net::forgetWifi(server.arg("s"));
+  server.on(F("/wifiknown.json"), HTTP_GET, [] { sendJson(net::knownJson()); });
+  server.on(F("/wififorget"), HTTP_GET, [] {
+    net::forgetWifi(server.arg(F("s")));
     ok();
   });
-  server.on("/filelist", HTTP_GET, handleFileList);
-  server.on(
-      "/doUpload", HTTP_POST,
-      [] { uploadOk ? ok() : server.send(500, "text/plain", "upload failed"); },
+  server.on(F("/filelist"), HTTP_GET, handleFileList);
+  server.on(F("/doUpload"), HTTP_POST,
+      [] { uploadOk ? ok() : reply(500, PSTR("upload failed")); },
       handleUploadData);
-  server.on("/delete", HTTP_GET, handleDelete);
-  server.on("/update", HTTP_GET, [] { server.send_P(200, "text/html", UPDATE_PAGE); });
-  server.on("/update", HTTP_POST, handleUpdateDone, handleUpdateData);
-  server.on("/flash", HTTP_GET, handleFlash);
-  server.on("/alerts.json", HTTP_GET, [] { server.send(200, "application/json", alerts::statusJson()); });
-  server.on("/outage.json", HTTP_GET, [] { server.send(200, "application/json", outagescreen::statusJson()); });
-  server.on("/sys.json", HTTP_GET, [] {
-    if (server.hasArg("reset")) diag::resetLow();
-    server.send(200, "application/json", diag::json());
+  server.on(F("/delete"), HTTP_GET, handleDelete);
+  server.on(F("/update"), HTTP_GET, [] { server.send_P(200, HTML, UPDATE_PAGE); });
+  server.on(F("/update"), HTTP_POST, handleUpdateDone, handleUpdateData);
+  server.on(F("/flash"), HTTP_GET, handleFlash);
+  server.on(F("/alerts.json"), HTTP_GET, [] { sendJson(alerts::statusJson()); });
+  server.on(F("/outage.json"), HTTP_GET, [] { sendJson(outagescreen::statusJson()); });
+  server.on(F("/sys.json"), HTTP_GET, [] {
+    if (server.hasArg(F("reset"))) diag::resetLow();
+    sendJson(diag::json());
   });
-  server.on("/weather.json", HTTP_GET, [] { server.send(200, "application/json", weather::statusJson()); });
-  server.on("/state.json", HTTP_GET, [] { server.send(200, "application/json", ui::stateJson()); });
-  server.on("/alerts/test", HTTP_GET, [] {
-    alerts::testAlarm(server.arg("level").toInt() == 1 ? alerts::PARTIAL : alerts::FULL);
-    ui::open("Alerts") ? ok() : server.send(400, "text/plain", "alerts app disabled");
+  server.on(F("/weather.json"), HTTP_GET, [] { sendJson(weather::statusJson()); });
+  server.on(F("/state.json"), HTTP_GET, [] { sendJson(ui::stateJson()); });
+  server.on(F("/alerts/test"), HTTP_GET, [] {
+    alerts::testAlarm(server.arg(F("level")).toInt() == 1 ? alerts::PARTIAL : alerts::FULL);
+    ui::open(F("Alerts")) ? ok() : reply(400, PSTR("alerts app disabled"));
   });
   server.onNotFound(handleStatic);
   server.begin();
