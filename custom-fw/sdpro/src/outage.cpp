@@ -22,7 +22,7 @@ struct Config {
   String src = "poe";
   String group = "1.1";
   int intervalMin = 10;
-  uint16_t handColor = TFT_WHITE;  // "now" marker on the dial
+  uint16_t handColor = TFT_RED;  // "now" marker on the dial
   bool showQueue = true;           // queue number in the dial centre
 };
 
@@ -45,7 +45,7 @@ static void loadConfig() {
   c.src = store::getStr(CONFIG, PSTR("src"), PSTR("poe"));
   c.group = store::getStr(CONFIG, PSTR("grp"), PSTR("1.1"));
   c.intervalMin = max(5, store::getInt(CONFIG, PSTR("i"), 10));
-  c.handColor = parseColor(store::getStr(CONFIG, PSTR("hc"), PSTR("#ffffff")), TFT_WHITE);
+  c.handColor = parseColor(store::getStr(CONFIG, PSTR("hc"), PSTR("#ff0000")), TFT_RED);
   bool changed = c.src != cfg.src || c.group != cfg.group;
   c.showQueue = store::getInt(CONFIG, PSTR("sq"), 1) != 0;
   bool recolor = c.handColor != cfg.handColor || c.showQueue != cfg.showQueue;

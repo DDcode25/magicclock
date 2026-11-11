@@ -146,7 +146,7 @@ OUTAGE_VIEW = """
           <label class="pair"><span>Черга (підчерга)</span><select class="select" id="outageGroup">%s</select></label>
           <label class="pair"><span>Інтервал оновлення (хв, мінімум 5)</span><input class="field" id="outageInterval" inputmode="numeric" placeholder="10"></label>
           <label class="line"><div><strong>Показувати чергу</strong><span>Номер черги в центрі равлика. Без нього години без світла й зі світлом — більшими цифрами.</span></div><span class="switch"><input id="outageShowQueue" type="checkbox"></span></label>
-          <label class="pair"><span>Колір стрілки «зараз» на равлику</span><input class="field" type="color" id="outageHandColor" value="#ffffff"></label>
+          <label class="pair"><span>Колір стрілки «зараз» на равлику</span><input class="field" type="color" id="outageHandColor" value="#ff0000"></label>
           <div class="hint">Полтава: офіційний графік з <a href="https://www.poe.pl.ua/disconnection/power-outages/" target="_blank" rel="noopener noreferrer">poe.pl.ua</a>.
             Інші області: відкриті копії сайтів обленерго —
             <a href="https://github.com/yaroslav2901/OE_OUTAGE_DATA" target="_blank" rel="noopener noreferrer">yaroslav2901/OE_OUTAGE_DATA</a>
@@ -167,7 +167,7 @@ OUTAGE_VIEW = """
 
 OUTAGE_JS = """
     // ---- UA Smart Box: power outage schedule ----
-    state.outage={src:'poe',grp:'1.1',interval:10,hc:'#ffffff',sq:true};
+    state.outage={src:'poe',grp:'1.1',interval:10,hc:'#ff0000',sq:true};
     function syncOutageForm(){
       byId('outageSrc').value=state.outage.src;
       byId('outageGroup').value=state.outage.grp;
@@ -183,7 +183,7 @@ OUTAGE_JS = """
         state.outage.src=String(o.src??'poe');
         state.outage.grp=String(o.grp??'1.1');
         state.outage.interval=Math.max(5,toInt(o.i,10));
-        state.outage.hc=/^#[0-9a-fA-F]{6}$/.test(String(o.hc??''))?String(o.hc).toLowerCase():'#ffffff';
+        state.outage.hc=/^#[0-9a-fA-F]{6}$/.test(String(o.hc??''))?String(o.hc).toLowerCase():'#ff0000';
         state.outage.sq=toInt(o.sq,1)!==0;
         syncOutageForm();
       });
