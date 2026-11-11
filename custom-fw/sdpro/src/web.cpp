@@ -1,3 +1,4 @@
+#include "fw_version.h"
 #include "web.h"
 #include <ESP8266WebServer.h>
 #include <LittleFS.h>

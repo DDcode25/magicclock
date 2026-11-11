@@ -1,3 +1,4 @@
+#include "fw_version.h"
 #include "ui.h"
 #include <TFT_eSPI.h>
 #include <time.h>

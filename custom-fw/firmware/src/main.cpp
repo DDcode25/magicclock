@@ -1,5 +1,6 @@
 // UA Smart Box firmware for the GeekMagic SmallTV Pro. Stock-compatible settings, web UI/API and OTA; see ../SPEC.md.
 
+#include "fw_version.h"
 #include <Arduino.h>
 #include <esp_ota_ops.h>
 #include "alerts.h"

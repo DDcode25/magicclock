@@ -1,3 +1,4 @@
+#include "fw_version.h"
 #include "diag.h"
 #include <ArduinoJson.h>
 #include <esp_debug_helpers.h>

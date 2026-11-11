@@ -1,6 +1,7 @@
 // UA Smart Box firmware for the JUZIPi SD PRO (ESP8266). Copy of ../firmware reduced to the weather,
 // clock, alerts and outage apps. Single-threaded: background fetches run one at a time from loop().
 
+#include "fw_version.h"
 #include <Arduino.h>
 #include "alerts.h"
 #include "diag.h"

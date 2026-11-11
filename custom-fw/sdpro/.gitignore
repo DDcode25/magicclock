@@ -1,2 +1,3 @@
 .pio/
 src/web_index.h
+src/fw_version.h
