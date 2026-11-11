@@ -1,6 +1,7 @@
 #include "diag.h"
 #include <ArduinoJson.h>
 #include <user_interface.h>
+#include <umm_malloc/umm_heap_select.h>
 #include "net.h"
 #include <time.h>
 #include "store.h"
@@ -121,6 +122,10 @@ String json() {
   doc["uptime"] = millis() / 1000;
   doc["time"] = (long)time(nullptr);
   doc["heap"] = ESP.getFreeHeap();
+  {
+    HeapSelectIram iram;
+    doc["iramHeap"] = ESP.getFreeHeap();
+  }
   doc["minHeap"] = rtc.lowHeap;
   doc["maxBlock"] = ESP.getMaxFreeBlockSize();
   doc["frag"] = ESP.getHeapFragmentation();
