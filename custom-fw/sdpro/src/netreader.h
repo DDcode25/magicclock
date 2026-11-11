@@ -1,5 +1,6 @@
 #pragma once
 #include <WiFiClient.h>
+#include "diag.h"
 
 // Blocking reader for ArduinoJson over a (TLS) client: the stream returns "nothing yet" between
 // records, which ArduinoJson takes for the end of input (EmptyInput). Waits for data while the
@@ -10,6 +11,7 @@ struct NetReader {
   int read() {
     uint32_t t0 = millis();
     while (!c.available()) {
+      diag::sampleHeap();
       if (!c.connected() || millis() - t0 > timeoutMs) return -1;
       delay(2);
     }

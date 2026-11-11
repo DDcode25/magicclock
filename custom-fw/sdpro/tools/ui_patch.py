@@ -145,6 +145,7 @@ OUTAGE_VIEW = """
           <label class="pair"><span>Область (обленерго)</span><select class="select" id="outageSrc">%s</select></label>
           <label class="pair"><span>Черга (підчерга)</span><select class="select" id="outageGroup">%s</select></label>
           <label class="pair"><span>Інтервал оновлення (хв, мінімум 5)</span><input class="field" id="outageInterval" inputmode="numeric" placeholder="10"></label>
+          <label class="pair"><span>Колір стрілки «зараз» на равлику</span><input class="field" type="color" id="outageHandColor" value="#ffffff"></label>
           <div class="hint">Полтава: офіційний графік з <a href="https://www.poe.pl.ua/disconnection/power-outages/" target="_blank" rel="noopener noreferrer">poe.pl.ua</a>.
             Інші області: відкриті копії сайтів обленерго —
             <a href="https://github.com/yaroslav2901/OE_OUTAGE_DATA" target="_blank" rel="noopener noreferrer">yaroslav2901/OE_OUTAGE_DATA</a>
@@ -165,11 +166,12 @@ OUTAGE_VIEW = """
 
 OUTAGE_JS = """
     // ---- UA Smart Box: power outage schedule ----
-    state.outage={src:'poe',grp:'1.1',interval:10};
+    state.outage={src:'poe',grp:'1.1',interval:10,hc:'#ffffff'};
     function syncOutageForm(){
       byId('outageSrc').value=state.outage.src;
       byId('outageGroup').value=state.outage.grp;
       byId('outageInterval').value=state.outage.interval;
+      byId('outageHandColor').value=state.outage.hc;
       byId('outageGroupLabel').textContent=state.outage.grp;
       byId('outageIntervalLabel').textContent=state.outage.interval+' хв';
     }
@@ -179,6 +181,7 @@ OUTAGE_JS = """
         state.outage.src=String(o.src??'poe');
         state.outage.grp=String(o.grp??'1.1');
         state.outage.interval=Math.max(5,toInt(o.i,10));
+        state.outage.hc=/^#[0-9a-fA-F]{6}$/.test(String(o.hc??''))?String(o.hc).toLowerCase():'#ffffff';
         syncOutageForm();
       });
     }
@@ -186,9 +189,10 @@ OUTAGE_JS = """
       state.outage.src=byId('outageSrc').value;
       state.outage.grp=byId('outageGroup').value;
       state.outage.interval=Math.max(5,toInt(byId('outageInterval').value,10));
+      state.outage.hc=byId('outageHandColor').value;
       setBusy(true);
       try{
-        await send('/set?out_src='+encodeURIComponent(state.outage.src)+'&out_grp='+encodeURIComponent(state.outage.grp)+'&out_i='+state.outage.interval);
+        await send('/set?out_src='+encodeURIComponent(state.outage.src)+'&out_grp='+encodeURIComponent(state.outage.grp)+'&out_i='+state.outage.interval+'&out_hc='+encodeURIComponent(state.outage.hc));
         syncOutageForm();
         toast('Налаштування відключень збережено.',1);
       }catch(err){toast('Не вдалося зберегти: '+err.message,0)}

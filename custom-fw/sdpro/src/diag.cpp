@@ -16,12 +16,30 @@ struct Rtc {
   char last[3][32];
   uint32_t lowHeap;
   uint32_t crashes;  // crash / watchdog resets in a row without STABLE_MS of uptime in between
+  uint32_t trace[12];  // code addresses found on the stack at the last crash (decode with addr2line)
 };
 static const uint32_t STABLE_MS = 120000;
 static Rtc rtc;
 static const uint32_t RTC_OFFSET = 32;  // words; the start of user memory is used by the OTA code
 
 static void save() { ESP.rtcUserMemoryWrite(RTC_OFFSET, (uint32_t *)&rtc, sizeof rtc); }
+
+}  // namespace diag
+
+// Called by the core on an exception / watchdog, before the reset: keep the code addresses on the
+// stack (return addresses, a few false hits) so the next boot can report where it died.
+extern "C" void custom_crash_callback(struct rst_info *, uint32_t stack, uint32_t stack_end) {
+  using diag::rtc;
+  int n = 0;
+  for (uint32_t p = stack; p < stack_end && n < 12; p += 4) {
+    uint32_t v = *(uint32_t *)p;
+    if (v >= 0x40200000 && v < 0x40300000) rtc.trace[n++] = v;
+  }
+  while (n < 12) rtc.trace[n++] = 0;
+  diag::save();
+}
+
+namespace diag {
 
 void begin() {
   const rst_info *ri = ESP.getResetInfoPtr();
@@ -38,6 +56,12 @@ void begin() {
     char b[80];
     snprintf(b, sizeof b, "exc %u epc1 0x%08x excvaddr 0x%08x", ri->exccause, ri->epc1, ri->excvaddr);
     e["panic"] = b;
+    if (rtc.magic == MAGIC) {
+      String t;
+      for (uint32_t a : rtc.trace)
+        if (a) t += String(a, HEX) + ' ';
+      if (t.length()) e["trace"] = t;
+    }
   }
   if (ri->reason != REASON_DEFAULT_RST && rtc.magic == MAGIC) {
     e["ui"] = (const char *)rtc.last[UI];
@@ -50,6 +74,7 @@ void begin() {
   rtc.magic = MAGIC;
   for (auto &l : rtc.last) strlcpy(l, "boot", sizeof l);
   rtc.lowHeap = ESP.getFreeHeap();
+  memset(rtc.trace, 0, sizeof rtc.trace);
   save();
 }
 
@@ -60,6 +85,11 @@ void loop() {
     rtc.crashes = 0;
     save();
   }
+}
+
+void sampleHeap() {
+  uint32_t h = ESP.getFreeHeap();
+  if (h < rtc.lowHeap) rtc.lowHeap = h;
 }
 
 void crumb(Slot slot, const char *what) {

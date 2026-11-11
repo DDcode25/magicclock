@@ -22,6 +22,7 @@ struct Config {
   String src = "poe";
   String group = "1.1";
   int intervalMin = 10;
+  uint16_t handColor = TFT_WHITE;  // "now" marker on the dial
 };
 
 static Config cfg;
@@ -32,14 +33,23 @@ static time_t updatedAt = 0;
 static char error[48] = "";
 static volatile bool fetchNow = true, paused = false;
 
+static uint16_t parseColor(const String &hex, uint16_t def) {
+  if (hex.length() != 7 || hex[0] != '#') return def;
+  long v = strtol(hex.c_str() + 1, nullptr, 16);
+  return ((v >> 8) & 0xF800) | ((v >> 5) & 0x07E0) | ((v & 0xFF) >> 3);  // RGB888 -> RGB565
+}
+
 static void loadConfig() {
   Config c;
   c.src = store::getStr(CONFIG, "src", "poe");
   c.group = store::getStr(CONFIG, "grp", "1.1");
   c.intervalMin = max(5, store::getInt(CONFIG, "i", 10));
+  c.handColor = parseColor(store::getStr(CONFIG, "hc", "#ffffff"), TFT_WHITE);
   bool changed = c.src != cfg.src || c.group != cfg.group;
+  bool recolor = c.handColor != cfg.handColor;
   cfg = c;
   if (changed) valid = false;
+  if (recolor) version++;  // repaint the dial with the new marker colour
 }
 
 static const char POE_URL[] PROGMEM = "https://www.poe.pl.ua/customs/dynamicgpv-info.php";
@@ -231,7 +241,7 @@ static void drawNow(TFT_eSPI &tft) {
   float slot = (t.tm_hour * 60 + t.tm_min) / 30.0f, r0 = bandIn(slot);
   markA = fmodf(slot * 15, 360);
   markR0 = lroundf(r0) - 2, markR1 = lroundf(r0) + W + 2;
-  tft.drawWideLine(px(markA, markR0), py(markA, markR0), px(markA, markR1), py(markA, markR1), 3, TFT_WHITE, TFT_BLACK);
+  tft.drawWideLine(px(markA, markR0), py(markA, markR0), px(markA, markR1), py(markA, markR1), 3, cfg.handColor, TFT_BLACK);
 }
 
 static String hoursText(int slots) { return slots % 2 ? String(slots / 2) + ".5" : String(slots / 2); }
