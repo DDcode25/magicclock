@@ -23,6 +23,7 @@ struct Config {
   String group = "1.1";
   int intervalMin = 10;
   uint16_t handColor = TFT_WHITE;  // "now" marker on the dial
+  bool showQueue = true;           // queue number in the dial centre
 };
 
 static Config cfg;
@@ -46,7 +47,8 @@ static void loadConfig() {
   c.intervalMin = max(5, store::getInt(CONFIG, "i", 10));
   c.handColor = parseColor(store::getStr(CONFIG, "hc", "#ffffff"), TFT_WHITE);
   bool changed = c.src != cfg.src || c.group != cfg.group;
-  bool recolor = c.handColor != cfg.handColor;
+  c.showQueue = store::getInt(CONFIG, "sq", 1) != 0;
+  bool recolor = c.handColor != cfg.handColor || c.showQueue != cfg.showQueue;
   cfg = c;
   if (changed) valid = false;
   if (recolor) version++;  // repaint the dial with the new marker colour
@@ -247,7 +249,8 @@ static void drawNow(TFT_eSPI &tft) {
 static String hoursText(int slots) { return slots % 2 ? String(slots / 2) + ".5" : String(slots / 2); }
 
 // Centre, one under another: queue (28 px), hours without power (possible outages counted in, as on
-// the oblenergo cards) and hours with power (24 px). Drawn over the spiral: the wide lines may touch
+// the oblenergo cards) and hours with power (24 px). With the queue hidden ("sq":0) only the two
+// hour lines, bigger (32 px, narrowed). Drawn over the spiral: the wide lines may touch
 // the band (accepted for a thicker band); the dark anti-aliasing edge keeps them readable.
 // "завтра" goes to the free top-left corner when showing tomorrow. A failed refresh keeps the last
 // schedule on screen (the error is in /outage.json).
@@ -261,16 +264,22 @@ static void drawCenter(TFT_eSPI &tft, const Config &c, const uint8_t *slots) {
     tft.drawString("завтра", 4, 4);
   }
   tft.setTextDatum(MC_DATUM);
-  useFont(tft, FONT_NUM_BIG);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.drawString(c.group, CX, 97);
   int on = 0, off = 0;
   for (int i = 0; i < outage::SLOTS; i++) on += slots[i] == outage::ON, off += slots[i] == outage::OFF || slots[i] == outage::MAYBE;
-  useFont(tft, FONT_NUM);
+  int yOff = CY - 14, yOn = CY + 14;
+  if (c.showQueue) {
+    useFont(tft, FONT_NUM_BIG);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.drawString(c.group, CX, 97);
+    useFont(tft, FONT_NUM);
+    yOff = 121, yOn = 143;
+  } else {
+    useFont(tft, FONT_NUM_XL);
+  }
   tft.setTextColor(C_OFF, TFT_BLACK);
-  tft.drawString("-" + hoursText(off), CX, 121);
+  tft.drawString("-" + hoursText(off), CX, yOff);
   tft.setTextColor(C_ON, TFT_BLACK);
-  tft.drawString("+" + hoursText(on), CX, 143);
+  tft.drawString("+" + hoursText(on), CX, yOn);
 }
 
 static void render(TFT_eSPI &tft, bool clear) {

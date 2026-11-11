@@ -145,6 +145,7 @@ OUTAGE_VIEW = """
           <label class="pair"><span>Область (обленерго)</span><select class="select" id="outageSrc">%s</select></label>
           <label class="pair"><span>Черга (підчерга)</span><select class="select" id="outageGroup">%s</select></label>
           <label class="pair"><span>Інтервал оновлення (хв, мінімум 5)</span><input class="field" id="outageInterval" inputmode="numeric" placeholder="10"></label>
+          <label class="line"><div><strong>Показувати чергу</strong><span>Номер черги в центрі равлика. Без нього години без світла й зі світлом — більшими цифрами.</span></div><span class="switch"><input id="outageShowQueue" type="checkbox"></span></label>
           <label class="pair"><span>Колір стрілки «зараз» на равлику</span><input class="field" type="color" id="outageHandColor" value="#ffffff"></label>
           <div class="hint">Полтава: офіційний графік з <a href="https://www.poe.pl.ua/disconnection/power-outages/" target="_blank" rel="noopener noreferrer">poe.pl.ua</a>.
             Інші області: відкриті копії сайтів обленерго —
@@ -166,12 +167,13 @@ OUTAGE_VIEW = """
 
 OUTAGE_JS = """
     // ---- UA Smart Box: power outage schedule ----
-    state.outage={src:'poe',grp:'1.1',interval:10,hc:'#ffffff'};
+    state.outage={src:'poe',grp:'1.1',interval:10,hc:'#ffffff',sq:true};
     function syncOutageForm(){
       byId('outageSrc').value=state.outage.src;
       byId('outageGroup').value=state.outage.grp;
       byId('outageInterval').value=state.outage.interval;
       byId('outageHandColor').value=state.outage.hc;
+      byId('outageShowQueue').checked=state.outage.sq;
       byId('outageGroupLabel').textContent=state.outage.grp;
       byId('outageIntervalLabel').textContent=state.outage.interval+' хв';
     }
@@ -182,6 +184,7 @@ OUTAGE_JS = """
         state.outage.grp=String(o.grp??'1.1');
         state.outage.interval=Math.max(5,toInt(o.i,10));
         state.outage.hc=/^#[0-9a-fA-F]{6}$/.test(String(o.hc??''))?String(o.hc).toLowerCase():'#ffffff';
+        state.outage.sq=toInt(o.sq,1)!==0;
         syncOutageForm();
       });
     }
@@ -190,9 +193,10 @@ OUTAGE_JS = """
       state.outage.grp=byId('outageGroup').value;
       state.outage.interval=Math.max(5,toInt(byId('outageInterval').value,10));
       state.outage.hc=byId('outageHandColor').value;
+      state.outage.sq=byId('outageShowQueue').checked;
       setBusy(true);
       try{
-        await send('/set?out_src='+encodeURIComponent(state.outage.src)+'&out_grp='+encodeURIComponent(state.outage.grp)+'&out_i='+state.outage.interval+'&out_hc='+encodeURIComponent(state.outage.hc));
+        await send('/set?out_src='+encodeURIComponent(state.outage.src)+'&out_grp='+encodeURIComponent(state.outage.grp)+'&out_i='+state.outage.interval+'&out_hc='+encodeURIComponent(state.outage.hc)+'&out_sq='+(state.outage.sq?1:0));
         syncOutageForm();
         toast('Налаштування відключень збережено.',1);
       }catch(err){toast('Не вдалося зберегти: '+err.message,0)}

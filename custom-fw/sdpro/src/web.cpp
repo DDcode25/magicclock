@@ -94,6 +94,7 @@ static const Field FIELDS[] = {
     {"out_grp", "outage.json", "grp", STR},
     {"out_i", "outage.json", "i", INT},
     {"out_hc", "outage.json", "hc", STR},
+    {"out_sq", "outage.json", "sq", INT},
 };
 
 // "cin3" -> true, idx 3 for prefix "cin"
