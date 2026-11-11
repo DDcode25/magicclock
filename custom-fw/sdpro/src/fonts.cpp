@@ -10,6 +10,7 @@
 #include "fonts/font_num_28b.h"
 #include "fonts/font_digits_71b.h"
 #include "fonts/font_alarm.h"
+#include "fonts/font_weekday_36b.h"
 
 // VLW data currently loaded on the screen (nullptr = built-in fonts). Sprites load every time: they
 // are short-lived and keep their own font.
@@ -34,7 +35,8 @@ void useFont(TFT_eSPI &tft, UiFont font) {
   static const uint8_t *const DATA[] = {nullptr, FONT_UA_15, FONT_UA_24B, FONT_DIGITS_71B, FONT_DIGITS_36B, FONT_DIGITS_45B, FONT_DIGITS_56B, FONT_DIGITS_16B, FONT_NUM_24B, FONT_NUM_28B, FONT_ALARM_DATA,
                                         // Price fonts (Bitcoin app) are not built on the SD PRO.
                                         FONT_UA_24B, FONT_UA_24B, FONT_UA_24B, FONT_UA_24B,
-                                        FONT_UA_24B};  // FONT_HUGE: no room for the 30 px font (81 KB) in the 1 MB app
+                                        FONT_UA_24B,  // FONT_HUGE: no room for the 30 px font (81 KB) in the 1 MB app
+                                        FONT_WEEKDAY_36B};
   load(tft, DATA[font]);
   // TFT_eSPI sizes " " itself (2/7 of the font height); prices use it as the thousands separator: half that.
   bool price = font == FONT_PRICE_XL || font == FONT_PRICE_L || font == FONT_PRICE_M || font == FONT_PRICE_S;
