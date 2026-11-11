@@ -60,7 +60,8 @@ static void loadConfig() {
   cfg = c;
 }
 
-static bool fetch(const Config &c, Snapshot &out, String &err) {
+// One attempt; again = it failed with the trial TLS buffer and is worth repeating (TlsClient::retryBig).
+static bool fetchOnce(const Config &c, Snapshot &out, String &err, bool &again) {
   String url;
   if (c.src == "ubilling") url = F("http://ubilling.net.ua/aerialalerts/");  // plain HTTP: no TLS memory
   else if (c.src == "neptun") url = F("https://neptun.in.ua/api/v1/alerts");
@@ -84,6 +85,7 @@ static bool fetch(const Config &c, Snapshot &out, String &err) {
   int code = http.GET();
   if (code != 200) {
     err = secure ? tls->httpError(code) : "помилка HTTP " + String(code);
+    if (secure && code < 0) again = tls->retryBig();
     http.end();
     return false;
   }
@@ -97,9 +99,16 @@ static bool fetch(const Config &c, Snapshot &out, String &err) {
          : c.src == "neptun" ? parseWith(reader, filterNeptun, fromNeptun, out)
                              : parseKlymenkoStream(reader, out);
   }
+  if (!ok && secure) again = tls->retryBig();
   http.end();
   if (!ok) err = String("погані дані: ") + lastError;
   return ok;
+}
+
+static bool fetch(const Config &c, Snapshot &out, String &err) {
+  bool again = false;
+  if (fetchOnce(c, out, err, again)) return true;
+  return again && fetchOnce(c, out, err, again);
 }
 
 static uint32_t last = 0;

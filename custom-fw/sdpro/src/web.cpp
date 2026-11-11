@@ -421,7 +421,10 @@ void begin() {
   server.on("/flash", HTTP_GET, handleFlash);
   server.on("/alerts.json", HTTP_GET, [] { server.send(200, "application/json", alerts::statusJson()); });
   server.on("/outage.json", HTTP_GET, [] { server.send(200, "application/json", outagescreen::statusJson()); });
-  server.on("/sys.json", HTTP_GET, [] { server.send(200, "application/json", diag::json()); });
+  server.on("/sys.json", HTTP_GET, [] {
+    if (server.hasArg("reset")) diag::resetLow();
+    server.send(200, "application/json", diag::json());
+  });
   server.on("/weather.json", HTTP_GET, [] { server.send(200, "application/json", weather::statusJson()); });
   server.on("/state.json", HTTP_GET, [] { server.send(200, "application/json", ui::stateJson()); });
   server.on("/alerts/test", HTTP_GET, [] {

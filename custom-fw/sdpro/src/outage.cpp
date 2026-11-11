@@ -113,7 +113,8 @@ static String sourceUrl(const String &src) {
   return String(F("https://raw.githubusercontent.com/yaroslav2901/OE_OUTAGE_DATA/main/data/")) + name + ".json";
 }
 
-static bool fetch(const Config &c, Schedule &s, String &err) {
+// One attempt; again = it failed with the trial TLS buffer and is worth repeating (TlsClient::retryBig).
+static bool fetchOnce(const Config &c, Schedule &s, String &err, bool &again) {
   TlsClient client;
   HTTPClient http;
   http.setTimeout(15000);
@@ -124,20 +125,27 @@ static bool fetch(const Config &c, Schedule &s, String &err) {
   int code = http.GET();
   if (code != 200) {
     err = client.httpError(code);
+    if (code < 0) again = client.retryBig();
     http.end();
     return false;
   }
   bool ok;
   if (c.src == "poe") {
     ok = fetchPoe(http.getStream(), c, s, err);
-    http.end();
-    return ok;
+  } else {
+    NetReader reader{http.getStream(), 15000};
+    ok = outage::parse(reader, c.group.c_str(), s);
+    if (!ok) err = String("немає графіка: ") + outage::lastError;
   }
-  NetReader reader{http.getStream(), 15000};
-  ok = outage::parse(reader, c.group.c_str(), s);
+  if (!ok) again = client.retryBig();
   http.end();
-  if (!ok) err = String("немає графіка: ") + outage::lastError;
   return ok;
+}
+
+static bool fetch(const Config &c, Schedule &s, String &err) {
+  bool again = false;
+  if (fetchOnce(c, s, err, again)) return true;
+  return again && fetchOnce(c, s, err, again);
 }
 
 static uint32_t last = 0;

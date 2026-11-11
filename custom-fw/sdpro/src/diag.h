@@ -14,6 +14,7 @@ bool safeMode();
 // One breadcrumb per task kind, so a crash in one is not blamed on another.
 enum Slot { UI = 0, WEB = 1, FETCH = 2 };
 void sampleHeap();  // note the free heap in "minHeap" (RAM only, cheap)
+uint32_t resetLow();  // restart the "low" mark of /sys.json (minHeap keeps the low since boot)
 void crumb(Slot slot, const char *what);  // cheap: copies into RTC memory
 // After a background fetch: logs it (last 8, in /sys.json "kept") when the heap is >8 KB lower than
 // before it, i.e. the fetch left memory allocated.

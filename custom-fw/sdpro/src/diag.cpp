@@ -7,6 +7,11 @@
 #include <time.h>
 #include "store.h"
 
+// Heap low-water mark kept by the allocator (UMM_STATS_FULL): catches the dips inside library calls
+// (TLS handshake, web server) that sampling between our calls misses.
+extern "C" size_t umm_free_heap_size_lw_min(void);
+extern "C" size_t umm_free_heap_size_min_reset(void);
+
 namespace diag {
 
 static const char *LOG = "/.sys/boots.json";
@@ -89,15 +94,22 @@ void loop() {
   }
 }
 
-void sampleHeap() {
-  uint32_t h = ESP.getFreeHeap();
+// Lowest free heap since boot, also across /sys.json?reset=1 (which restarts only the allocator's mark).
+static void noteLow() {
+  uint32_t h = umm_free_heap_size_lw_min();
   if (h < rtc.lowHeap) rtc.lowHeap = h;
+}
+
+void sampleHeap() { noteLow(); }
+
+uint32_t resetLow() {
+  noteLow();
+  return umm_free_heap_size_min_reset();
 }
 
 void crumb(Slot slot, const char *what) {
   strlcpy(rtc.last[slot], what, sizeof rtc.last[slot]);
-  uint32_t h = ESP.getFreeHeap();
-  if (h < rtc.lowHeap) rtc.lowHeap = h;
+  noteLow();
   save();
 }
 
@@ -127,7 +139,9 @@ String json() {
     HeapSelectIram iram;
     doc["iramHeap"] = ESP.getFreeHeap();
   }
+  noteLow();
   doc["minHeap"] = rtc.lowHeap;
+  doc["low"] = umm_free_heap_size_lw_min();  // since the last /sys.json?reset=1
   doc["maxBlock"] = ESP.getMaxFreeBlockSize();
   doc["frag"] = ESP.getHeapFragmentation();
   doc["reset"] = ESP.getResetReason();
