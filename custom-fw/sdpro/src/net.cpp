@@ -117,6 +117,9 @@ void begin() {
   if (!store::mounted() || store::getStr("/.sys/config.json", "a", "").isEmpty()) importSdkWifi();
   WiFi.persistent(false);  // credentials live in /.sys, not the SDK config
   WiFi.mode(WIFI_STA);
+  // No modem sleep: asleep between beacons the radio answered 5..225 ms late and an OTA upload
+  // crawled at a few hundred bytes/s. Mains powered, so the extra ~15 mA do not matter.
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
   WiFi.hostname(HOSTNAME);
   WiFi.setAutoReconnect(true);
 

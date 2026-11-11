@@ -331,11 +331,12 @@ static void handleUpdateData() {
   } else if (u.status == UPLOAD_FILE_END) {
     if (wrongChip) return;
     if (!Update.end(true)) Update.printError(Serial);
-  } else if (u.status == UPLOAD_FILE_ABORTED) {
+  } else if (u.status == UPLOAD_FILE_ABORTED) {  // connection lost: back to the apps
     Update.end(false);
     alerts::pause(false);
     weather::pause(false);
     outagescreen::pause(false);
+    ui::applySettings();
   }
 }
 
