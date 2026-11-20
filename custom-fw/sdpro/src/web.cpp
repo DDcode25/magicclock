@@ -126,7 +126,10 @@ class Batch {
 
 // Assign through doc[key] directly: converting it to JsonVariant first would not create
 // a missing key, and the value would be silently dropped.
-static void setValue(JsonDocument &doc, const char *key, const String &v, Kind kind) {
+// key is a String on purpose: ArduinoJson 7.2 stores a `const char *` key by pointer
+// (it assumes a literal), and the caller's key lives in a stack copy of a PROGMEM Field,
+// so every key would end up pointing at the same reused buffer. A String key is copied.
+static void setValue(JsonDocument &doc, const String &key, const String &v, Kind kind) {
   switch (kind) {
     case STR: doc[key] = v; break;
     case INT: doc[key] = v.toInt(); break;
