@@ -66,6 +66,7 @@ static void drawTime(TFT_eSPI &tft, const struct tm &t) {
 static void drawDay(TFT_eSPI &tft, const struct tm &t) {
   tft.fillRect(0, 10, 240, 62, TFT_BLACK);
   tft.fillRect(0, 200, 240, 40, TFT_BLACK);
+  shownBottom = -1;  // the fill cuts the caption's descenders: redraw it
   tft.setTextDatum(MC_DATUM);
   tft.setTextColor(TFT_LIGHTGREY, TFT_BLACK);
   useFont(tft, FONT_WEEKDAY);
@@ -83,7 +84,7 @@ static void drawSeconds(TFT_eSPI &tft, const struct tm &t, time_t now) {
   int bottom = 0;  // 0 seconds, 1 countdown to off, 2 countdown to on
   if (countdown && outagescreen::nextChange(now, powerOn, at)) bottom = powerOn ? 2 : 1;
   if (bottom != shownBottom) {
-    tft.fillRect(0, 150, 240, 50, TFT_BLACK);
+    tft.fillRect(0, 141, 240, 59, TFT_BLACK);
     shownBottom = bottom;
     if (bottom) {
       useFont(tft, FONT_SMALL);
@@ -103,7 +104,8 @@ static void drawSeconds(TFT_eSPI &tft, const struct tm &t, time_t now) {
     String text = String(left / 3600) + ":" + two(left / 60 % 60) + ":" + two(left % 60);
     tft.setTextColor(bottom == 2 ? C_ON : C_OFF, TFT_BLACK, true);
     tft.setTextPadding(tft.textWidth("00:00:00") + 4);
-    tft.drawString(text, 120, 170);
+    // 162: its background box (rows 141..183) stays clear of the caption below (from row 184).
+    tft.drawString(text, 120, 162);
   }
   tft.setTextPadding(0);
 }
