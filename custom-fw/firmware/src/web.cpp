@@ -4,6 +4,7 @@
 #include <LittleFS.h>
 #include <Update.h>
 #include <esp_flash.h>
+#include <nvs_flash.h>
 #include <map>
 #include "alerts.h"
 #include "apps.h"
@@ -213,13 +214,18 @@ static void handleSet() {
     restartSoon("Перезапуск");
   }
   if (server.hasArg("reset")) {
-    // Factory reset of settings; Wi-Fi (config.json) is kept so the device stays reachable.
+    // Reset to defaults: every settings file in /.sys and the whole NVS partition (stock
+    // firmware leftovers, SDK data) are erased. Wi-Fi (config.json, wifis.json) is kept so the
+    // OTA-only device stays reachable; uploaded media are kept too.
     ok();
     File d = LittleFS.open("/.sys");
     std::vector<String> files;
     for (File f = d.openNextFile(); f; f = d.openNextFile())
-      if (strcmp(f.name(), "config.json")) files.push_back(String("/.sys/") + f.name());
+      if (strcmp(f.name(), "config.json") && strcmp(f.name(), "wifis.json")) files.push_back(String("/.sys/") + f.name());
+    d.close();
     for (auto &p : files) LittleFS.remove(p);
+    esp_err_t err = nvs_flash_erase();
+    Serial.printf("reset: %u files removed, NVS erase %s\n", (unsigned)files.size(), esp_err_to_name(err));
     restartSoon("Скидання");
   }
   if (server.hasArg("clear")) {

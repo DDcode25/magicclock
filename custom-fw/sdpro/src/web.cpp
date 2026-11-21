@@ -174,13 +174,20 @@ static void handleSet() {
     restartSoon(F("Перезапуск"));
   }
   if (server.hasArg(F("reset"))) {
-    // Factory reset of settings; Wi-Fi (config.json) is kept so the device stays reachable.
+    // Reset to defaults: every settings file in /.sys and the SDK config sectors (the ESP8266
+    // counterpart of NVS: SDK Wi-Fi settings, stock firmware leftovers) are erased. Wi-Fi
+    // (config.json, wifis.json) is kept so the OTA-only device stays reachable; uploaded media
+    // are kept too. RF calibration is redone on the next boot.
     ok();
     File d = LittleFS.open(F("/.sys"), "r");
     std::vector<String> files;
     for (File f = d.openNextFile(); f; f = d.openNextFile())
-      if (strcmp_P(f.name(), PSTR("config.json"))) files.push_back(String(F("/.sys/")) + f.name());
+      if (strcmp_P(f.name(), PSTR("config.json")) && strcmp_P(f.name(), PSTR("wifis.json")))
+        files.push_back(String(F("/.sys/")) + f.name());
+    d.close();
     for (auto &p : files) LittleFS.remove(p);
+    bool erased = ESP.eraseConfig();
+    Serial.printf_P(PSTR("reset: %u files removed, SDK config erase %s\n"), (unsigned)files.size(), erased ? "ok" : "failed");
     restartSoon(F("Скидання"));
   }
   if (server.hasArg(F("clear"))) {
