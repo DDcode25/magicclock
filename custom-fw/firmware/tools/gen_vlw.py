@@ -5,7 +5,9 @@ Usage: gen_vlw.py <font.ttf> <pixel size> <symbol name> <out.h> [digits|numbers|
 Glyphs: ASCII, Ukrainian/Russian Cyrillic and a few punctuation marks, or with "digits" only what a
 clock needs (smaller). Rendered with Pillow/FreeType.
 VLW layout (big-endian int32): header [count, version 11, size, 0, ascent, descent],
-then per glyph [unicode, height, width, xAdvance, dY (top above baseline), dX, 0], then 8-bit bitmaps.
+then per glyph [unicode, height, width, xAdvance, dY (top above baseline), dX, 0], then the bitmaps.
+Version 12 = our 4-bit variant: two pixels per byte, high nibble first, each glyph padded to a whole
+byte (half the flash of 8-bit VLW; tools/tft_patch.py teaches TFT_eSPI to read it).
 """
 import struct
 import sys
@@ -23,6 +25,12 @@ DIGITS = list("0123456789:- ")
 NUMBERS = list("0123456789+-.: ")  # signed decimals, e.g. "+18.5"
 PRICE = list("0123456789.,'+-% ")
 WEEKDAYS = list("неділяпонеділоквівтороксередачетверп’ятницясубота")  # Clock app weekday line  # prices and changes with any separators, e.g. "80,846.63" "+0.83%"
+
+
+def pack4(alpha):
+    """8-bit alpha bytes -> 4-bit, two pixels per byte, high nibble first (VLW version 12)."""
+    q = [(v * 15 + 127) // 255 for v in alpha] + [0]
+    return bytes((q[i] << 4) | q[i + 1] for i in range(0, len(alpha), 2))
 
 
 def render(ttf, size, chars, xscale=1.0):
@@ -45,9 +53,9 @@ def render(ttf, size, chars, xscale=1.0):
             img = img.resize((w, h), Image.LANCZOS)
             x0 = round(x0 * xscale)
         metrics.append((ord(ch), h, w, adv, -y0, x0))
-        bitmaps.append(img.tobytes())
+        bitmaps.append(pack4(img.tobytes()))
 
-    data = struct.pack(">6i", len(metrics), 11, size, 0, ascent, descent)
+    data = struct.pack(">6i", len(metrics), 12, size, 0, ascent, descent)
     for m in metrics:
         data += struct.pack(">7i", *m, 0)
     return data + b"".join(bitmaps)
